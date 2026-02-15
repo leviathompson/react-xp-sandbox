@@ -12,6 +12,7 @@ An authentic recreation of Windows XP, created using **React** and **Typescript*
 - Browsable **File Explorer** with back and forward functionality
 - **Internet Explorer** with Wayback Machine implementation for period accurate web browsing.
 - **Run** can open applications and Folders, either by internal appId, or title. URLs will also open in Internet Explorer.
+- Login, Shutdown and boot up sequences
 
 ## Roadmap
 
@@ -21,9 +22,6 @@ This is an ongoing project, with many more features I’d like to include in the
 - Clippy
 - MSN Messenger
 - Solitaire
-- Shutdown and boot up sequences
-- Sounds
-
 
 ## Demo
 
