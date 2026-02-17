@@ -38,8 +38,9 @@ export const initialState: State = {
         id: generateUniqueId(),
         appId: "readme",
         active: true,
-        history: [],
-        forward: []
+    }, {
+        id: generateUniqueId(),
+        appId: "displayProperties",
     }],
     isStartVisible: false,
     isAllProgramsOpen: false,

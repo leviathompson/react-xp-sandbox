@@ -13,7 +13,6 @@
 
         ul {
             margin-top: -1.55rem;
-            margin-left: -0.1rem;
         }
 
         li {
@@ -21,7 +20,7 @@
             border-radius: 0.3rem 0.3rem 0 0;
             background-color: #f0f0ea;
             background-image: linear-gradient(to top, #edece7, #fff);
-            
+
             &[data-active="true"] {
                 border-bottom: none;
                 border-top: 0.1rem solid #dda564;
@@ -43,7 +42,100 @@
                     left: 0;
                     top: 0;
                 }
-                
+
+            }
+        }
+    }
+
+    .wallpaperPreview {
+        background-image: url("/preview_wallpaper.png");
+        background-size: 126px;
+        background-position: 81px 10px;
+        background-repeat: no-repeat;
+
+        img {
+            object-fit: cover;
+            height: 7.9rem;
+            margin-top: 2.1rem;
+        }
+    }
+
+    .wallpaperList {
+        border: 0.1rem solid #a3b5c8;
+        background-color: #fff;
+
+        img {
+            object-fit: contain;
+        }
+
+        li span {
+            border: 1px solid transparent;
+        }
+
+        li[data-selected="true"] {
+            span {
+                background: #4069bf;
+                border: 0.1rem dotted #b9a889;
+                color: #fff;
+            }
+        }
+    }
+
+    .inputField {
+        border: 1px solid #859cb6aa;
+        border-radius: 0.2rem;
+        flex-grow: 1;
+        margin-bottom: -0.2rem;
+        height: 1.8rem;
+        background-color: #fff;
+        position: relative;
+
+        &:not([data-disabled]):hover {
+            &:after {
+                background-position: right;
+            }
+        }
+
+        &[data-disabled] {
+            opacity: 0.7;
+            filter: saturate(0);
+            cursor: not-allowed;
+        }
+
+        &:after {
+            content: "";
+            position: absolute;
+            background-image: url("/spritesheet__drop_down.png");
+            background-size: 28px 16px;
+            background-repeat: no-repeat;
+            background-position: left;
+            width: 1.4rem;
+            height: 100%;
+            right: 0;
+        }
+
+        img {
+            object-fit: contain;
+        }
+
+        input {
+            border: none;
+
+            &:hover,
+            &:focus {
+                outline: none;
+            }
+        }
+
+        .dropDown {
+            text-indent: -999rem;
+            background-image: url("/spritesheet__drop_down.png");
+            width: 1.8rem;
+            height: 100%;
+            background-size: cover;
+
+            &:hover {
+                background-position: -1.3rem;
             }
         }
     }
