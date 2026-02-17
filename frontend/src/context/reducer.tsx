@@ -29,10 +29,10 @@ export const reducer = (state: State, action: Action): State => {
     default:
         return state;
     }
-};;
+};
 
 export const initialState: State = {
-    wallpaper: defaultWallpaper,
+    wallpaper: sessionStorage.getItem("wallpaper") || defaultWallpaper,
     currentTime: new Date(),
     currentWindows: [{
         id: generateUniqueId(),

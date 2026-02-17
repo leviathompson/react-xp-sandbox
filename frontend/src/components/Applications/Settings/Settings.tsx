@@ -48,6 +48,7 @@ const Setting = () => {
     const onApply = () => {
         if (selectedTab === "desktop") {
             dispatch({ type: "SET_WALLPAPER", payload: selectedWallpaper});
+            sessionStorage.setItem("wallpaper", selectedWallpaper);
         }
     };
 
@@ -67,8 +68,8 @@ const Setting = () => {
                         {/* <li onClick={tabClickHandler} className="px-2 cursor-pointer" data-tab-name="themes">Themes</li> */}
                         <li onClick={tabClickHandler} className="px-2 cursor-pointer" data-tab-name="desktop" data-active="true">Desktop</li>
                         {/* <li onClick={tabClickHandler} className="px-2 cursor-pointer" data-tab-name="screensaver">Screensaver</li>
-                        <li onClick={tabClickHandler} className="px-2 cursor-pointer" data-tab-name="appearance">Appearance</li>
-                        <li onClick={tabClickHandler} className="px-2 cursor-pointer" data-tab-name="settings">Settings</li> */}
+                        <li onClick={tabClickHandler} className="px-2 cursor-pointer" data-tab-name="appearance">Appearance</li> */}
+                        <li onClick={tabClickHandler} className="px-2 cursor-pointer" data-tab-name="settings">Settings</li>
                     </ul>
                 </nav>
                 <div className="p-3 h-full">

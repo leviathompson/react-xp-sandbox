@@ -20,6 +20,18 @@ export const Provider = ({ children }: { children: ReactNode }) => {
                 console.error("Failed to parse windowColor from localStorage", error);
             }
         }
+
+        const wallpaperJSON = sessionStorage.getItem("wallpaper");
+        if (wallpaperJSON) {
+            try {
+                const wallpaper = JSON.parse(wallpaperJSON);
+                if(!wallpaper) return;
+                
+                dispatch({ type: "SET_WALLPAPER", payload: wallpaper});
+            } catch (error) {
+                console.error("Failed to parse wallpaper from localStorage", error);
+            }
+        }
     }, []);
 
     return (
