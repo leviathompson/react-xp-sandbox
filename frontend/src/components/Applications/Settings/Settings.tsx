@@ -55,6 +55,8 @@ const Setting = () => {
         ["bliss", "Bliss"],
         ["autumn", "Autumn"],
         ["red_moon_desert", "Red Moon Desert"],
+        ["friend", "Friend"],
+        ["follow", "Follow"],
     ];
 
     return (
