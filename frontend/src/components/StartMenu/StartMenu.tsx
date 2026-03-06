@@ -65,15 +65,15 @@ const StartMenu = ({ startButton }: StartMenuProps) => {
             <main className="flex">
                 <section className="bg-white text-[#373738] flex flex-col justify-between">
                     <div>
-                        <ul className="flex flex-col p-3">
+                        <ul className="flex flex-col p-3 gap-1.5">
                             <li><StartMenuItem appId="internetExplorer" subTitle="Internet" /></li>
                             <li><StartMenuItem appId="outlook" subTitle="E-mail" /></li>
                         </ul>
-                        <ul className="flex flex-col p-3">
+                        <ul className="flex flex-col p-3 gap-1.5">
+                            <li><StartMenuItem appId="notepad" iconSize={30} /></li>
                             <li><StartMenuItem appId="winMessenger" iconSize={30} /></li>
                             <li><StartMenuItem appId="msn" iconSize={30} /></li>
                             <li><StartMenuItem appId="winMediaPlayer" iconSize={30} /></li>
-                            <li><StartMenuItem appId="notepad" iconSize={30} /></li>
                             <li><StartMenuItem appId="displayProperties" iconSize={30} /></li>
                         </ul>
                     </div>

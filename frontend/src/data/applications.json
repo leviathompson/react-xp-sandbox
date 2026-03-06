@@ -227,6 +227,7 @@
     },
     "displayProperties": {
         "title": "Display Properties",
+        "iconLarge": "/icon_style_options--large.png",
         "showOnTaskbar": false,
         "resizable": false,
         "component": "Settings",

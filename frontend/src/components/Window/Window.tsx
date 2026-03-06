@@ -17,7 +17,7 @@ const applications = applicationsJSON as unknown as Record<string, Application>;
 
 const Window = ({ ...props }: WindowProps) => {
     const { id, appId, children, active = false, hidden = false } = props;
-    const { title, icon, iconLarge, width = 500, height = 350, top = 75, right = undefined, bottom = undefined, left = 100, resizable = true } = { ...applications[appId] };
+    const { title, icon, iconLarge, showOnTaskbar, width = 500, height = 350, top = 75, right = undefined, bottom = undefined, left = 100, resizable = true } = { ...applications[appId] };
     const { currentWindows, dispatch } = useContext();
 
     const dragWindowPadding = (window.innerWidth < 500) ? 12 : 3;
@@ -243,8 +243,8 @@ const Window = ({ ...props }: WindowProps) => {
                 <div className="w-full h-full pointer-events-none">
                     <div ref={titleBarRef} className={`${styles.titleBar} flex justify-between pointer-events-auto`} data-label="titlebar" onPointerDown={onTitleBarPointerDown} onDoubleClick={() => toggleMaximizeWindow(activeWindow)}>
                         <div className="flex items-center">
-                            {(icon || iconLarge) && <img src={icon || iconLarge} width="14" height="14" className="mx-2 min-w-[1.4rem]"></img>}
-                            <h3 className={(icon || iconLarge) ? "" : "ml-2"}>{title}</h3>
+                            {showOnTaskbar && (icon || iconLarge) && <img src={icon || iconLarge} width="14" height="14" className="mx-2 min-w-[1.4rem]"></img>}
+                            <h3 className={(showOnTaskbar && (icon || iconLarge)) ? "" : "ml-2"}>{title}</h3>
                         </div>
                         <div className="flex">
                             {resizable && (
