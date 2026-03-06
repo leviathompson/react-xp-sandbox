@@ -124,12 +124,35 @@ const Setting = () => {
                     <section className="hidden h-full" data-content-tab="settings">
                         <div className="flex flex-col justify-between h-full">
                             <div className={`${styles.wallpaperPreview} flex h-full`}>
-                                <img className="m-auto" src={`/wallpaper__${selectedWallpaper}.jpg`} width="110" />
+                                <img className="m-auto" src={`/spritesheet__zoom_range.png`} width="110" style={{objectPosition: (zoomValue === 11) ? "0%" : (zoomValue === 9) ? "100%" : "50%"}} />
                             </div>
                             <div>
-                                <p>Display:</p>
-                                <p>(Default Monitor) on</p>
-                                <input ref={zoomRangeRef} type="range" min="9" defaultValue={zoomValue} max="11" onChange={onZoomChange} style={{direction: "rtl"}}/>
+                                <div className="mt-4.5">
+                                    <p>Display:</p>
+                                    <p>(Default Monitor) on</p>
+                                </div>
+                                <div className="flex gap-4 my-4">
+                                    <div className={`${styles.inputGroup} border-gray-300 border rounded-md p-4 relative flex-1 flex flex-col items-center`}>
+                                        <label htmlFor="zoom-range" className="absolute px-1 top-0 left-2">Screen Resolution</label>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <span>Less</span>
+                                            <div className={styles.rangeContainer}>
+                                                <input name="zoom-range" id="zoom-range" ref={zoomRangeRef} className="w-full max-w-28 mb-1.5" type="range" min="9" defaultValue={zoomValue} max="11" onChange={onZoomChange} style={{direction: "rtl"}}/>
+                                                <div className={`${styles.rangeNotches} w-full max-w-28`}>
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                </div>
+                                            </div>
+                                            <span>More</span>
+                                        </div>
+                                        
+                                        <span className="mt-2">{zoomValue === 9 ? "1280 by 1024 pixels" : zoomValue === 11 ? "800 by 600 pixels" : "1024 by 768 pixels"}</span>
+                                    </div>
+                                    <div className={`${styles.inputGroup} border-gray-300 border rounded-md p-4 relative flex-1`}>
+                                        <label htmlFor="image-quality" className="absolute px-1 top-0 left-2">Image Quality</label>
+                                    </div>
+                                </div>
     
                                 <div className="flex justify-end gap-2">
                                     <Button disabled>Troubleshoot</Button>
