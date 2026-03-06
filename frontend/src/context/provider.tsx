@@ -7,6 +7,14 @@ export const Provider = ({ children }: { children: ReactNode }) => {
     const [state, dispatch] = useReducer(reducer, initialState);
 
     useEffect(() => {
+        if (state.isCRTEnabled) {
+            document.body.classList.add("crt-effect");
+        } else {
+            document.body.classList.remove("crt-effect");
+        }
+    }, [state.isCRTEnabled]);
+
+    useEffect(() => {
         if (typeof window === "undefined") return;
 
         const loggedInJSON = sessionStorage.getItem("loggedIn");

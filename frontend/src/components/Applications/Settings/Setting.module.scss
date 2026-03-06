@@ -87,7 +87,9 @@
         }
     }
 
-    .inputField {
+    .inputField,
+    .selectField {
+        appearance: none;
         border: 0.1rem solid #859cb6aa;
         border-radius: 0.2rem;
         flex-grow: 1;
@@ -118,6 +120,7 @@
             width: 1.4rem;
             height: 100%;
             right: 0;
+            pointer-events: none;
         }
 
         img {
@@ -216,7 +219,13 @@
                 background-color: #b6b6aa;
                 display: block;
             }
+        }
 
+        .imageQualityPreview {
+            border-top: 0.1rem solid #afa99e;
+            border-left: 0.1rem solid #afa99e;
+            border-bottom: 0.1rem solid #fff;
+            border-right: 0.1rem solid #fff;
         }
     }
 }

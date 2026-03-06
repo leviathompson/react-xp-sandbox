@@ -26,6 +26,8 @@ export const reducer = (state: State, action: Action): State => {
         return { ...state, isInitialBoot: action.payload };
     case "SET_TRANSITION_LABEL":
         return { ...state, transitionLabel: action.payload };
+    case "SET_IS_CRT_ENABLED": 
+        return { ...state, isCRTEnabled: action.payload };
     default:
         return state;
     }
@@ -50,4 +52,5 @@ export const initialState: State = {
     initiationStage: 0,
     isInitialBoot: true,
     transitionLabel: "",
+    isCRTEnabled: true,
 };

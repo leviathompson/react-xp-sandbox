@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useContext } from "../../../context/context";
 import Button from "../../Button/Button";
 import styles from "./Setting.module.scss";
 
 const Setting = () => {
-    const { currentWindows, wallpaper, dispatch } = useContext();
+    const { currentWindows, isCRTEnabled, wallpaper, dispatch } = useContext();
 
     const tabMenuRef = useRef<HTMLElement | null>(null);
     const zoomRangeRef = useRef<HTMLInputElement | null>(null);
@@ -12,7 +12,6 @@ const Setting = () => {
     const [selectedWallpaper, setSelectedWallpaper] = useState(wallpaper);
     const [selectedTab, setSelectedTab] = useState<string | undefined>("desktop");
     const [zoomValue, setZoomValue] = useState(10);
-
 
     if (!tabMenuRef) return;
     
@@ -132,7 +131,7 @@ const Setting = () => {
                                     <p>(Default Monitor) on</p>
                                 </div>
                                 <div className="flex gap-4 my-4">
-                                    <div className={`${styles.inputGroup} border-gray-300 border rounded-md p-4 relative flex-1 flex flex-col items-center`}>
+                                    <div className={`${styles.inputGroup} border-gray-300 border rounded-md p-3 relative flex-1 flex flex-col items-center`}>
                                         <label htmlFor="zoom-range" className="absolute px-1 top-0 left-2">Screen Resolution</label>
                                         <div className="flex items-center gap-2 mt-2">
                                             <span>Less</span>
@@ -149,8 +148,18 @@ const Setting = () => {
                                         
                                         <span className="mt-2">{zoomValue === 9 ? "1280 by 1024 pixels" : zoomValue === 11 ? "800 by 600 pixels" : "1024 by 768 pixels"}</span>
                                     </div>
-                                    <div className={`${styles.inputGroup} border-gray-300 border rounded-md p-4 relative flex-1`}>
+                                    <div className={`${styles.inputGroup} border-gray-300 border rounded-md p-3 relative flex-1`}>
                                         <label htmlFor="image-quality" className="absolute px-1 top-0 left-2">Image Quality</label>
+                                        <div className={`${styles.selectField} mt-2`}>
+                                            <select className="w-full pl-2 pt-1" onChange={(e) => dispatch({ type: "SET_IS_CRT_ENABLED", payload: !!Number(e.currentTarget.value) })}>
+                                                <option value="1">CRT Scanlines</option>
+                                                <option value="0">No Scanlines</option>
+                                            </select>
+                                            <span className={styles.dropDown}></span>
+                                        </div>
+                                        <div className="w-full relative mt-4">
+                                            <img className={`${styles.imageQualityPreview} object-cover h-[1.33rem] absolute m-0 w-full`} src={`/spritesheet__image_quality.png`} width="110" style={{objectPosition: (isCRTEnabled) ? "0%" : "100%"}} />
+                                        </div>
                                     </div>
                                 </div>
     

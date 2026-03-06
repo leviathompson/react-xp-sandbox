@@ -61,6 +61,7 @@ export interface State {
     initiationStage: number;
     isInitialBoot: boolean;
     transitionLabel: string;
+    isCRTEnabled: boolean;
 }
 
 export type Action =
@@ -75,6 +76,7 @@ export type Action =
     | { type: "SET_INITIATION_STAGE"; payload: number; }
     | { type: "SET_IS_INITIAL_BOOT"; payload: boolean; }
     | { type: "SET_TRANSITION_LABEL"; payload: string; }
+    | { type: "SET_IS_CRT_ENABLED"; payload: boolean; }
 
 
 export interface ContextType extends State {
