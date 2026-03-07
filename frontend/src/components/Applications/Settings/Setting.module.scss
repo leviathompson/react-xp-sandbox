@@ -93,10 +93,13 @@
         border: 0.1rem solid #859cb6aa;
         border-radius: 0.2rem;
         flex-grow: 1;
-        margin-bottom: -0.2rem;
         height: 1.8rem;
         background-color: #fff;
         position: relative;
+
+        @include theme-color("green") {
+            border: 0.1rem solid rgba(174, 182, 133, 0.67);
+        }
 
         &:not([data-disabled]):hover {
             &:after {
@@ -121,6 +124,10 @@
             height: 100%;
             right: 0;
             pointer-events: none;
+
+            @include theme-color("green") {
+                filter: hue-rotate(210deg);
+            }
         }
 
         img {
@@ -143,6 +150,10 @@
             height: 100%;
             background-size: cover;
 
+            @include theme-color("green") {
+                filter: hue-rotate(210deg);
+            }
+
             &:hover {
                 background-position: -1.3rem;
             }
@@ -152,10 +163,19 @@
     .inputGroup {
         font-size: 0.9rem;
 
+        input[type="text"],
+        select {
+            font-size: 1rem;
+        }
+
         label {
             transform: translateY(-54%);
             background: #f9f8f7;
             color: #224ece;
+
+            @include theme-color("green") {
+                color: #565f3c;
+            }
         }
 
         .rangeContainer {

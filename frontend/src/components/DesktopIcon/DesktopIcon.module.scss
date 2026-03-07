@@ -45,6 +45,10 @@
             mask-size: 3rem 3rem;
             mask-repeat: no-repeat;
 
+            @include theme-color("green") {
+                background: #95a075;
+            }
+
             img {
                 mix-blend-mode: soft-light;
             }
@@ -54,6 +58,11 @@
             background-color: #4069bf;
             border: 0.1rem dotted #a79c87;
             text-shadow: none;
+
+            @include theme-color("green") {
+                background-color: #95a075;
+                border: 0.1rem dotted #645e6d;
+            }
         }
     }
 }

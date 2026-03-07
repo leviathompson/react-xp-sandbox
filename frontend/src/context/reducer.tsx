@@ -28,6 +28,8 @@ export const reducer = (state: State, action: Action): State => {
         return { ...state, transitionLabel: action.payload };
     case "SET_IS_CRT_ENABLED": 
         return { ...state, isCRTEnabled: action.payload };
+    case "SET_THEME_COLOR": 
+        return { ...state, themeColor: action.payload };
     default:
         return state;
     }
@@ -53,4 +55,5 @@ export const initialState: State = {
     isInitialBoot: true,
     transitionLabel: "",
     isCRTEnabled: true,
+    themeColor: "blue",
 };

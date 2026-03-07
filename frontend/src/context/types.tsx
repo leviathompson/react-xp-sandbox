@@ -48,6 +48,7 @@ export type File = AbsoluteObject & {
 }
 
 export type windowsInitiationState = "shutDown" | "bios" | "welcome" | "transition" | "login" | "loggingIn" | "loggedIn";
+export type themeColor = "blue" | "green" | "silver";
 
 export interface State {
     wallpaper: string;
@@ -62,6 +63,7 @@ export interface State {
     isInitialBoot: boolean;
     transitionLabel: string;
     isCRTEnabled: boolean;
+    themeColor: themeColor;
 }
 
 export type Action =
@@ -77,6 +79,7 @@ export type Action =
     | { type: "SET_IS_INITIAL_BOOT"; payload: boolean; }
     | { type: "SET_TRANSITION_LABEL"; payload: string; }
     | { type: "SET_IS_CRT_ENABLED"; payload: boolean; }
+    | { type: "SET_THEME_COLOR"; payload: themeColor;}
 
 
 export interface ContextType extends State {

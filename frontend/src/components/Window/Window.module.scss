@@ -15,6 +15,10 @@
         &>div {
             background: #162abe;
             box-shadow: none;
+
+            @include theme-color("green") {
+                background: #859062;
+            }
         }
 
         .titleBar {
@@ -23,11 +27,22 @@
             text-shadow: 0.1rem 0.1rem 0.1rem #162abe;
             cursor: default;
 
+            @include theme-color("green") {
+                background: linear-gradient(180deg, #a7b58d 0%, #e9f2c9 6%, #b0bb8a 25%, #c4cd9b 80%, #9daa74 100%);
+                box-shadow: inset 0.1rem 0 0.3rem #859062, inset -0.1rem 0 0.3rem #859062;
+                text-shadow: 0.1rem 0.1rem 0.1rem #5e6948;
+            }
+
+
             button {
                 filter: none;
 
                 &:hover {
                     filter: brightness(1.3);
+
+                    @include theme-color("green") {
+                        filter: brightness(1.1);
+                    }
                 }
             }
         }
@@ -35,6 +50,10 @@
         .windowContent {
             box-shadow: 0rem 0.05rem 0rem 0.1rem #2b5be0;
             overflow: hidden;
+
+            @include theme-color("green") {
+                box-shadow: 0rem 0.05rem 0rem 0.1rem #c4cd9b;
+            }
         }
 
 
@@ -64,6 +83,10 @@
         min-width: fit-content;
         box-shadow: inset 0 0 0.1rem 0.1rem #0004;
         transition: all 0.1s ease;
+
+        @include theme-color("green") {
+            background: #b1b4a0;
+        }
     }
 
     .titleBar {
@@ -81,6 +104,13 @@
         white-space: nowrap;
         gap: 1rem;
         transition: all 0.1s ease;
+
+        @include theme-color("green") {
+            background: #eeecd7;
+            background: linear-gradient(180deg, #d6d6bf 0%, #eeecd7 6%, #d5d7be 25%, #e0e1c6 80%, #b8baa7 100%);
+            box-shadow: inset 0.1rem 0 0.3rem #b1b4a0, inset -0.1rem 0 0.3rem #b1b4a0;
+            text-shadow: 0.1rem 0.1rem 0.1rem #939683;
+        }
 
         h3 {
             text-overflow: ellipsis;
@@ -103,8 +133,19 @@
             filter: saturate(0.7) opacity(0.6) brightness(1.3);
             transition: all 0.1s ease;
 
+            @include theme-color("green") {
+                &:not([data-button="close"]) {
+                    box-shadow: inset 0 0 0 0.1rem rgba(79, 83, 61, 0.2), inset 0.2rem 0.2rem 0.3rem #bcc2a0, inset -0.2rem -0.2rem 0.1rem #808760;
+                    background: radial-gradient(circle at 85% 85%, #939d72 50%, #a6ae8c 70%, #bdc69e 100%);
+                }
+            }
+
             &:hover {
                 filter: saturate(0.7) opacity(0.6) brightness(1.6);
+
+                @include theme-color("green") {
+                    filter: saturate(0.7) opacity(0.6) brightness(1.4);
+                }
             }
 
             &:after {
@@ -147,5 +188,10 @@
         box-shadow: 0rem 0.05rem 0rem 0.1rem #a5afeb;
         transition: all 0.1s ease;
         position: relative;
+
+        @include theme-color("green") {
+            box-shadow: 0rem 0.05rem 0rem 0.1rem #e0e1c6;
+
+        }
     }
 }

@@ -15,6 +15,14 @@ export const Provider = ({ children }: { children: ReactNode }) => {
     }, [state.isCRTEnabled]);
 
     useEffect(() => {
+        if (state.themeColor) {
+            document.body.setAttribute("data-theme", state.themeColor);
+        } else {
+            document.body.removeAttribute("data-theme");
+        }
+    }, [state.themeColor]);
+
+    useEffect(() => {
         if (typeof window === "undefined") return;
 
         const loggedInJSON = sessionStorage.getItem("loggedIn");

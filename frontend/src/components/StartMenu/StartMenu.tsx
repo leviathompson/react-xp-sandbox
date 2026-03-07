@@ -87,7 +87,7 @@ const StartMenu = ({ startButton }: StartMenuProps) => {
                         </div>
                     </div>
                 </section>
-                <section className="bg-[#d6e4f8] text-[#112366]">
+                <section className={styles.systemMenu}>
                     <ul className="font-bold p-2">
                         <li><StartMenuItem appId="documents" /></li>
                         <li onMouseOver={onRecentDocumentsHandler} className="relative" data-open={isRecentDocumentsOpen}>

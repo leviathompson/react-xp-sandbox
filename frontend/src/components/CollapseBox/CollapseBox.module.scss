@@ -5,6 +5,11 @@
     color: #325cbf;
     border: 0.1rem solid #fff7;
 
+    @include theme-color("green") {
+        background: #f6f6ed;
+        color: #596535;
+    }
+
     &[data-open="false"] {
         .header span {
             transform: rotate(180deg);
@@ -20,8 +25,16 @@
         background: linear-gradient(to right, #fff, #c9d4f4);
         font-size: 0.8rem;
 
+        @include theme-color("green") {
+            background: linear-gradient(to right, #fff, #e1e7bd);
+        }
+
         &:hover {
             color: #568cf7;
+
+            @include theme-color("green") {
+                color: #738342;
+            }
 
             span {
                 background-position: -1.4rem;
@@ -33,6 +46,10 @@
             background-size: cover;
             height: 1.4rem;
             aspect-ratio: 1/1;
+
+            @include theme-color("green") {
+                filter: hue-rotate(210deg);
+            }
         }
     }
 
@@ -52,5 +69,9 @@
         text-decoration: underline;
         color: #568cf7;
         cursor: not-allowed;
+
+        @include theme-color("green") {
+            color: #738342;
+        }
     }
 }

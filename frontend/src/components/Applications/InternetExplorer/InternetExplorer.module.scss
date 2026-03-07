@@ -113,6 +113,10 @@
             height: 100%;
             background-size: cover;
 
+            @include theme-color("green") {
+                filter: hue-rotate(210deg);
+            }
+
             &:hover {
                 background-position: -1.6rem;
             }

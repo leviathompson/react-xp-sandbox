@@ -2,15 +2,17 @@ import { useRef, useState } from "react";
 import { useContext } from "../../../context/context";
 import Button from "../../Button/Button";
 import styles from "./Setting.module.scss";
+import type { themeColor } from "../../../context/types";
 
 const Setting = () => {
-    const { currentWindows, isCRTEnabled, wallpaper, dispatch } = useContext();
+    const { currentWindows, wallpaper, themeColor, dispatch } = useContext();
 
     const tabMenuRef = useRef<HTMLElement | null>(null);
     const zoomRangeRef = useRef<HTMLInputElement | null>(null);
     
     const [selectedWallpaper, setSelectedWallpaper] = useState(wallpaper);
     const [enableCRT, setEnableCRT] = useState(true);
+    const [selectedThemeColor, setSelectedThemeColor] = useState<themeColor>("blue");
     const [selectedTab, setSelectedTab] = useState<string | undefined>("desktop");
     const [zoomValue, setZoomValue] = useState(10);
 
@@ -57,6 +59,10 @@ const Setting = () => {
             document.documentElement.style.fontSize = (zoomValue).toString() + "px";
             dispatch({ type: "SET_IS_CRT_ENABLED", payload: enableCRT });
         }
+
+        if (selectedTab === "appearance") {
+            dispatch({ type: "SET_THEME_COLOR", payload: selectedThemeColor});
+        }
     };
 
     const onZoomChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,8 +87,8 @@ const Setting = () => {
                     <ul className="flex">
                         {/* <li onClick={tabClickHandler} className="px-2 cursor-pointer" data-tab-name="themes">Themes</li> */}
                         <li onClick={tabClickHandler} className="px-2 cursor-pointer" data-tab-name="desktop" data-active="true">Desktop</li>
-                        {/* <li onClick={tabClickHandler} className="px-2 cursor-pointer" data-tab-name="screensaver">Screensaver</li>
-                        <li onClick={tabClickHandler} className="px-2 cursor-pointer" data-tab-name="appearance">Appearance</li> */}
+                        {/* <li onClick={tabClickHandler} className="px-2 cursor-pointer" data-tab-name="screensaver">Screensaver</li> */}
+                        <li onClick={tabClickHandler} className="px-2 cursor-pointer" data-tab-name="appearance">Appearance</li>
                         <li onClick={tabClickHandler} className="px-2 cursor-pointer" data-tab-name="settings">Settings</li>
                     </ul>
                 </nav>
@@ -121,7 +127,48 @@ const Setting = () => {
                         </div>
                     </section>
                     <section className="hidden" data-content-tab="screensaver">Screensaver</section>
-                    <section className="hidden" data-content-tab="appearance">Appearance</section>
+                    <section className="hidden h-full" data-content-tab="appearance">
+                        <div className="flex flex-col justify-between h-full">
+                            <img className="w-full h-56 object-contain object-top" src={`/preview__theme--${selectedThemeColor}.png`}></img>
+                            <div className="flex">
+                                <div className="w-3/5 flex flex-col gap-4">
+                                    <div>
+                                        <label htmlFor="image-quality">Windows and buttons:</label>
+                                        <div className={`${styles.selectField}`} data-disabled>
+                                            <select className="w-full pl-2" disabled>
+                                                <option>Windows XP style</option>
+                                            </select>
+                                            <span className={styles.dropDown}></span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label htmlFor="image-quality">Color scheme:</label>
+                                        <div className={`${styles.selectField}`}>
+                                            <select className="w-full pl-2" defaultValue={themeColor} onChange={(e) => setSelectedThemeColor(e.currentTarget.value as themeColor)}>
+                                                <option value="blue">Default (blue)</option>
+                                                <option value="green">Olive Green</option>
+                                                <option value="silver">Silver</option>
+                                            </select>
+                                            <span className={styles.dropDown}></span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label htmlFor="image-quality">Font size:</label>
+                                        <div className={`${styles.selectField}`} data-disabled>
+                                            <select className="w-full pl-2" disabled>
+                                                <option>Normal</option>
+                                            </select>
+                                            <span className={styles.dropDown}></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col justify-end items-end gap-4 w-2/5">
+                                    <Button disabled>Effects</Button>
+                                    <Button disabled>Advanced</Button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                     <section className="hidden h-full" data-content-tab="settings">
                         <div className="flex flex-col justify-between h-full">
                             <div className={`${styles.wallpaperPreview} flex h-full`}>
@@ -153,7 +200,7 @@ const Setting = () => {
                                     <div className={`${styles.inputGroup} border-gray-300 border rounded-md p-3 relative flex-1`}>
                                         <label htmlFor="image-quality" className="absolute px-1 top-0 left-2">Image Quality</label>
                                         <div className={`${styles.selectField} mt-2`}>
-                                            <select className="w-full pl-2 pt-1" onChange={(e) => setEnableCRT(!!Number(e.currentTarget.value))}>
+                                            <select className="w-full pl-2 pt-0.5" onChange={(e) => setEnableCRT(!!Number(e.currentTarget.value))}>
                                                 <option value="1">CRT Scanlines</option>
                                                 <option value="0">No Scanlines</option>
                                             </select>
