@@ -49,6 +49,10 @@
                 background: #95a075;
             }
 
+            @include theme-color("silver") {
+                background: #969696;
+            }
+
             img {
                 mix-blend-mode: soft-light;
             }
@@ -62,6 +66,12 @@
             @include theme-color("green") {
                 background-color: #95a075;
                 border: 0.1rem dotted #645e6d;
+            }
+
+            @include theme-color("silver") {
+                background-color: #b5b7c8;
+                border: 0.1rem dotted #645e6d;
+                color: #000;
             }
         }
     }

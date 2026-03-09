@@ -2,6 +2,10 @@
     background-color: #ebe9da;
     color: #000;
 
+    @include theme-color("silver") {
+        background-color: #e0dfe3;
+    }
+
     main {
         background-color: #f9f8f7;
         border: 0.1rem solid #adb3b5;

@@ -18,14 +18,14 @@
 
         @include theme-color("green") {
             background: linear-gradient(180deg, #b0bf93 0%, #faffef 2%, #94a177 8%, #e0ecc4 100%);
-            box-shadow: inset -0.1rem 0.1rem 0.2rem #bcc89f, inset 0.1rem 0.1rem 0.2rem #bcc89f;
+            box-shadow: inset -0.1rem 0.1rem 0.2rem #646b53, inset 0.1rem 0.1rem 0.2rem #646b53;
             border: 0.1rem solid #88946c;
             border-top-color: #828e68;
         }
 
         @include theme-color("silver") {
             background: linear-gradient(180deg, #76768c 0%, #e9e9ee 2%, #b2b4c6 8%, #fff 100%);
-            box-shadow: inset -0.1rem 0.1rem 0.2rem #d3d3d3, inset 0.1rem 0.1rem 0.2rem #d3d3d3;
+            box-shadow: inset -0.1rem 0.1rem 0.2rem #9b9fa3, inset 0.1rem 0.1rem 0.2rem #9b9fa3;
             border: 0.1rem solid #adb1bb;
             border-top-color: #9797a3;
         }
@@ -57,6 +57,7 @@
             }
 
             @include theme-color("silver") {
+                color: #fff;
                 text-shadow: 0.1rem 0.1rem 0.2rem #4e4e4e;
             }
         }
@@ -80,7 +81,20 @@
         line-height: 1.2rem;
 
         &:first-of-type {
-            @media (min-width: 30rem) {
+            border-left: 0.2rem solid #3c65ca;
+            width: 50%;
+            width: -webkit-fill-available;
+            width: -moz-available;
+
+            @include theme-color("green") {
+                border-left-color: #838f68;
+            }
+
+            @include theme-color("silver") {
+                border-left-color: #b5b4c1;
+            }
+
+            @media (min-width: 25rem) {
                 width: 50%;
             }
         }
@@ -106,15 +120,15 @@
 
             @include theme-color("green") {
                 border-left: 0.1rem solid #e7dec8;
-                border-right: 0.2rem solid #a1ac88;
+                border-right: 0.2rem solid #838f68;
             }
 
             @include theme-color("silver") {
                 border-left: 0.1rem solid #c0c7cf;
-                border-right: 0.1rem solid #b5b4c1;
+                border-right: 0.2rem solid #bbbbc4;
             }
 
-            @media (min-width: 30rem) {
+            @media (min-width: 25rem) {
                 display: inline;
                 width: 50%;
             }
@@ -122,7 +136,7 @@
             h5 {
                 display: none;
 
-                @media (min-width: 30rem) {
+                @media (min-width: 25rem) {
                     display: inline;
                 }
             }
@@ -161,14 +175,14 @@
         @include theme-color("green") {
             background: linear-gradient(180deg, #dbe2b9 1%, #b2bd8a 100%);
             border-top: 0.15rem solid #a0a48a;
-            box-shadow: inset 0.2rem 0 0.8rem #a2ac82, inset -0.2rem 0 0.8rem #a2ac82;
+            box-shadow: inset 0.2rem 0 0.8rem #8e9675, inset -0.2rem 0 0.8rem #8e9675;
             color: #4a4a1d;
         }
 
         @include theme-color("silver") {
             background: linear-gradient(180deg, #e6e6ec 1%, #adacc2 100%);
-            border-top: 0.15rem solid #909296;
-            box-shadow: inset 0.2rem 0 0.8rem #b4b3c4, inset -0.2rem 0 0.8rem #b4b3c4;
+            border-top: none;
+            box-shadow: inset 0.2rem 0 0.8rem #b0b5bb, inset -0.2rem 0 0.8rem #b0b5bb;
             color: #343538;
         }
     }
