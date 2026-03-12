@@ -222,7 +222,7 @@ const Setting = () => {
                 </div>
             </main>
             <footer className="flex justify-end gap-2">
-                <Button onClick={onSubmit}>Ok</Button>
+                <Button onClick={onSubmit} data-primary>Ok</Button>
                 <Button>Cancel</Button>
                 <Button onClick={onApply}>Apply</Button>
             </footer>
