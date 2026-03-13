@@ -1,3 +1,16 @@
 .solitaire {
     background-color: #377d22;
+
+    container-type: inline-size;
+    container-name: board;
+    width: 100%;
+
+    .deck>div:not(:first-child) {
+        margin-top: 0;
+        margin-left: -13.5cqw;
+    }
+    
+    .hand {
+        margin-left: -1.5cqw;
+    }
 }
