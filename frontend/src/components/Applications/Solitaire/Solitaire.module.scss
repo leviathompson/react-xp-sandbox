@@ -1,16 +1,25 @@
 .solitaire {
     background-color: #377d22;
-
     container-type: inline-size;
-    container-name: board;
     width: 100%;
 
     .deck>div:not(:first-child) {
         margin-top: 0;
-        margin-left: -13.5cqw;
+        margin-left: -13.75cqw;
     }
-    
+
     .hand {
-        margin-left: -1.5cqw;
+        margin-left: -1.25cqw;
+    }
+
+    .foundations>div:empty:after {
+        content: "";
+        display: block;
+        background-image: url("/spritemap__solitaire-cards.png?v=1");
+        background-size: 1300% 600%;
+        background-position: -22.55cqw -73.05cqw;
+        width: calc(14.28cqw - 3cqw);
+        aspect-ratio: 44 / 57;
+        margin: 1.5cqw;
     }
 }

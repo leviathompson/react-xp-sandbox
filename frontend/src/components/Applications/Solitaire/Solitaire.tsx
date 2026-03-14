@@ -25,6 +25,18 @@ interface BoardState {
   win: boolean;
 }
 
+const shuffle = (array: CardType[]) => {
+    const shuffled = [...array];
+  
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+    
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+  
+    return shuffled;
+};
+
 const suits = ["hearts", "diamonds", "clubs", "spades"] as const;
 const deck: CardType[] = suits.flatMap((suit) =>
     Array.from({ length: 13 }, (_, i) => ({
@@ -33,13 +45,15 @@ const deck: CardType[] = suits.flatMap((suit) =>
         rank: (i + 1) as Rank,
         isFaceUp: false,
     }))
-).sort(() => Math.random() - 0.5);
+);
+
+const shuffledDeck = shuffle(deck);
 
 const initialBoard: CardType[][] = Array.from({ length: 7 }, (_, i) => {
     const start = (i * (i + 1)) / 2;
     const end = start + (i + 1);
     
-    return deck.slice(start, end).map((card, index) => ({
+    return shuffledDeck.slice(start, end).map((card, index) => ({
         ...card,
         isFaceUp: index === i
     }));
@@ -52,7 +66,7 @@ const Solitaire = () => {
 
     useEffect(() => {
         const initalBoardState = {
-            deck: deck,
+            deck: shuffledDeck,
             suits: {
                 1: [],
                 2: [],
@@ -75,15 +89,15 @@ const Solitaire = () => {
                     <div className="flex justify-between">
                         <div className="flex">
                             <div className={`${styles.deck} flex`}>
-                                {deck.slice(0, 3).map(() => <Card/>)}
+                                {boardState.deck.slice(0, 3).map((card) => <Card key={card.id} {...card}/>)}
                             </div>
-                            <div className={styles.hand}><Card {...deck[0]}/></div>
+                            <div className={styles.hand}><Card {...boardState.deck[0]}/></div>
                         </div>
-                        <div className="flex">
-                            <div><Card {...deck[0]}/></div>
-                            <div><Card {...deck[0]}/></div>
-                            <div><Card {...deck[0]}/></div>
-                            <div><Card {...deck[0]}/></div>
+                        <div className={`${styles.foundations} flex`}>
+                            <div><Card isFaceUp={true} rank={1} suit="spades" /></div>
+                            <div><Card /></div>
+                            <div><Card isFaceUp={true} rank={4} suit="clubs" /></div>
+                            <div><Card /></div>
                         </div>
                     </div>
                     <div className="flex">
@@ -97,7 +111,6 @@ const Solitaire = () => {
                     </div>
                 </main>
             </div>
-            {/* <Card key={item[index].id} {...item[index]}/> */}
         </>
     );
 };

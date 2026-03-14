@@ -10,7 +10,15 @@ interface Card {
 }
 
 const Card = ({suit, rank, isFaceUp=false}: Card) => {
-
+    
+    if (!suit && !rank && !isFaceUp) {
+        return (
+            <div className={styles.card}>
+                <div data-empty></div>
+            </div>
+        );
+    }
+    
     if (!isFaceUp) {
         return (
             <div className={styles.card}>
