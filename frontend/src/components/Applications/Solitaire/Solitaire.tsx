@@ -15,6 +15,7 @@ interface CardType {
 
 interface BoardState {
   deck: CardType[];
+  waste: CardType[];
   suits: {
     1: CardType[];
     2: CardType[];
@@ -66,7 +67,8 @@ const Solitaire = () => {
 
     useEffect(() => {
         const initalBoardState = {
-            deck: shuffledDeck,
+            deck: shuffledDeck.slice(28),
+            waste: [],
             suits: {
                 1: [],
                 2: [],
@@ -81,6 +83,24 @@ const Solitaire = () => {
 
     if (!boardState.board) return;
 
+    const handleDeckOnClick = () => {
+        setBoardState((prev) => {
+            if (prev.deck.length) {
+                return {
+                    ...prev,
+                    deck: prev.deck.slice(0, -1),
+                    waste: [...prev.waste, prev.deck[prev.deck.length - 1]]
+                };
+            } 
+    
+            return {
+                ...prev,
+                deck: prev.waste.slice().reverse(),
+                waste: []
+            };
+        });
+    };
+
     return (
         <>
             <WindowMenu menuItems={["Game", "Help"]}/>
@@ -88,13 +108,15 @@ const Solitaire = () => {
                 <main className="flex flex-col">
                     <div className="flex justify-between">
                         <div className="flex">
-                            <div className={`${styles.deck} flex`}>
+                            <div className={`${styles.deck} flex`} onClick={handleDeckOnClick}>
                                 {boardState.deck.slice(0, 3).map((card) => <Card key={card.id} {...card}/>)}
                             </div>
-                            <div className={styles.hand}><Card {...boardState.deck[0]}/></div>
+                            <div className={`${styles.waste} flex`}>
+                                {boardState.waste.slice(-3).map((card) => <Card key={card.id} rank={card.rank} suit={card.suit} isFaceUp={true}/>)}
+                            </div>
                         </div>
                         <div className={`${styles.foundations} flex`}>
-                            <div><Card isFaceUp={true} rank={1} suit="spades" /></div>
+                            <div><Card isFaceUp={true} rank={1} suit="spades"/></div>
                             <div><Card /></div>
                             <div><Card isFaceUp={true} rank={4} suit="clubs" /></div>
                             <div><Card /></div>

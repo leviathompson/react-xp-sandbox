@@ -3,13 +3,32 @@
     container-type: inline-size;
     width: 100%;
 
-    .deck>div:not(:first-child) {
-        margin-top: 0;
-        margin-left: -13.75cqw;
+    .waste {
+        margin-left: -1.25cqw;
+
+        &>div:not(:first-child) {
+            margin-top: 0;
+            margin-left: -13.75cqw;
+        }
     }
 
-    .hand {
-        margin-left: -1.25cqw;
+    .deck {
+        width: 15.5cqw;
+        cursor: pointer;
+
+        &>div:not(:first-child) {
+            margin-top: 0;
+            margin-left: -13.75cqw;
+        }
+
+        &:empty {
+            background-image: url("/spritemap__solitaire-cards.png?v=1");
+            background-size: 1297% 600%;
+            background-position: 0 -77.5cqw;
+            margin: 1.5cqw;
+            margin-right: 2.7cqw;
+            width: 11.3cqw;
+        }
     }
 
     .foundations>div:empty:after {
