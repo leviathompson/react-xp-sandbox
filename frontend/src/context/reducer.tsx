@@ -42,11 +42,7 @@ export const initialState: State = {
         id: generateUniqueId(),
         appId: "readme",
     },
-    {
-        id: generateUniqueId(),
-        appId: "solitaire",
-        active: true,
-    }],
+    ],
     isStartVisible: false,
     isAllProgramsOpen: false,
     isRecentDocumentsOpen: false,

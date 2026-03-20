@@ -70,11 +70,11 @@ const StartMenu = ({ startButton }: StartMenuProps) => {
                             <li><StartMenuItem appId="outlook" subTitle="E-mail" /></li>
                         </ul>
                         <ul className="flex flex-col p-3 gap-1.5">
-                            <li><StartMenuItem appId="notepad" iconSize={30} /></li>
                             <li><StartMenuItem appId="winMessenger" iconSize={30} /></li>
-                            <li><StartMenuItem appId="msn" iconSize={30} /></li>
                             <li><StartMenuItem appId="winMediaPlayer" iconSize={30} /></li>
+                            <li><StartMenuItem appId="notepad" iconSize={30} /></li>
                             <li><StartMenuItem appId="displayProperties" iconSize={30} /></li>
+                            <li><StartMenuItem appId="solitaire" iconSize={30} /></li>
                         </ul>
                     </div>
                     <div>
