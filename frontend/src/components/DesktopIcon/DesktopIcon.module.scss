@@ -42,7 +42,7 @@
         &>span {
             background: #4069bf;
             mask-position: center;
-            mask-size: 3rem 3rem;
+            mask-size: calc(3rem * var(--desktop-icon-scale)) calc(3rem * var(--desktop-icon-scale));
             mask-repeat: no-repeat;
 
             @include theme-color("green") {

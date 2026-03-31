@@ -10,21 +10,21 @@
         [
             "internetExplorer",
             {
-                "top": 70,
+                "top": 90,
                 "left": 5
             }
         ],
         [
             "gitHub",
             {
-                "top": 145,
+                "top": 185,
                 "left": 5
             }
         ],
         [
             "kofi",
             {
-                "top": 210,
+                "top": 270,
                 "left": 5
             }
         ],
@@ -38,7 +38,7 @@
         [
             "readme",
             {
-                "bottom": 70,
+                "bottom": 90,
                 "right": 5
             }
         ]

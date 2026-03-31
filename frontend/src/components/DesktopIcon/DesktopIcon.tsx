@@ -14,6 +14,8 @@ type DesktopIconProps = AbsoluteObject & {
 };
 
 const applications = applicationsJSON as unknown as Record<string, Application>;
+const DOUBLE_TAP_DELAY_MS = 350;
+const DOUBLE_TAP_MOVE_THRESHOLD_PX = 8;
 
 const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undefined, left = undefined, id, selectedId, setSelectedId }: DesktopIconProps) => {
     const { currentWindows, dispatch } = useContext();
@@ -24,15 +26,39 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
     const appData = applications[appId];
     const { title, icon, iconLarge, link } = { ...appData };
 
+    const lastTouchTapRef = useRef(0);
+    const skipNextDoubleClickRef = useRef(false);
+
+    const activateIcon = () => {
+        if (link) return window.open(link, "_blank", "noopener,noreferrer");
+
+        openApplication(appId, currentWindows, dispatch);
+        setSelectedId("");
+    };
+
     const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
         const desktopIconRect = desktopIcon?.getBoundingClientRect();
         if (!desktopIconRect) return;
 
         const xOffset = event.clientX - desktopIconRect.left;
         const yOffset = event.clientY - desktopIconRect.top;
+        const initialPointerX = event.clientX;
+        const initialPointerY = event.clientY;
+        let hasPointerMovedBeyondTapThreshold = false;
+
         setSelectedId(id);
 
         const onPointerMove = (event: PointerEvent) => {
+            if (event.pointerType === "touch" && !hasPointerMovedBeyondTapThreshold) {
+                const deltaX = Math.abs(event.clientX - initialPointerX);
+                const deltaY = Math.abs(event.clientY - initialPointerY);
+                if (deltaX > DOUBLE_TAP_MOVE_THRESHOLD_PX || deltaY > DOUBLE_TAP_MOVE_THRESHOLD_PX) {
+                    hasPointerMovedBeyondTapThreshold = true;
+                } else {
+                    return;
+                }
+            }
+
             setPosition({
                 top: event.clientY - yOffset,
                 left: event.clientX - xOffset,
@@ -42,10 +68,21 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
         };
         const throttledPointerMove = throttle(onPointerMove, 50);
 
-        const onPointerUp = () => {
+        const onPointerUp = (upEvent: PointerEvent) => {
             window.removeEventListener("pointermove", throttledPointerMove);
             window.removeEventListener("pointerup", onPointerUp);
             document.body.style.userSelect = "";
+
+            if (upEvent.pointerType === "touch" && !hasPointerMovedBeyondTapThreshold) {
+                const now = performance.now();
+                if (now - lastTouchTapRef.current < DOUBLE_TAP_DELAY_MS) {
+                    skipNextDoubleClickRef.current = true;
+                    activateIcon();
+                    lastTouchTapRef.current = 0;
+                } else {
+                    lastTouchTapRef.current = now;
+                }
+            }
         };
         window.addEventListener("pointermove", throttledPointerMove);
         window.addEventListener("pointerup", onPointerUp);
@@ -65,10 +102,12 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
     };
 
     const onDoubleClickHandler = () => {
-        if (link) return window.open(link, "_blank", "noopener,noreferrer");
+        if (skipNextDoubleClickRef.current) {
+            skipNextDoubleClickRef.current = false;
+            return;
+        }
 
-        openApplication(appId, currentWindows, dispatch);
-        setSelectedId("");
+        activateIcon();
     };
 
     const imageMask = (isActive) ? `url("${iconLarge || icon}")` : "";

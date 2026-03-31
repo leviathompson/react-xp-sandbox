@@ -10,6 +10,7 @@ import type { Application } from "../../../context/types";
 
 const Applications = applicationsJSON as unknown as Record<string, Application>;
 const Files = filesJSON as unknown as Record<string, string[] | File[]>;
+const DOUBLE_TAP_DELAY_MS = 350;
 
 const FileExplorer = ({ appId }: Record<string, string>) => {
     const { currentWindows, dispatch } = useContext();
@@ -26,6 +27,7 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
     }, [currentWindows]);
 
     const inputFieldRef = useRef<HTMLInputElement | null>(null);
+    const lastTouchTapRef = useRef<{ id: string | null; time: number }>({ id: null, time: 0 });
     const appData = Applications[appId];
 
     const bgAccent = (["pictures", "music"].includes(appId) ? appId : null);
@@ -88,6 +90,21 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
             document.removeEventListener("click", secondClick);
         };
         document.addEventListener("click", secondClick);
+    };
+
+    const handleFileTouchPointerUp = (event: React.PointerEvent<HTMLButtonElement>, appId: string | null = null) => {
+        if (!appId || Applications[appId].disabled || event.pointerType !== "touch") return;
+
+        const now = performance.now();
+        const { id, time } = lastTouchTapRef.current;
+        const isDoubleTap = id === appId && (now - time) < DOUBLE_TAP_DELAY_MS;
+
+        if (isDoubleTap) {
+            lastTouchTapRef.current = { id: null, time: 0 };
+            fileDBClickHandler(null, appId);
+        } else {
+            lastTouchTapRef.current = { id: appId, time: now };
+        }
     };
 
     const backClickHandler = () => {
@@ -232,11 +249,11 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                             
                             const isActive = (selectedItem === itemId);
                             const { title, icon, iconLarge, disabled, link } = appData;
-                            const imageMask = (isActive) ? `url("${iconLarge || icon}")` : "";
+                            //const imageMask = (isActive) ? `url("${iconLarge || icon}")` : "";
                             
                             return (
-                                <button key={itemId} data-id={itemId} data-selected={isActive} data-link={!!link} className={`${styles.file} ${(disabled) ? "cursor-not-allowed" : ""}`} onDoubleClick={(e) => fileDBClickHandler(e, itemId)} onClick={(e) => fileClickHandler(e, itemId)}>
-                                    <span className="flex items-center shrink-0" style={{ maskImage: imageMask }}><img src={iconLarge || icon} width="35" height="35" draggable={false} /></span>
+                                <button key={itemId} data-id={itemId} data-selected={isActive} data-link={!!link} className={`${styles.file} ${(disabled) ? "cursor-not-allowed" : ""}`} onDoubleClick={(e) => fileDBClickHandler(e, itemId)} onClick={(e) => fileClickHandler(e, itemId)} onPointerUp={(event) => handleFileTouchPointerUp(event, itemId)}>
+                                    <span className="flex items-center shrink-0"><img src={iconLarge || icon} width="35" height="35" draggable={false} /></span>
                                     <h4 className="px-0.5">{title}</h4>
                                 </button>
                             );
