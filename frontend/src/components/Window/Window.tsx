@@ -240,9 +240,9 @@ const Window = ({ ...props }: WindowProps) => {
 
     return (
         <>
-            <div ref={activeWindowRef} data-window-id={id} data-active={active} data-hidden={hidden} data-label="window" className={`${styles.window} absolute`} style={{ top: (!bottomPos) ? topPos : undefined, right: rightPos, bottom: bottomPos, left: (!rightPos) ? leftPos : undefined, height: windowHeight + "px", width: windowWidth + "px" }} onPointerDown={onWindowPointerDown} onPointerMove={onWindowPointerMove}>
+            <div ref={activeWindowRef} data-window-id={id} data-active={active} data-hidden={hidden} data-label="window" className={`${styles.window} absolute`} style={{ top: (!bottomPos) ? topPos : undefined, right: rightPos, bottom: bottomPos, left: (!rightPos) ? leftPos : undefined, height: windowHeight + "px", width: windowWidth + "px", touchAction: "none" }} onPointerDown={onWindowPointerDown} onPointerMove={onWindowPointerMove}>
                 <div className="w-full h-full pointer-events-none">
-                    <div ref={titleBarRef} className={`${styles.titleBar} flex justify-between pointer-events-auto`} data-label="titlebar" onPointerDown={onTitleBarPointerDown} onDoubleClick={() => toggleMaximizeWindow(activeWindow)}>
+                    <div ref={titleBarRef} className={`${styles.titleBar} flex justify-between pointer-events-auto`} data-label="titlebar" style={{ touchAction: "none" }} onPointerDown={onTitleBarPointerDown} onDoubleClick={() => toggleMaximizeWindow(activeWindow)}>
                         <div className="flex items-center">
                             {showOnTaskbar && (icon || iconLarge) && <img src={icon || iconLarge} width="14" height="14" className="mx-2 min-w-[1.4rem]"></img>}
                             <h3 className={(showOnTaskbar && (icon || iconLarge)) ? "" : "ml-2"}>{title}</h3>

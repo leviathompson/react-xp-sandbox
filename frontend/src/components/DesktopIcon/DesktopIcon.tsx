@@ -74,7 +74,7 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
     const imageMask = (isActive) ? `url("${iconLarge || icon}")` : "";
 
     return (
-        <button ref={desktopIconRef} className={styles.desktopIcon} data-selected={isActive} data-link={!!link} onClick={onClickHandler} onPointerDown={onPointerDown} onDoubleClick={onDoubleClickHandler} style={{ top: position.top, right: position.right, bottom: position.bottom, left: position.left }}>
+        <button ref={desktopIconRef} className={styles.desktopIcon} data-selected={isActive} data-link={!!link} onClick={onClickHandler} onPointerDown={onPointerDown} onDoubleClick={onDoubleClickHandler} style={{ top: position.top, right: position.right, bottom: position.bottom, left: position.left, touchAction: "none" }}>
             <span style={{ maskImage: imageMask }}><img src={iconLarge || icon} width="50" draggable={false} /></span>
             <div className="relative w-full flex justify-center"><h4 className="text-center">{title}</h4></div>
         </button>

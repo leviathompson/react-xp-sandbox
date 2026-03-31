@@ -1,6 +1,7 @@
 .desktopIcon {
-    width: 6.5rem;
-    margin: 0.5rem;
+    --desktop-icon-scale: 1;
+    width: calc(6.5rem * var(--desktop-icon-scale));
+    margin: calc(0.5rem * var(--desktop-icon-scale));
     position: absolute;
     display: flex;
     flex-direction: column;
@@ -20,20 +21,19 @@
     }
 
     img {
-        padding: 0 1rem;
-        margin: 0.35rem auto;
+        padding: 0 calc(1rem * var(--desktop-icon-scale));
+        margin: calc(0.35rem * var(--desktop-icon-scale)) auto;
         user-select: none;
-        height: 3rem;
-        width: 5rem;
+        height: calc(3rem * var(--desktop-icon-scale));
+        width: calc(5rem * var(--desktop-icon-scale));
         object-fit: contain;
     }
 
     h4 {
         text-shadow: 0.1rem 0.1rem 0.1rem #00000099;
-        font-size: 1rem;
-        font-size: 0.95rem;
-        line-height: 1rem;
-        padding-bottom: 0.2rem;
+        font-size: calc(0.95rem * var(--desktop-icon-scale));
+        line-height: calc(1rem * var(--desktop-icon-scale));
+        padding-bottom: calc(0.2rem * var(--desktop-icon-scale));
         border: 0.1rem solid transparent;
     }
 
@@ -74,5 +74,9 @@
                 color: #000;
             }
         }
+    }
+
+    @media (max-width: 767px) and (pointer: coarse) {
+        --desktop-icon-scale: var(--mobile-desktop-icon-scale, 1.15);
     }
 }

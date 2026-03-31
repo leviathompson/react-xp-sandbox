@@ -8,6 +8,11 @@ export default defineConfig({
     server: {
         host: true,
     },
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, './src'),
+        },
+    },
     plugins: [
         react(),
         tailwindcss()
@@ -15,7 +20,7 @@ export default defineConfig({
     css: {
         preprocessorOptions: {
             scss: {
-                additionalData: `@use "${path.resolve(__dirname, 'src/styles/mixins').replace(/\\/g, '/')}" as *;\n`,
+                additionalData: '@use "@/styles/mixins" as *;\n',
             },
         },
     },
