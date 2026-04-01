@@ -200,7 +200,75 @@
     "localDisk": {
         "title": "Local Disk (:C)",
         "iconLarge": "/icon__hdd--large.png",
-        "disabled": true
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "userHomeFolder": {
+        "title": "User",
+        "iconLarge": "/icon__documents--large.png",
+        "component": "FileExplorer",
+        "height": 390,
+        "userFolder": true
+    },
+    "appDataFolder": {
+        "title": "AppData",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "roamingFolder": {
+        "title": "Roaming",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftFolder": {
+        "title": ".minecraft",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftAssets": {
+        "title": "assets",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftConfig": {
+        "title": "config",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftBin": {
+        "title": "bin",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftData": {
+        "title": "data",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftLogs": {
+        "title": "logs",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftSaves": {
+        "title": "saves",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftScreenshots": {
+        "title": "screenshots",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
     },
     "desktop": {
         "title": "Desktop",

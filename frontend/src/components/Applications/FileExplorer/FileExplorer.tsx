@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { useContext } from "../../../context/context";
+import { usePoints } from "../../../context/points";
 import applicationsJSON from "../../../data/applications.json";
 import filesJSON from "../../../data/files.json";
 import { getCurrentWindow } from "../../../utils/general";
@@ -13,7 +14,16 @@ const Files = filesJSON as unknown as Record<string, string[] | File[]>;
 const DOUBLE_TAP_DELAY_MS = 350;
 
 const FileExplorer = ({ appId }: Record<string, string>) => {
-    const { currentWindows, dispatch } = useContext();
+    const { currentWindows, username, dispatch } = useContext();
+    const { awardPoints } = usePoints();
+
+    const resolveTitle = (id: string) =>
+        Applications[id]?.userFolder ? username : Applications[id]?.title;
+
+    useEffect(() => {
+        if (appId === "minecraftFolder") awardPoints("locate-minecraft-folder");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [appId]);
     const [selectedItem, setSelectedItem] = useState<string | null>(null);
     const [isBackDisabled, setIsBackDisabled] = useState(true);
     const [isForwardDisabled, setIsForwardDisabled] = useState(true);
@@ -180,7 +190,7 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
 
                         <div className={`${styles.navBar} flex mx-1 h-full`}>
                             <img src={appData.icon || appData.iconLarge} className="mx-1" width="14" height="14" />
-                            <input ref={inputFieldRef} className={`${styles.navBar} h-full`} type="text" defaultValue={appData.title} onKeyDown={keyDownHandler} />
+                            <input ref={inputFieldRef} className={`${styles.navBar} h-full`} type="text" defaultValue={resolveTitle(appId)} onKeyDown={keyDownHandler} />
                             <button className={styles.dropDown}>Submit</button>
                         </div>
                         <button className={`${styles.goButton} flex items-center`} onClick={() => updateWindow()}>
@@ -232,7 +242,7 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                     </CollapseBox>
                     <CollapseBox title="Details">
                         <div className="p-3">
-                            <h3 className="font-bold">{appData.title}</h3>
+                            <h3 className="font-bold">{resolveTitle(appId)}</h3>
                             <p>System Folder</p>
                         </div>
                     </CollapseBox>
@@ -248,13 +258,13 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                             if (!appData) return;
                             
                             const isActive = (selectedItem === itemId);
-                            const { title, icon, iconLarge, disabled, link } = appData;
+                            const { icon, iconLarge, disabled, link } = appData;
                             //const imageMask = (isActive) ? `url("${iconLarge || icon}")` : "";
-                            
+
                             return (
                                 <button key={itemId} data-id={itemId} data-selected={isActive} data-link={!!link} className={`${styles.file} ${(disabled) ? "cursor-not-allowed" : ""}`} onDoubleClick={(e) => fileDBClickHandler(e, itemId)} onClick={(e) => fileClickHandler(e, itemId)} onPointerUp={(event) => handleFileTouchPointerUp(event, itemId)}>
                                     <span className="flex items-center shrink-0"><img src={iconLarge || icon} width="35" height="35" draggable={false} /></span>
-                                    <h4 className="px-0.5">{title}</h4>
+                                    <h4 className="px-0.5">{resolveTitle(itemId)}</h4>
                                 </button>
                             );
                         })}

@@ -41,6 +41,7 @@ export interface Application {
     redirect?: string;
     resizable?: boolean;
     showOnTaskbar?: boolean;
+    userFolder?: boolean;
 }
 
 export type File = AbsoluteObject & {

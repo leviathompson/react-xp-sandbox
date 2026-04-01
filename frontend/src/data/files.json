@@ -76,5 +76,33 @@
         "userDocuments",
         "sharedDocuments",
         "localDisk"
-    ]
+    ],
+    "localDisk": [
+        "userHomeFolder"
+    ],
+    "userHomeFolder": [
+        "appDataFolder"
+    ],
+    "appDataFolder": [
+        "roamingFolder"
+    ],
+    "roamingFolder": [
+        "minecraftFolder"
+    ],
+    "minecraftFolder": [
+        "minecraftAssets",
+        "minecraftConfig",
+        "minecraftBin",
+        "minecraftData",
+        "minecraftLogs",
+        "minecraftSaves",
+        "minecraftScreenshots"
+    ],
+    "minecraftAssets": [],
+    "minecraftConfig": [],
+    "minecraftBin": [],
+    "minecraftData": [],
+    "minecraftLogs": [],
+    "minecraftSaves": [],
+    "minecraftScreenshots": []
 }

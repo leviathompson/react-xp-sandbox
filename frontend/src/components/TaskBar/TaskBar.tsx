@@ -1,5 +1,6 @@
-import React, { Activity, useEffect, useState, useRef } from "react";
+import React, { Activity } from "react";
 import { useContext } from "../../context/context";
+import { Stopwatch } from "../Stopwatch/Stopwatch";
 import applicationsJSON from "../../data/applications.json";
 import { getCurrentWindow } from "../../utils/general";
 import StartMenu from "../StartMenu/StartMenu";
@@ -10,19 +11,10 @@ import type { Application } from "../../context/types";
 const applications = applicationsJSON as unknown as Record<string, Application>;
 
 const TaskBar = () => {
-    const { currentTime, currentWindows, isStartVisible, dispatch } = useContext();
-    const [systemTrayIconDismissed, setSystemTrayIconDismissed] = useState(false);
-    const startButtonRef = useRef<HTMLButtonElement | null>(null);
+    const { currentWindows, isStartVisible, dispatch } = useContext();
+    const [systemTrayIconDismissed, setSystemTrayIconDismissed] = React.useState(false);
+    const startButtonRef = React.useRef<HTMLButtonElement | null>(null);
     const startButton = startButtonRef.current;
-
-    //Todo: Add more accurate clock that updates in sync with system clock
-    useEffect(() => {
-        const interval = setInterval(() => {
-            dispatch({ type: "SET_CURRENT_TIME", payload: new Date() });
-        }, 30_000);
-
-        return () => clearInterval(interval);
-    }, [dispatch]);
 
     const windowTabClickHandler = (event: React.MouseEvent<HTMLElement>) => {
         const windowTabSelector = "[data-label=taskBarWindowTab]";
@@ -60,8 +52,6 @@ const TaskBar = () => {
         dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
     };
 
-    const formattedTime = currentTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-
     return (
         <div className={`${styles.taskBar} flex justify-between`} data-label="taskbar">
             <button ref={startButtonRef} className={`${styles.startButton}`} onClick={startButtonClickHandler} data-selected={isStartVisible}>Start</button>
@@ -93,7 +83,7 @@ const TaskBar = () => {
                         <Tooltip heading="Windows XP React Edition" content="Still a work in progress, but this is a semi-authentic recreation of Windows XP created using React & Typescript." systemTrayIconDismissed={systemTrayIconDismissed} setSystemTrayIconDismissed={setSystemTrayIconDismissed} />
                     </li>
                 </ul>
-                <span className="whitespace-nowrap">{formattedTime}</span>
+                <Stopwatch />
             </div>
         </div>
     );

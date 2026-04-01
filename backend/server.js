@@ -26,6 +26,14 @@ const json = (res, status, data) => {
     res.end(JSON.stringify(data));
 };
 
+// Ensure user_sessions table exists on startup
+pool.query(`
+    CREATE TABLE IF NOT EXISTS user_sessions (
+        user_id      TEXT        PRIMARY KEY,
+        first_login_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+`).catch((err) => console.error("[debug-api] Failed to create user_sessions table:", err.message));
+
 const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://localhost:${PORT}`);
     const method = req.method.toUpperCase();
@@ -111,6 +119,63 @@ const server = http.createServer(async (req, res) => {
                 [userId, clientId, ruleId, points, awardedAt ?? new Date().toISOString(), metadata ?? {}]
             );
             json(res, 200, { ok: true });
+        } catch (err) {
+            json(res, 500, { error: err.message });
+        }
+        return;
+    }
+
+    // POST /api/session/start — get-or-create the user's first login timestamp
+    if (method === "POST" && url.pathname === "/api/session/start") {
+        let body;
+        try {
+            body = await readBody(req);
+        } catch {
+            json(res, 400, { error: "Invalid JSON body" });
+            return;
+        }
+
+        const { userId } = body;
+        if (!userId) {
+            json(res, 400, { error: "userId required" });
+            return;
+        }
+
+        try {
+            // No-op update on conflict so RETURNING always fires
+            const { rows } = await pool.query(
+                `INSERT INTO user_sessions (user_id, first_login_at)
+                 VALUES ($1, NOW())
+                 ON CONFLICT (user_id) DO UPDATE
+                     SET first_login_at = user_sessions.first_login_at
+                 RETURNING user_id, first_login_at`,
+                [userId]
+            );
+            json(res, 200, { userId: rows[0].user_id, firstLoginAt: rows[0].first_login_at });
+        } catch (err) {
+            json(res, 500, { error: err.message });
+        }
+        return;
+    }
+
+    // GET /api/session/:userId — fetch existing session start time
+    if (method === "GET" && url.pathname.startsWith("/api/session/")) {
+        const userId = decodeURIComponent(url.pathname.slice("/api/session/".length));
+        if (!userId) {
+            json(res, 400, { error: "userId required" });
+            return;
+        }
+
+        try {
+            const { rows } = await pool.query(
+                "SELECT first_login_at FROM user_sessions WHERE user_id = $1",
+                [userId]
+            );
+            if (rows.length === 0) {
+                json(res, 404, { error: "Session not found" });
+                return;
+            }
+            json(res, 200, { userId, firstLoginAt: rows[0].first_login_at });
         } catch (err) {
             json(res, 500, { error: err.message });
         }

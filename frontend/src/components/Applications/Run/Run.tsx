@@ -30,6 +30,11 @@ const Run = () => {
         const form = event.currentTarget;
         const inputField = form.elements.namedItem("command") as HTMLInputElement;
 
+        if (inputField.value.toLowerCase() === "%appdata%") {
+            openApplication("roamingFolder", currentWindows, dispatch);
+            return;
+        }
+
         if (inputField.value.startsWith("http")) {
             const newWindow: currentWindow = {
                 id: generateUniqueId(),
