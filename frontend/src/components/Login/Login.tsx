@@ -1,17 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useContext } from "../../context/context";
 import playSound from "../../utils/sounds";
 import Bios from "../Bios/Bios";
 import ShutDownModal from "../ShutDownModal/ShutDownModal";
 import styles from "./Login.module.scss";
 
-interface LoginProps {
-    user: string;
-}
-
-const Login = ({ user }: LoginProps) => {
-    const {currentWindows, windowsInitiationState, isInitialBoot, transitionLabel, isShutDownModalOpen, dispatch} = useContext();
+const Login = () => {
+    const {currentWindows, windowsInitiationState, isInitialBoot, transitionLabel, isShutDownModalOpen, username, dispatch} = useContext();
     const [shutdownMsg, setShutdownMsg] = useState<React.ReactNode | null>(null);
+    const usernameInputRef = useRef<HTMLInputElement | null>(null);
+    const isUsernameValid = username.trim().length > 0;
 
     useEffect(() => {
         if (windowsInitiationState === "bios") {
@@ -49,16 +47,45 @@ const Login = ({ user }: LoginProps) => {
         return () => timers.forEach(clearTimeout);
     }, [windowsInitiationState]);
 
+    const persistUsername = (value: string) => {
+        sessionStorage.setItem("username", value);
+    };
 
-    const onUserClickHandler = () => {
+    const onUsernameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const value = event.target.value;
+        dispatch({ type: "SET_USERNAME", payload: value });
+        persistUsername(value);
+    };
+
+    const startLoginSequence = () => {
         dispatch({ type: "SET_WINDOWS_INITIATION_STATE", payload: "loggingIn" });
         const loggingInDelay = setTimeout(() => {
             playSound("startup", true);
             dispatch({ type: "SET_WINDOWS_INITIATION_STATE", payload: "loggedIn" });
             sessionStorage.setItem("loggedIn", "true");
         }, 500);
+        return loggingInDelay;
+    };
 
-        return () => clearTimeout(loggingInDelay);
+    const onUserClickHandler = () => {
+        if (!isUsernameValid || windowsInitiationState === "loggingIn") {
+            usernameInputRef.current?.focus();
+            return;
+        }
+
+        startLoginSequence();
+    };
+
+    const onUsernameKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+
+        if (!isUsernameValid) {
+            usernameInputRef.current?.focus();
+            return;
+        }
+
+        startLoginSequence();
     };
 
     const onShutDownModalButtonHandler = () => {
@@ -100,10 +127,29 @@ const Login = ({ user }: LoginProps) => {
                         </div>
                         <span className={`${styles.seperator} m-9`}></span>
                         <div className="flex flex-col justify-center">
-                            <button className={`${styles.userContainer} flex p-3 gap-5`} data-init-state={windowsInitiationState} onClick={onUserClickHandler}>
+                            {["login", "loggingIn"].includes(windowsInitiationState) && (
+                                <div className="flex flex-col gap-2 mb-5">
+                                    <label htmlFor="login-username" className="text-white font-semibold">User name</label>
+                                    <input
+                                        id="login-username"
+                                        ref={usernameInputRef}
+                                        className={`${styles.usernameInput} px-3 py-2 rounded-md`}
+                                        type="text"
+                                        value={username}
+                                        onChange={onUsernameChange}
+                                        onKeyDown={onUsernameKeyDown}
+                                        disabled={windowsInitiationState === "loggingIn"}
+                                        placeholder="Type your username"
+                                    />
+                                    {!isUsernameValid && windowsInitiationState !== "loggingIn" && (
+                                        <p className="text-sm text-yellow-200">Enter a username to continue.</p>
+                                    )}
+                                </div>
+                            )}
+                            <button type="button" className={`${styles.userContainer} flex p-3 gap-5`} data-init-state={windowsInitiationState} onClick={onUserClickHandler} disabled={!isUsernameValid || windowsInitiationState === "loggingIn"}>
                                 <img className={`${styles.avatar} m-1.5`} width="50" height="50" data-init-state={windowsInitiationState} src="/avatar__skateboard.png" />
                                 <div className={`${styles.userNameContainer} flex flex-col`}>
-                                    <h3  data-init-state={windowsInitiationState}>{user}</h3>
+                                    <h3  data-init-state={windowsInitiationState}>{isUsernameValid ? username : "User"}</h3>
                                     {!isInitialBoot && currentWindows.length > 0 && <p className="font-bold">{currentWindows.length} program{currentWindows.length > 1 ? "s" : ""} running.</p>}
                                     {currentWindows.length === 0 && windowsInitiationState === "loggingIn" && <p className="font-bold text-[#102f96]">Loading your personal settings...</p>}
                                 </div>

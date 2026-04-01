@@ -54,6 +54,7 @@ export interface State {
     wallpaper: string;
     currentTime: Date;
     currentWindows: currentWindow[];
+    username: string;
     isStartVisible: boolean;
     isAllProgramsOpen: boolean;
     isRecentDocumentsOpen: boolean;
@@ -80,6 +81,7 @@ export type Action =
     | { type: "SET_TRANSITION_LABEL"; payload: string; }
     | { type: "SET_IS_CRT_ENABLED"; payload: boolean; }
     | { type: "SET_THEME_COLOR"; payload: themeColor;}
+    | { type: "SET_USERNAME"; payload: string; }
 
 
 export interface ContextType extends State {

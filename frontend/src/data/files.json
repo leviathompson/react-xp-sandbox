@@ -8,6 +8,13 @@
             }
         ],
         [
+            "computer",
+            {
+                "top": 440,
+                "left": 5
+            }
+        ],
+        [
             "internetExplorer",
             {
                 "top": 90,
@@ -31,7 +38,7 @@
         [
             "solitaire",
             {
-                "top": 275,
+                "top": 355,
                 "left": 5
             }
         ],

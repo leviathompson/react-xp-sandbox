@@ -30,6 +30,8 @@ export const reducer = (state: State, action: Action): State => {
         return { ...state, isCRTEnabled: action.payload };
     case "SET_THEME_COLOR": 
         return { ...state, themeColor: action.payload };
+    case "SET_USERNAME":
+        return { ...state, username: action.payload };
     default:
         return state;
     }
@@ -43,6 +45,7 @@ export const initialState: State = {
         appId: "readme",
     },
     ],
+    username: sessionStorage.getItem("username") || "",
     isStartVisible: false,
     isAllProgramsOpen: false,
     isRecentDocumentsOpen: false,
