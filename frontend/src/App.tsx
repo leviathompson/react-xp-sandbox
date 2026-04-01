@@ -1,5 +1,6 @@
 import { Activity, useEffect, useRef } from "react";
 import Desktop from "./components/Desktop/Desktop";
+import { AwardToast } from "./components/AwardToast/AwardToast";
 import { DebugPanel } from "./components/DebugPanel/DebugPanel";
 import Login from "./components/Login/Login";
 import TaskBar from "./components/TaskBar/TaskBar";
@@ -63,6 +64,7 @@ function App() {
             <Activity mode={(initiationStage > 2) ? "visible" : "hidden"}>
                 <WindowManagement />
             </Activity>
+            <AwardToast />
             {import.meta.env.DEV && <DebugPanel />}
         </>
     );

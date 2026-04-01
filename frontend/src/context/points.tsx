@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext as useReactContext, useEffect, useMemo, useReducer, useState } from "react";
+import { createContext, useCallback, useContext as useReactContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import pointRules, { type PointRule } from "../data/pointRules";
 import { generateUniqueId } from "../utils/general";
@@ -216,8 +216,11 @@ const evaluateLimit = (
     return { allowed: true };
 };
 
+const AWARD_DEBOUNCE_MS = 500;
+
 export const PointsProvider = ({ children }: { children: ReactNode }) => {
     const [state, dispatch] = useReducer(pointsReducer, undefined, createInitialState);
+    const lastAwardTimeRef = useRef<Map<string, number>>(new Map());
     const [pendingSyncCount, setPendingSyncCount] = useState(() => loadSyncQueue().length);
 
     const syncEvent = useCallback(async (award: PointsAward) => {
@@ -270,7 +273,11 @@ export const PointsProvider = ({ children }: { children: ReactNode }) => {
         const rule = ruleMap[ruleId];
         if (!rule) return { success: false, reason: "rule-not-found" };
 
-        const now = options.timestamp ?? Date.now();
+        const wallNow = Date.now();
+        const lastAwardTime = lastAwardTimeRef.current.get(ruleId) ?? 0;
+        if (wallNow - lastAwardTime < AWARD_DEBOUNCE_MS) return { success: false, reason: "debounced", rule };
+
+        const now = options.timestamp ?? wallNow;
         const limitCheck = evaluateLimit(rule, state, options, now);
         if (!limitCheck.allowed) return { success: false, reason: limitCheck.reason ?? "limit-reached", rule };
 
@@ -284,6 +291,7 @@ export const PointsProvider = ({ children }: { children: ReactNode }) => {
         };
 
         dispatch({ type: "AWARD_POINTS", payload: award });
+        lastAwardTimeRef.current.set(ruleId, wallNow);
         void syncEvent(award);
         return { success: true, award, rule };
     }, [state, syncEvent]);
