@@ -1,5 +1,6 @@
 import { createPortal } from "react-dom";
 import { useContext } from "../../context/context";
+import { usePoints } from "../../context/points";
 import playSound from "../../utils/sounds";
 import Button from "../Button/Button";
 import styles from "./ShutDownModal.module.scss";
@@ -10,6 +11,7 @@ interface ShutDownModalProps {
 
 const ShutDownModal = ({ isLogout = true }: ShutDownModalProps) => {
     const {windowsInitiationState, dispatch} = useContext();
+    const { awardPoints } = usePoints();
     
     const closeModel = () => {
         dispatch({ type: "SET_IS_SHUTDOWN_MODAL_OPEN", payload: false});
@@ -34,6 +36,7 @@ const ShutDownModal = ({ isLogout = true }: ShutDownModalProps) => {
     };
 
     const shutDownHandler = (isRestart = false) => {
+        if (isRestart) awardPoints("restart-computer");
         dispatch({ type: "SET_CURRENT_WINDOWS", payload: []});
         playSound("shutdown", true);
 

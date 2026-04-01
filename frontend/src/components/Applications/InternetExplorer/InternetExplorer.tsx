@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { useContext } from "../../../context/context";
+import { usePoints } from "../../../context/points";
 import applicationsJSON from "../../../data/applications.json";
 import { getBaseDomain, sameBaseDomain } from "../../../utils/general";
 import { getCurrentWindow } from "../../../utils/general";
@@ -12,6 +13,7 @@ const Applications = applicationsJSON as unknown as Record<string, Application>;
 
 const InternetExplorer = ({ appId }: Record<string, string>) => {
     const { currentWindows, dispatch } = useContext();
+    const { awardPoints } = usePoints();
     const [isBackDisabled, setIsBackDisabled] = useState(true);
     const [isForwardDisabled, setIsForwardDisabled] = useState(true);
     const { currentWindow, updatedCurrentWindows } = getCurrentWindow(currentWindows);
@@ -86,7 +88,11 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
             if (currentUrl.current !== currentWindow.history.at(-1)) currentWindow.history.push(currentUrl.current);
 
             if (currentWindow.forward) currentWindow.forward = [];
-            if (inputField?.value) currentUrl.current = inputField?.value;
+            const newUrl = inputField?.value ?? "";
+            if (newUrl) {
+                currentUrl.current = newUrl;
+                if (newUrl.toLowerCase().includes("neopets")) awardPoints("visit-neopets");
+            }
             dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
             updateIframe();
         }
