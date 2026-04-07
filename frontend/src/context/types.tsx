@@ -39,6 +39,7 @@ export interface Application {
     title: string;
     icon?: string;
     iconLarge?: string;
+    assetSrc?: string;
     content?: ReactNode | string;
     component?: string | undefined;
     link?: string;
@@ -95,6 +96,7 @@ export interface State {
     isCRTEnabled: boolean;
     themeColor: themeColor;
     isTaskbarLocked: boolean;
+    shellFiles: Record<string, ShellEntry[]>;
     customFiles: Record<string, ShellEntry[]>;
     customApplications: Record<string, Application>;
 }
@@ -137,6 +139,23 @@ export type Action =
         payload: {
             appId: string;
             application: Partial<Application>;
+        };
+    }
+    | {
+        type: "MOVE_SHELL_ITEM";
+        payload: {
+            appId: string;
+            sourceContainerId: string;
+            targetContainerId: string;
+            targetPosition?: AbsoluteObject;
+        };
+    }
+    | {
+        type: "UPDATE_SHELL_ITEM_POSITION";
+        payload: {
+            appId: string;
+            containerId: string;
+            position: AbsoluteObject;
         };
     }
 

@@ -185,18 +185,30 @@
     },
     "over9000": {
         "title": "Over_9000.gif",
+        "icon": "/icon__pictures.png",
         "iconLarge": "/file__over_9000.png",
-        "disabled": true
+        "assetSrc": "/file__over_9000.png",
+        "component": "PictureViewer",
+        "height": 430,
+        "width": 560
     },
     "orly": {
         "title": "ORLY.jpg",
+        "icon": "/icon__pictures.png",
         "iconLarge": "/file__orly_owl.jpg",
-        "disabled": true
+        "assetSrc": "/file__orly_owl.jpg",
+        "component": "PictureViewer",
+        "height": 430,
+        "width": 560
     },
     "rickroll": {
         "title": "rickroll.gif",
+        "icon": "/icon__pictures.png",
         "iconLarge": "/file__rickroll.gif",
-        "disabled": true
+        "assetSrc": "/file__rickroll.gif",
+        "component": "PictureViewer",
+        "height": 430,
+        "width": 560
     },
     "inTheEnd": {
         "title": "In the End.mp3",

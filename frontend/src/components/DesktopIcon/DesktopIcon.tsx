@@ -1,10 +1,10 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useContext } from "../../context/context";
 import { usePoints } from "../../context/points";
 import applicationsJSON from "../../data/applications.json";
 import { throttle } from "../../utils/general";
 import { openApplication } from "../../utils/general";
-import { buildShellContextMenu, createShortcutShellItemPayload } from "../../utils/shell";
+import { buildShellContextMenu, createShortcutShellItemPayload, getDropContainerId } from "../../utils/shell";
 import styles from "./DesktopIcon.module.scss";
 import type { AbsoluteObject, Application } from "../../context/types";
 
@@ -23,6 +23,8 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
     const { currentWindows, customApplications, dispatch, openContextMenu } = useContext();
     const { awardPoints } = usePoints();
     const [position, setPosition] = useState<AbsoluteObject>({ top, right, bottom, left });
+    const [isDragOver, setIsDragOver] = useState(false);
+    const positionRef = useRef<AbsoluteObject>({ top, right, bottom, left });
     const desktopIconRef = useRef<HTMLButtonElement | null>(null);
     const desktopIcon = desktopIconRef.current;
     const isActive = id === selectedId;
@@ -30,9 +32,15 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
     const appData = { ...(applications[appId] || {}), ...(customApplications[appId] || {}) };
     const { title, icon, iconLarge, link, redirect, disabled, shortcut, component } = { ...appData };
     const isCustomItem = !!customApplications[appId];
+    const dropContainerId = getDropContainerId(appId, appData, mergedApplications);
 
     const lastTouchTapRef = useRef(0);
     const skipNextDoubleClickRef = useRef(false);
+
+    useEffect(() => {
+        setPosition({ top, right, bottom, left });
+        positionRef.current = { top, right, bottom, left };
+    }, [bottom, left, right, top]);
 
     const activateIcon = () => {
         if (disabled) return;
@@ -65,12 +73,18 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
                 } else {
                     return;
                 }
+            } else if (event.pointerType !== "touch") {
+                hasPointerMovedBeyondTapThreshold = true;
             }
 
             setPosition({
                 top: event.clientY - yOffset,
                 left: event.clientX - xOffset,
             });
+            positionRef.current = {
+                top: event.clientY - yOffset,
+                left: event.clientX - xOffset,
+            };
             document.body.style.userSelect = "none";
             setSelectedId(id);
         };
@@ -81,7 +95,39 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
             window.removeEventListener("pointerup", onPointerUp);
             document.body.style.userSelect = "";
 
-            if (upEvent.pointerType === "touch" && !hasPointerMovedBeyondTapThreshold) {
+            if (hasPointerMovedBeyondTapThreshold) {
+                const dropTarget = document
+                    .elementsFromPoint(upEvent.clientX, upEvent.clientY)
+                    .find((element) => element instanceof HTMLElement && !!element.dataset.dropContainerId && element.dataset.appId !== appId) as HTMLElement | undefined;
+
+                const targetContainerId = dropTarget?.dataset.dropContainerId;
+                if (targetContainerId) {
+                    dispatch({
+                        type: "MOVE_SHELL_ITEM",
+                        payload: {
+                            appId,
+                            sourceContainerId: "desktop",
+                            targetContainerId,
+                        },
+                    });
+                    return;
+                }
+
+                dispatch({
+                    type: "UPDATE_SHELL_ITEM_POSITION",
+                    payload: {
+                        appId,
+                        containerId: "desktop",
+                        position: {
+                            top: positionRef.current.top,
+                            left: positionRef.current.left,
+                        },
+                    },
+                });
+                return;
+            }
+
+            if (upEvent.pointerType === "touch") {
                 const now = performance.now();
                 if (now - lastTouchTapRef.current < DOUBLE_TAP_DELAY_MS) {
                     skipNextDoubleClickRef.current = true;
@@ -100,7 +146,7 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
         setSelectedId(id);
 
         const onSecondClick = (event: PointerEvent) => {
-            const target = (event.target as HTMLElement);
+            const target = event.target as HTMLElement;
             if (event.target && target.closest("[data-selected") === desktopIcon) return;
             setSelectedId("");
             window.removeEventListener("pointerdown", onSecondClick);
@@ -179,10 +225,65 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
         });
     };
 
-    const imageMask = (isActive) ? `url("${iconLarge || icon}")` : "";
+    const onDragOverHandler = (event: React.DragEvent<HTMLButtonElement>) => {
+        if (!dropContainerId) return;
+
+        if (!Array.from(event.dataTransfer.types).includes("text/x-shell-item")) return;
+
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        setIsDragOver(true);
+    };
+
+    const onDropHandler = (event: React.DragEvent<HTMLButtonElement>) => {
+        setIsDragOver(false);
+        if (!dropContainerId) return;
+
+        const payload = event.dataTransfer.getData("text/x-shell-item");
+        if (!payload) return;
+
+        const draggedItem = JSON.parse(payload) as { appId: string; sourceContainerId: string };
+        if (draggedItem.appId === appId || draggedItem.appId === dropContainerId) return;
+
+        event.preventDefault();
+        dispatch({
+            type: "MOVE_SHELL_ITEM",
+            payload: {
+                appId: draggedItem.appId,
+                sourceContainerId: draggedItem.sourceContainerId,
+                targetContainerId: dropContainerId,
+            },
+        });
+    };
+
+    const onDragLeaveHandler = (event: React.DragEvent<HTMLButtonElement>) => {
+        if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) {
+            setIsDragOver(false);
+        }
+    };
+
+    const imageMask = isActive ? `url("${iconLarge || icon}")` : "";
 
     return (
-        <button ref={desktopIconRef} className={`${styles.desktopIcon} ${disabled ? "cursor-not-allowed" : ""}`} data-label="desktop-icon" data-selected={isActive} data-link={!!link} data-shortcut={shortcut} onClick={onClickHandler} onContextMenu={onContextMenuHandler} onPointerDown={onPointerDown} onDoubleClick={onDoubleClickHandler} style={{ top: position.top, right: position.right, bottom: position.bottom, left: position.left, touchAction: "none" }}>
+        <button
+            ref={desktopIconRef}
+            className={`${styles.desktopIcon} ${disabled ? "cursor-not-allowed" : ""}`}
+            data-label="desktop-icon"
+            data-app-id={appId}
+            data-drop-container-id={dropContainerId || undefined}
+            data-drag-over={isDragOver}
+            data-selected={isActive}
+            data-link={!!link}
+            data-shortcut={shortcut}
+            onClick={onClickHandler}
+            onContextMenu={onContextMenuHandler}
+            onDragLeave={onDragLeaveHandler}
+            onDragOver={onDragOverHandler}
+            onDrop={onDropHandler}
+            onPointerDown={onPointerDown}
+            onDoubleClick={onDoubleClickHandler}
+            style={{ top: position.top, right: position.right, bottom: position.bottom, left: position.left, touchAction: "none" }}
+        >
             <span style={{ maskImage: imageMask }}><img src={iconLarge || icon} width="50" draggable={false} /></span>
             <div className="relative w-full flex justify-center"><h4 className="text-center">{title}</h4></div>
         </button>

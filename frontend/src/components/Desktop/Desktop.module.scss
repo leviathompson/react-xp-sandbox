@@ -4,4 +4,9 @@
     position:absolute;
     top: 0;
     left: 0;
+
+    &[data-drag-over="true"] {
+        outline: 0.2rem dashed #d6e6ff;
+        outline-offset: -0.6rem;
+    }
 }

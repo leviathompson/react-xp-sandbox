@@ -56,6 +56,47 @@ const buildNewSubmenu = ({ onCreateItem }: NewMenuOptions): ContextMenuItem[] =>
     },
 ];
 
+const buildArrangeIconsBySubmenu = (): ContextMenuItem[] => [
+    {
+        id: "arrange-icons-by-name",
+        label: "Name",
+        disabled: true,
+    },
+    {
+        id: "arrange-icons-by-size",
+        label: "Size",
+        disabled: true,
+    },
+    {
+        id: "arrange-icons-by-type",
+        label: "Type",
+        disabled: true,
+    },
+    {
+        id: "arrange-icons-by-modified",
+        label: "Modified",
+        disabled: true,
+    },
+];
+
+const buildGraphicsOptionsSubmenu = (): ContextMenuItem[] => [
+    {
+        id: "graphics-options-rotation",
+        label: "Rotation",
+        disabled: true,
+    },
+    {
+        id: "graphics-options-output",
+        label: "Output To",
+        disabled: true,
+    },
+    {
+        id: "graphics-options-tray",
+        label: "Tray Icon",
+        disabled: true,
+    },
+];
+
 const buildSendToSubmenu = ({ onCreateShortcut }: Pick<DesktopFolderItemMenuOptions, "onCreateShortcut">): ContextMenuItem[] => [
     {
         id: "send-to-desktop-shortcut",
@@ -196,9 +237,67 @@ export const buildShellContextMenu = <T extends ShellContextSurface>(
 
     return [
         {
+            id: "desktop-arrange-icons-by",
+            label: "Arrange Icons By",
+            disabled: true,
+            submenu: buildArrangeIconsBySubmenu(),
+        },
+        {
+            id: "desktop-refresh",
+            label: "Refresh",
+            disabled: true,
+        },
+        {
+            id: "desktop-separator-paste",
+            separator: true,
+        },
+        {
+            id: "desktop-paste",
+            label: "Paste",
+            disabled: true,
+        },
+        {
+            id: "desktop-paste-shortcut",
+            label: "Paste Shortcut",
+            disabled: true,
+        },
+        {
+            id: "desktop-undo-action",
+            label: "Undo [Action]",
+            disabled: true,
+        },
+        {
+            id: "desktop-separator-graphics",
+            separator: true,
+        },
+        {
+            id: "desktop-graphics-properties",
+            label: "Graphics Properties...",
+            disabled: true,
+        },
+        {
+            id: "desktop-graphics-options",
+            label: "Graphics Options",
+            disabled: true,
+            submenu: buildGraphicsOptionsSubmenu(),
+        },
+        {
+            id: "desktop-separator-new",
+            separator: true,
+        },
+        {
             id: "new",
             label: "New",
             submenu: buildNewSubmenu(newMenuOptions),
+        },
+        {
+            id: "desktop-separator-properties",
+            separator: true,
+        },
+        {
+            id: "desktop-properties",
+            label: "Properties",
+            disabled: true,
         },
     ];
 };
@@ -320,4 +419,22 @@ export const createShortcutShellItemPayload = (
             shortcut: true,
         } satisfies Application,
     };
+};
+
+export const getShellEntryId = (entry: ShellEntry) => Array.isArray(entry) ? entry[0] : entry;
+
+export const getDropContainerId = (
+    appId: string,
+    application: Application | undefined,
+    applications: Record<string, Application>,
+) => {
+    if (!application || application.shortcut) return null;
+
+    const targetAppId = application.redirect || appId;
+    if (targetAppId === "recycleBin") return targetAppId;
+
+    const targetApplication = applications[targetAppId];
+    if (targetApplication?.component === "FileExplorer") return targetAppId;
+
+    return null;
 };

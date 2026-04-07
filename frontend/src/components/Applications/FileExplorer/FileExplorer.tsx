@@ -2,20 +2,18 @@ import { useRef, useState, useEffect } from "react";
 import { useContext } from "../../../context/context";
 import { usePoints } from "../../../context/points";
 import applicationsJSON from "../../../data/applications.json";
-import filesJSON from "../../../data/files.json";
-import { getCurrentWindow } from "../../../utils/general";
-import { buildShellContextMenu, createShellItemPayload } from "../../../utils/shell";
+import { generateUniqueId, getCurrentWindow } from "../../../utils/general";
+import { buildShellContextMenu, createShellItemPayload, createShortcutShellItemPayload, getDropContainerId, getShellEntryId } from "../../../utils/shell";
 import CollapseBox from "../../CollapseBox/CollapseBox";
 import WindowMenu from "../../WindowMenu/WindowMenu";
 import styles from "./FileExplorer.module.scss";
-import type { Application, ShellEntry } from "../../../context/types";
+import type { Application, currentWindow } from "../../../context/types";
 
 const BaseApplications = applicationsJSON as unknown as Record<string, Application>;
-const BaseFiles = filesJSON as unknown as Record<string, ShellEntry[]>;
 const DOUBLE_TAP_DELAY_MS = 350;
 
 const FileExplorer = ({ appId }: Record<string, string>) => {
-    const { currentWindows, username, customFiles, customApplications, dispatch, openContextMenu } = useContext();
+    const { currentWindows, username, shellFiles, customApplications, dispatch, openContextMenu } = useContext();
     const { awardPoints } = usePoints();
     const Applications = { ...BaseApplications, ...customApplications };
 
@@ -43,7 +41,12 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
     const appData = Applications[appId];
 
     const bgAccent = (["pictures", "music"].includes(appId) ? appId : null);
-    const documents = [...(BaseFiles[appId] || []), ...(customFiles[appId] || [])];
+    const documents = shellFiles[appId] || [];
+    const [dragOverTargetId, setDragOverTargetId] = useState<string | null>(null);
+    const getDesktopShortcutPosition = () => ({
+        top: 5 + ((shellFiles.desktop?.length || 0) % 7) * 85,
+        left: 95,
+    });
 
     const updateWindow = (appId: string | null = null) => {
         if (appId && Applications[appId].link) return window.open(Applications[appId].link, "_blank", "noopener,noreferrer");
@@ -83,7 +86,99 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
     const fileDBClickHandler = (_: unknown, appId: string | null = null) => {
         if (!appId || Applications[appId].disabled) return;
 
-        updateWindow(Applications[appId].redirect || appId);
+        const application = Applications[appId];
+        if (!application) return;
+
+        if (application.link) {
+            window.open(application.link, "_blank", "noopener,noreferrer");
+            return;
+        }
+
+        if (application.component === "FileExplorer" || application.redirect) {
+            updateWindow(application.redirect || appId);
+            return;
+        }
+
+        const newWindow: currentWindow = {
+            id: generateUniqueId(),
+            appId,
+            active: true,
+            history: [],
+            forward: [],
+        };
+
+        const updatedCurrentWindows: currentWindow[] = currentWindows.map((window) => ({
+            ...window,
+            active: false,
+        }));
+        updatedCurrentWindows.push(newWindow);
+        dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
+    };
+
+    const onItemContextMenu = (event: React.MouseEvent<HTMLButtonElement>, itemId: string) => {
+        event.preventDefault();
+        setSelectedItem(itemId);
+
+        const itemApplication = Applications[itemId];
+        if (!itemApplication) return;
+
+        const isCustomItem = !!customApplications[itemId];
+        const { title, component, disabled } = itemApplication;
+
+        openContextMenu({
+            x: event.clientX,
+            y: event.clientY,
+            items: buildShellContextMenu("desktopFolderItem", {
+                canDelete: isCustomItem,
+                canRename: isCustomItem,
+                canOpen: !disabled,
+                onOpen: () => fileDBClickHandler(null, itemId),
+                onExplore: () => fileDBClickHandler(null, itemId),
+                onCreateShortcut: () => {
+                    dispatch({
+                        type: "CREATE_SHELL_ITEM",
+                        payload: createShortcutShellItemPayload(itemId, itemApplication, Applications, getDesktopShortcutPosition()),
+                    });
+                },
+                onDelete: () => {
+                    dispatch({
+                        type: "SET_CURRENT_WINDOWS",
+                        payload: currentWindows.filter((currentWindow) => currentWindow.appId !== itemId),
+                    });
+                    dispatch({
+                        type: "DELETE_SHELL_ITEM",
+                        payload: {
+                            containerId: appId,
+                            appId: itemId,
+                        },
+                    });
+                    setSelectedItem(null);
+                },
+                onRename: () => {
+                    const nextTitle = window.prompt("Rename", title);
+                    if (!nextTitle) return;
+
+                    const trimmedTitle = nextTitle.trim();
+                    if (!trimmedTitle || trimmedTitle === title) return;
+
+                    dispatch({
+                        type: "UPDATE_SHELL_ITEM",
+                        payload: {
+                            appId: itemId,
+                            application: {
+                                title: trimmedTitle,
+                            },
+                        },
+                    });
+
+                    if (component === "FileExplorer") {
+                        awardPoints("rename-folder", {
+                            metadata: { appId: itemId, title: trimmedTitle },
+                        });
+                    }
+                },
+            }),
+        });
     };
 
     const fileClickHandler = (_: unknown, appId: string | null = null) => {
@@ -162,6 +257,59 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                 },
             }),
         });
+    };
+
+    const onItemDragStart = (event: React.DragEvent<HTMLButtonElement>, itemId: string) => {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", itemId);
+        event.dataTransfer.setData("text/x-shell-item", JSON.stringify({
+            appId: itemId,
+            sourceContainerId: appId,
+        }));
+        setSelectedItem(itemId);
+    };
+
+    const onItemDragEnd = () => {
+        setDragOverTargetId(null);
+    };
+
+    const onItemDragOver = (event: React.DragEvent<HTMLButtonElement>, itemId: string) => {
+        const targetContainerId = getDropContainerId(itemId, Applications[itemId], Applications);
+        if (!targetContainerId) return;
+
+        if (!Array.from(event.dataTransfer.types).includes("text/x-shell-item")) return;
+
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        setDragOverTargetId(itemId);
+    };
+
+    const onItemDrop = (event: React.DragEvent<HTMLButtonElement>, itemId: string) => {
+        const targetContainerId = getDropContainerId(itemId, Applications[itemId], Applications);
+        if (!targetContainerId) return;
+
+        const payload = event.dataTransfer.getData("text/x-shell-item");
+        if (!payload) return;
+
+        const draggedItem = JSON.parse(payload) as { appId: string; sourceContainerId: string };
+        setDragOverTargetId(null);
+
+        if (draggedItem.appId === itemId || draggedItem.appId === targetContainerId) return;
+
+        dispatch({
+            type: "MOVE_SHELL_ITEM",
+            payload: {
+                appId: draggedItem.appId,
+                sourceContainerId: draggedItem.sourceContainerId,
+                targetContainerId,
+            },
+        });
+    };
+
+    const onItemDragLeave = (event: React.DragEvent<HTMLButtonElement>, itemId: string) => {
+        if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) {
+            if (dragOverTargetId === itemId) setDragOverTargetId(null);
+        }
     };
 
     return (
@@ -272,9 +420,9 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                     <div className="absolute inset-0 p-3 h-fit">
                         {appId === "computer" && <h3 className="w-full">Files Stored on this Computer</h3>}
                         {documents.map((item) => {
-                            if (item === appId) return;
+                            if (getShellEntryId(item) === appId) return;
 
-                            const itemId = Array.isArray(item) ? item[0] : item;
+                            const itemId = getShellEntryId(item);
                             const appData = Applications[itemId];
                             if (!appData) return;
                             
@@ -283,7 +431,25 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                             //const imageMask = (isActive) ? `url("${iconLarge || icon}")` : "";
 
                             return (
-                                <button key={itemId} data-label="file-explorer-item" data-id={itemId} data-selected={isActive} data-link={!!link} className={`${styles.file} ${(disabled) ? "cursor-not-allowed" : ""}`} onDoubleClick={(e) => fileDBClickHandler(e, itemId)} onClick={(e) => fileClickHandler(e, itemId)} onPointerUp={(event) => handleFileTouchPointerUp(event, itemId)}>
+                                <button
+                                    key={itemId}
+                                    draggable
+                                    data-label="file-explorer-item"
+                                    data-id={itemId}
+                                    data-selected={isActive}
+                                    data-link={!!link}
+                                    data-drag-over={dragOverTargetId === itemId}
+                                    className={`${styles.file} ${(disabled) ? "cursor-not-allowed" : ""}`}
+                                    onDoubleClick={(e) => fileDBClickHandler(e, itemId)}
+                                    onClick={(e) => fileClickHandler(e, itemId)}
+                                    onContextMenu={(event) => onItemContextMenu(event, itemId)}
+                                    onDragEnd={onItemDragEnd}
+                                    onDragLeave={(event) => onItemDragLeave(event, itemId)}
+                                    onDragOver={(event) => onItemDragOver(event, itemId)}
+                                    onDragStart={(event) => onItemDragStart(event, itemId)}
+                                    onDrop={(event) => onItemDrop(event, itemId)}
+                                    onPointerUp={(event) => handleFileTouchPointerUp(event, itemId)}
+                                >
                                     <span className="flex items-center shrink-0"><img src={iconLarge || icon} width="35" height="35" draggable={false} /></span>
                                     <h4 className="px-0.5">{resolveTitle(itemId)}</h4>
                                 </button>

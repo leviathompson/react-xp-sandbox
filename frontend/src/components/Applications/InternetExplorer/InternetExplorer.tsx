@@ -12,14 +12,29 @@ import type { Application } from "../../../context/types";
 const Applications = applicationsJSON as unknown as Record<string, Application>;
 const DEFAULT_HOME_PAGE = "https://www.msn.com";
 const TOP_LEVEL_MENUS = ["File", "Edit", "View", "Favorites", "Tools", "Help"];
-type ToolMenuItem = {
+type BrowserMenuItem = {
     label?: string;
     hasSubMenu?: boolean;
     action?: "openInternetOptions";
+    url?: string;
     separator?: boolean;
 };
 
-const TOOLS_MENU_ITEMS: ToolMenuItem[] = [
+const FAVORITES_MENU_ITEMS: BrowserMenuItem[] = [
+    { label: "Add to favorites..."},
+    { separator: true },
+    { label: "Neopets", url: "https://www.neopets.com" },
+    { label: "Homestar Runner", url: "https://homestarrunner.com" },
+    { label: "Newgrounds", url: "https://www.newgrounds.com" },
+    { label: "Miniclip", url: "https://www.miniclip.com" },
+    { label: "Addicting Games", url: "https://www.addictinggames.com" },
+    { label: "Albino Blacksheep", url: "https://www.albinoblacksheep.com" },
+    { label: "GameFAQs", url: "https://www.gamefaqs.com" },
+    { label: "Ebaumsworld", url: "https://www.ebaumsworld.com" },
+    { label: "Runescape", url: "https://www.runescape.com" },
+] as const;
+
+const TOOLS_MENU_ITEMS: BrowserMenuItem[] = [
     { label: "Mail and News", hasSubMenu: true },
     { label: "Pop-up Blocker", hasSubMenu: true },
     { label: "Manage Add-ons..." },
@@ -40,6 +55,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
     const [isBackDisabled, setIsBackDisabled] = useState(true);
     const [isForwardDisabled, setIsForwardDisabled] = useState(true);
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
+    const [activeExplorerBar, setActiveExplorerBar] = useState<"favorites" | null>(null);
     const { currentWindow, updatedCurrentWindows } = getCurrentWindow(currentWindows);
     const HOMEPAGE = currentWindow?.homePage || currentWindow?.landingUrl || DEFAULT_HOME_PAGE;
 
@@ -173,13 +189,34 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
         updateIframe(HOMEPAGE);
     };
 
+    const navigateToUrl = (nextUrl: string) => {
+        if (!currentWindow) return;
+
+        if (currentWindow.history && currentUrl.current !== currentWindow.history.at(-1)) {
+            currentWindow.history.push(currentUrl.current);
+        }
+
+        if (currentWindow.forward) currentWindow.forward = [];
+
+        setWindowCurrentUrl(nextUrl);
+        if (nextUrl.toLowerCase().includes("neopets")) awardPoints("visit-neopets");
+
+        dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
+        updateIframe(nextUrl);
+    };
+
     const handleTopLevelMenuClick = (menuItem: string) => {
-        if (menuItem !== "Tools") return;
+        if (!["Favorites", "Tools"].includes(menuItem)) return;
         setActiveMenu((currentMenu) => currentMenu === menuItem ? null : menuItem);
     };
 
-    const handleToolsMenuAction = (action?: string) => {
+    const handleMenuItemAction = ({ action, url }: Pick<BrowserMenuItem, "action" | "url">) => {
         setActiveMenu(null);
+        if (url) {
+            navigateToUrl(url);
+            return;
+        }
+
         if (action !== "openInternetOptions") return;
         if (!currentWindow) return;
 
@@ -212,6 +249,10 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
         dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedWindows });
     };
 
+    const toggleFavoritesBar = () => {
+        setActiveExplorerBar((currentBar) => currentBar === "favorites" ? null : "favorites");
+    };
+
     return (
         <div className={styles.internetExplorer}>
             <div className={styles.menusContainer}>
@@ -219,7 +260,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
                     <div className="relative overflow-hidden w-full">
                         <ul className="flex mx-1">
                             {TOP_LEVEL_MENUS.map((menuItem) => {
-                                const isInteractive = menuItem === "Tools";
+                                const isInteractive = ["Favorites", "Tools"].includes(menuItem);
 
                                 return (
                                     <li
@@ -227,6 +268,9 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
                                         className="display-block my-1 px-2.5 py-1"
                                         data-active={activeMenu === menuItem}
                                         data-enabled={isInteractive}
+                                        onMouseEnter={() => {
+                                            if (activeMenu && isInteractive) setActiveMenu(menuItem);
+                                        }}
                                     >
                                         <button type="button" onClick={() => handleTopLevelMenuClick(menuItem)}>{menuItem}</button>
                                     </li>
@@ -235,6 +279,29 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
                         </ul>
                     </div>
                     <img src="icon__windows_logo.png" height="100%" width="40" />
+
+                    {activeMenu === "Favorites" && (
+                        <div className={styles.favoritesMenu} role="menu" aria-label="Favorites">
+                            {FAVORITES_MENU_ITEMS.map((item, index) => {
+                                if ("separator" in item) {
+                                    return <div key={`favorites-separator-${index}`} className={styles.menuSeparator} />;
+                                }
+
+                                return (
+                                    <button
+                                        key={item.label}
+                                        type="button"
+                                        className={styles.toolsMenuItem}
+                                        role="menuitem"
+                                        onClick={() => handleMenuItemAction(item)}
+                                    >
+                                        <span>{item.label}</span>
+                                        {item.hasSubMenu && <span>&gt;</span>}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
 
                     {activeMenu === "Tools" && (
                         <div className={styles.toolsMenu} role="menu" aria-label="Tools">
@@ -249,7 +316,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
                                         type="button"
                                         className={styles.toolsMenuItem}
                                         role="menuitem"
-                                        onClick={() => handleToolsMenuAction(item.action)}
+                                        onClick={() => handleMenuItemAction(item)}
                                     >
                                         <span>{item.label}</span>
                                         {item.hasSubMenu && <span>&gt;</span>}
@@ -290,7 +357,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
                                 <img className="mr-2" src="/icon__search--large.png" width="20" height="20" />
                                 <h4>Search</h4>
                             </button>
-                            <button className="flex items-center m-0.5 cursor-not-allowed">
+                            <button className="flex items-center m-0.5" data-active={activeExplorerBar === "favorites"} onClick={toggleFavoritesBar}>
                                 <img className="mr-2" src="/icon__favourites--large.png" width="20" height="20" />
                                 <h4>Favourites</h4>
                             </button>
@@ -328,7 +395,29 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
                 </section>
             </div>
             <main className={`${styles.mainContent} h-full flex overflow-auto`}>
-                <iframe ref={iframeRef} src={getIframeSrc(inputField?.value || HOMEPAGE).url} width="100%" height="100%" />
+                {activeExplorerBar === "favorites" && (
+                    <aside className={styles.explorerBar}>
+                        <div className={styles.explorerBarHeader}>
+                            <span>Favorites</span>
+                            <button type="button" onClick={toggleFavoritesBar} aria-label="Close Favorites">×</button>
+                        </div>
+                        <div className={styles.explorerBarBody}>
+                            <ul className={styles.explorerBarList}>
+                                {FAVORITES_MENU_ITEMS.filter((item) => !item.separator).map((item) => (
+                                    <li key={item.label}>
+                                        <button type="button" onClick={() => item.url && navigateToUrl(item.url)}>
+                                            <img src="/icon__favourites--large.png" width="16" height="16" alt="" />
+                                            <span>{item.label}</span>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </aside>
+                )}
+                <div className={styles.browserFrame}>
+                    <iframe ref={iframeRef} src={getIframeSrc(inputField?.value || HOMEPAGE).url} width="100%" height="100%" />
+                </div>
             </main >
             <div className={`${styles.statusBar} flex justify-between px-2 py-0.5`}>
                 <div className="flex items-center gap-1">

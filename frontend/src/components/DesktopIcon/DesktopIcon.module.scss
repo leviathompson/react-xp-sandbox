@@ -77,6 +77,11 @@
         }
     }
 
+    &[data-drag-over="true"] {
+        outline: 0.1rem dashed #d6e6ff;
+        outline-offset: 0.1rem;
+    }
+
     @media (max-width: 767px) and (pointer: coarse) {
         --desktop-icon-scale: var(--mobile-desktop-icon-scale, 1.15);
     }
