@@ -1,6 +1,7 @@
 import { Activity, useEffect, useRef } from "react";
 import Desktop from "./components/Desktop/Desktop";
 import { AwardToast } from "./components/AwardToast/AwardToast";
+import Bsod from "./components/Bsod/Bsod";
 import ContextMenu from "./components/ContextMenu/ContextMenu";
 import { DebugPanel } from "./components/DebugPanel/DebugPanel";
 import Login from "./components/Login/Login";
@@ -49,6 +50,10 @@ function App() {
 
         return () => clearTimeout(delay);
     }, [isInitialBoot, initiationStage, windowsInitiationState, dispatch]);
+
+    if (windowsInitiationState === "bsod") {
+        return <Bsod />;
+    }
 
     return (
         <>

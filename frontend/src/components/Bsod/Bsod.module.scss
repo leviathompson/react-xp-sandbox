@@ -1,0 +1,25 @@
+.bsod {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #0000aa;
+    color: #fff;
+    font-family: "Lucida Console", "Courier New", monospace;
+    cursor: default;
+}
+
+.content {
+    max-width: 52rem;
+    padding: 2rem 1.9rem;
+    font-size: 1.05rem;
+    line-height: 1.15;
+
+    p {
+        margin: 0 0 0.9rem;
+    }
+}
+
+.errorName,
+.technical {
+    margin-top: 1.6rem;
+}

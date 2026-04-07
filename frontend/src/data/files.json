@@ -78,8 +78,13 @@
         "localDisk"
     ],
     "localDisk": [
+        "windowsFolder",
         "userHomeFolder"
     ],
+    "windowsFolder": [
+        "system32"
+    ],
+    "system32": [],
     "userHomeFolder": [
         "appDataFolder"
     ],

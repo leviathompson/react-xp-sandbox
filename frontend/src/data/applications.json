@@ -57,8 +57,9 @@
     "winMediaPlayer": {
         "title": "Windows Media Player",
         "iconLarge": "/icon__media_player--large.png",
-        "content": "placeholder",
-        "disabled": true
+        "component": "MediaPlayer",
+        "height": 430,
+        "width": 650
     },
     "msn": {
         "title": "MSN",
@@ -212,8 +213,14 @@
     },
     "inTheEnd": {
         "title": "In the End.mp3",
+        "icon": "/icon__media_player--large.png",
         "iconLarge": "/file__linkin_park.jpeg",
-        "disabled": true
+        "component": "MediaPlayer",
+        "embedUrl": "https://www.youtube-nocookie.com/embed/eVTXPUF4Oz4?autoplay=1&mute=0&rel=0",
+        "artist": "Linkin Park",
+        "album": "Meteora",
+        "height": 430,
+        "width": 650
     },
     "win11": {
         "title": "windows_11.exe",
@@ -233,6 +240,18 @@
     "localDisk": {
         "title": "Local Disk (:C)",
         "iconLarge": "/icon__hdd--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "windowsFolder": {
+        "title": "WINDOWS",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "system32": {
+        "title": "system32",
+        "iconLarge": "/icon__file_explorer--large.png",
         "component": "FileExplorer",
         "height": 390
     },

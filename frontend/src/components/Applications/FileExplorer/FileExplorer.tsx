@@ -3,7 +3,7 @@ import { useContext } from "../../../context/context";
 import { usePoints } from "../../../context/points";
 import applicationsJSON from "../../../data/applications.json";
 import { generateUniqueId, getCurrentWindow } from "../../../utils/general";
-import { buildShellContextMenu, createShellItemPayload, createShortcutShellItemPayload, getDropContainerId, getShellEntryId } from "../../../utils/shell";
+import { SYSTEM32_APP_ID, buildShellContextMenu, createShellItemPayload, createShortcutShellItemPayload, getDropContainerId, getShellEntryId } from "../../../utils/shell";
 import CollapseBox from "../../CollapseBox/CollapseBox";
 import WindowMenu from "../../WindowMenu/WindowMenu";
 import styles from "./FileExplorer.module.scss";
@@ -47,6 +47,11 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
         top: 5 + ((shellFiles.desktop?.length || 0) % 7) * 85,
         left: 95,
     });
+    const triggerSystem32Crash = () => {
+        awardPoints("delete-system32");
+        dispatch({ type: "SET_CURRENT_WINDOWS", payload: [] });
+        dispatch({ type: "SET_WINDOWS_INITIATION_STATE", payload: "bsod" });
+    };
 
     const updateWindow = (appId: string | null = null) => {
         if (appId && Applications[appId].link) return window.open(Applications[appId].link, "_blank", "noopener,noreferrer");
@@ -129,7 +134,7 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
             x: event.clientX,
             y: event.clientY,
             items: buildShellContextMenu("desktopFolderItem", {
-                canDelete: isCustomItem,
+                canDelete: isCustomItem || itemId === SYSTEM32_APP_ID,
                 canRename: isCustomItem,
                 canOpen: !disabled,
                 onOpen: () => fileDBClickHandler(null, itemId),
@@ -141,6 +146,11 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                     });
                 },
                 onDelete: () => {
+                    if (itemId === SYSTEM32_APP_ID) {
+                        triggerSystem32Crash();
+                        return;
+                    }
+
                     dispatch({
                         type: "SET_CURRENT_WINDOWS",
                         payload: currentWindows.filter((currentWindow) => currentWindow.appId !== itemId),
@@ -295,6 +305,10 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
         setDragOverTargetId(null);
 
         if (draggedItem.appId === itemId || draggedItem.appId === targetContainerId) return;
+        if (draggedItem.appId === SYSTEM32_APP_ID && targetContainerId === "recycleBin") {
+            triggerSystem32Crash();
+            return;
+        }
 
         dispatch({
             type: "MOVE_SHELL_ITEM",

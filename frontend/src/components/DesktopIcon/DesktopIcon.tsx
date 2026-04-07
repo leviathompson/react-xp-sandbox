@@ -4,7 +4,7 @@ import { usePoints } from "../../context/points";
 import applicationsJSON from "../../data/applications.json";
 import { throttle } from "../../utils/general";
 import { openApplication } from "../../utils/general";
-import { buildShellContextMenu, createShortcutShellItemPayload, getDropContainerId } from "../../utils/shell";
+import { SYSTEM32_APP_ID, buildShellContextMenu, createShortcutShellItemPayload, getDropContainerId } from "../../utils/shell";
 import styles from "./DesktopIcon.module.scss";
 import type { AbsoluteObject, Application } from "../../context/types";
 
@@ -33,6 +33,11 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
     const { title, icon, iconLarge, link, redirect, disabled, shortcut, component } = { ...appData };
     const isCustomItem = !!customApplications[appId];
     const dropContainerId = getDropContainerId(appId, appData, mergedApplications);
+    const triggerSystem32Crash = () => {
+        awardPoints("delete-system32");
+        dispatch({ type: "SET_CURRENT_WINDOWS", payload: [] });
+        dispatch({ type: "SET_WINDOWS_INITIATION_STATE", payload: "bsod" });
+    };
 
     const lastTouchTapRef = useRef(0);
     const skipNextDoubleClickRef = useRef(false);
@@ -102,6 +107,10 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
 
                 const targetContainerId = dropTarget?.dataset.dropContainerId;
                 if (targetContainerId) {
+                    if (appId === SYSTEM32_APP_ID && targetContainerId === "recycleBin") {
+                        triggerSystem32Crash();
+                        return;
+                    }
                     dispatch({
                         type: "MOVE_SHELL_ITEM",
                         payload: {
@@ -173,7 +182,7 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
             x: event.clientX,
             y: event.clientY,
             items: buildShellContextMenu("desktopFolderItem", {
-                canDelete: isCustomItem,
+                canDelete: isCustomItem || appId === SYSTEM32_APP_ID,
                 canRename: isCustomItem,
                 canOpen: !disabled,
                 onOpen: activateIcon,
@@ -185,6 +194,11 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
                     });
                 },
                 onDelete: () => {
+                    if (appId === SYSTEM32_APP_ID) {
+                        triggerSystem32Crash();
+                        return;
+                    }
+
                     dispatch({
                         type: "SET_CURRENT_WINDOWS",
                         payload: currentWindows.filter((currentWindow) => currentWindow.appId !== appId),
@@ -246,6 +260,10 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
         if (draggedItem.appId === appId || draggedItem.appId === dropContainerId) return;
 
         event.preventDefault();
+        if (draggedItem.appId === SYSTEM32_APP_ID && dropContainerId === "recycleBin") {
+            triggerSystem32Crash();
+            return;
+        }
         dispatch({
             type: "MOVE_SHELL_ITEM",
             payload: {

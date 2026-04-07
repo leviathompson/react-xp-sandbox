@@ -120,8 +120,8 @@ export const pointRules: PointRule[] = [
     },
     {
         id: "delete-system32",
-        label: "Attempt to Delete System32",
-        description: "Reach the prompt that threatens to delete System32 (and maybe think twice).",
+        label: "Delete System32",
+        description: "Delete system32 and bring the whole machine down with it.",
         points: 20,
         category: "challenge",
         limit: { type: "perSession", maxAwards: 1 },

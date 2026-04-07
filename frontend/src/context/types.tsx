@@ -40,6 +40,9 @@ export interface Application {
     icon?: string;
     iconLarge?: string;
     assetSrc?: string;
+    embedUrl?: string;
+    artist?: string;
+    album?: string;
     content?: ReactNode | string;
     component?: string | undefined;
     link?: string;
@@ -77,7 +80,7 @@ export type File = AbsoluteObject & {
     id: string;
 }
 
-export type windowsInitiationState = "shutDown" | "bios" | "welcome" | "transition" | "login" | "loggingIn" | "loggedIn";
+export type windowsInitiationState = "shutDown" | "bios" | "welcome" | "transition" | "login" | "loggingIn" | "loggedIn" | "bsod";
 export type themeColor = "blue" | "green" | "silver";
 
 export interface State {

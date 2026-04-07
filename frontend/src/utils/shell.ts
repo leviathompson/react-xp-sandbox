@@ -1,6 +1,8 @@
 import { generateUniqueId } from "./general";
 import type { Application, ContextMenuItem, ShellEntry, AbsoluteObject } from "../context/types";
 
+export const SYSTEM32_APP_ID = "system32";
+
 export type ShellContextSurface = "desktop" | "desktopFolderItem" | "fileExplorerBackground" | "taskbar";
 export type NewShellItemKind = "folder" | "shortcut" | "briefcase";
 
