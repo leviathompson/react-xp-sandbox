@@ -35,6 +35,14 @@ export const pointRules: PointRule[] = [
         limit: { type: "perSession", maxAwards: 3 },
     },
     {
+        id: "rename-folder",
+        label: "Rename a Folder",
+        description: "Give a folder a new name from the shell context menu.",
+        points: 5,
+        category: "system",
+        limit: { type: "perSession", maxAwards: 3 },
+    },
+    {
         id: "delete-browser-history",
         label: "Delete Browser History",
         description: "Clear the history inside the Internet Explorer experience.",

@@ -53,6 +53,7 @@ export interface Application {
     right?: number;
     bottom?: number;
     left?: number;
+    shortcut?: boolean;
 }
 
 export interface ContextMenuItem {
@@ -122,6 +123,20 @@ export type Action =
             entry: ShellEntry;
             application: Application;
             contents?: ShellEntry[];
+        };
+    }
+    | {
+        type: "DELETE_SHELL_ITEM";
+        payload: {
+            containerId: string;
+            appId: string;
+        };
+    }
+    | {
+        type: "UPDATE_SHELL_ITEM";
+        payload: {
+            appId: string;
+            application: Partial<Application>;
         };
     }
 

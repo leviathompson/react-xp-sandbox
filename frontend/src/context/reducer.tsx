@@ -2,6 +2,8 @@ import { generateUniqueId } from "../utils/general";
 import { defaultWallpaper } from "./defaults";
 import type { State, Action } from "./types";
 
+const getShellEntryId = (entry: State["customFiles"][string][number]) => Array.isArray(entry) ? entry[0] : entry;
+
 export const reducer = (state: State, action: Action): State => {
     switch (action.type) {
     case "SET_WALLPAPER":
@@ -47,6 +49,38 @@ export const reducer = (state: State, action: Action): State => {
             customApplications: {
                 ...state.customApplications,
                 [appId]: application,
+            },
+        };
+    }
+    case "DELETE_SHELL_ITEM": {
+        const { containerId, appId } = action.payload;
+        const remainingApplications = { ...state.customApplications };
+        const remainingFiles = { ...state.customFiles };
+        delete remainingApplications[appId];
+        delete remainingFiles[appId];
+
+        return {
+            ...state,
+            customFiles: {
+                ...remainingFiles,
+                [containerId]: (state.customFiles[containerId] || []).filter((entry) => getShellEntryId(entry) !== appId),
+            },
+            customApplications: remainingApplications,
+        };
+    }
+    case "UPDATE_SHELL_ITEM": {
+        const { appId, application } = action.payload;
+        const existingApplication = state.customApplications[appId];
+        if (!existingApplication) return state;
+
+        return {
+            ...state,
+            customApplications: {
+                ...state.customApplications,
+                [appId]: {
+                    ...existingApplication,
+                    ...application,
+                },
             },
         };
     }

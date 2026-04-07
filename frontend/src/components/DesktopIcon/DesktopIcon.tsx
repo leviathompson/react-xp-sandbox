@@ -1,8 +1,10 @@
 import { useState, useRef } from "react";
 import { useContext } from "../../context/context";
+import { usePoints } from "../../context/points";
 import applicationsJSON from "../../data/applications.json";
 import { throttle } from "../../utils/general";
 import { openApplication } from "../../utils/general";
+import { buildShellContextMenu, createShortcutShellItemPayload } from "../../utils/shell";
 import styles from "./DesktopIcon.module.scss";
 import type { AbsoluteObject, Application } from "../../context/types";
 
@@ -18,13 +20,16 @@ const DOUBLE_TAP_DELAY_MS = 350;
 const DOUBLE_TAP_MOVE_THRESHOLD_PX = 8;
 
 const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undefined, left = undefined, id, selectedId, setSelectedId }: DesktopIconProps) => {
-    const { currentWindows, customApplications, dispatch } = useContext();
+    const { currentWindows, customApplications, dispatch, openContextMenu } = useContext();
+    const { awardPoints } = usePoints();
     const [position, setPosition] = useState<AbsoluteObject>({ top, right, bottom, left });
     const desktopIconRef = useRef<HTMLButtonElement | null>(null);
     const desktopIcon = desktopIconRef.current;
     const isActive = id === selectedId;
+    const mergedApplications = { ...applications, ...customApplications };
     const appData = { ...(applications[appId] || {}), ...(customApplications[appId] || {}) };
-    const { title, icon, iconLarge, link, disabled } = { ...appData };
+    const { title, icon, iconLarge, link, redirect, disabled, shortcut, component } = { ...appData };
+    const isCustomItem = !!customApplications[appId];
 
     const lastTouchTapRef = useRef(0);
     const skipNextDoubleClickRef = useRef(false);
@@ -33,7 +38,7 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
         if (disabled) return;
         if (link) return window.open(link, "_blank", "noopener,noreferrer");
 
-        openApplication(appId, currentWindows, dispatch);
+        openApplication(redirect || appId, currentWindows, dispatch);
         setSelectedId("");
     };
 
@@ -113,10 +118,71 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
         activateIcon();
     };
 
+    const onContextMenuHandler = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        setSelectedId(id);
+        const shortcutSourcePosition = desktopIcon ? { top: desktopIcon.offsetTop, left: desktopIcon.offsetLeft } : position;
+
+        openContextMenu({
+            x: event.clientX,
+            y: event.clientY,
+            items: buildShellContextMenu("desktopFolderItem", {
+                canDelete: isCustomItem,
+                canRename: isCustomItem,
+                canOpen: !disabled,
+                onOpen: activateIcon,
+                onExplore: activateIcon,
+                onCreateShortcut: () => {
+                    dispatch({
+                        type: "CREATE_SHELL_ITEM",
+                        payload: createShortcutShellItemPayload(appId, appData, mergedApplications, shortcutSourcePosition),
+                    });
+                },
+                onDelete: () => {
+                    dispatch({
+                        type: "SET_CURRENT_WINDOWS",
+                        payload: currentWindows.filter((currentWindow) => currentWindow.appId !== appId),
+                    });
+                    dispatch({
+                        type: "DELETE_SHELL_ITEM",
+                        payload: {
+                            containerId: "desktop",
+                            appId,
+                        },
+                    });
+                    setSelectedId("");
+                },
+                onRename: () => {
+                    const nextTitle = window.prompt("Rename", title);
+                    if (!nextTitle) return;
+
+                    const trimmedTitle = nextTitle.trim();
+                    if (!trimmedTitle || trimmedTitle === title) return;
+
+                    dispatch({
+                        type: "UPDATE_SHELL_ITEM",
+                        payload: {
+                            appId,
+                            application: {
+                                title: trimmedTitle,
+                            },
+                        },
+                    });
+
+                    if (component === "FileExplorer") {
+                        awardPoints("rename-folder", {
+                            metadata: { appId, title: trimmedTitle },
+                        });
+                    }
+                },
+            }),
+        });
+    };
+
     const imageMask = (isActive) ? `url("${iconLarge || icon}")` : "";
 
     return (
-        <button ref={desktopIconRef} className={`${styles.desktopIcon} ${disabled ? "cursor-not-allowed" : ""}`} data-label="desktop-icon" data-selected={isActive} data-link={!!link} onClick={onClickHandler} onPointerDown={onPointerDown} onDoubleClick={onDoubleClickHandler} style={{ top: position.top, right: position.right, bottom: position.bottom, left: position.left, touchAction: "none" }}>
+        <button ref={desktopIconRef} className={`${styles.desktopIcon} ${disabled ? "cursor-not-allowed" : ""}`} data-label="desktop-icon" data-selected={isActive} data-link={!!link} data-shortcut={shortcut} onClick={onClickHandler} onContextMenu={onContextMenuHandler} onPointerDown={onPointerDown} onDoubleClick={onDoubleClickHandler} style={{ top: position.top, right: position.right, bottom: position.bottom, left: position.left, touchAction: "none" }}>
             <span style={{ maskImage: imageMask }}><img src={iconLarge || icon} width="50" draggable={false} /></span>
             <div className="relative w-full flex justify-center"><h4 className="text-center">{title}</h4></div>
         </button>

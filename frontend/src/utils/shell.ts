@@ -1,7 +1,7 @@
 import { generateUniqueId } from "./general";
 import type { Application, ContextMenuItem, ShellEntry, AbsoluteObject } from "../context/types";
 
-export type ShellContextSurface = "desktop" | "fileExplorerBackground" | "taskbar";
+export type ShellContextSurface = "desktop" | "desktopFolderItem" | "fileExplorerBackground" | "taskbar";
 export type NewShellItemKind = "folder" | "shortcut" | "briefcase";
 
 type NewMenuOptions = {
@@ -14,8 +14,20 @@ type TaskbarMenuOptions = {
     onToggleTaskbarLock: () => void;
 };
 
+type DesktopFolderItemMenuOptions = {
+    canDelete: boolean;
+    canRename: boolean;
+    canOpen: boolean;
+    onOpen: () => void;
+    onExplore: () => void;
+    onCreateShortcut: () => void;
+    onDelete: () => void;
+    onRename: () => void;
+};
+
 type ShellContextMenuOptions = {
     desktop: NewMenuOptions;
+    desktopFolderItem: DesktopFolderItemMenuOptions;
     fileExplorerBackground: NewMenuOptions;
     taskbar: TaskbarMenuOptions;
 };
@@ -44,10 +56,120 @@ const buildNewSubmenu = ({ onCreateItem }: NewMenuOptions): ContextMenuItem[] =>
     },
 ];
 
+const buildSendToSubmenu = ({ onCreateShortcut }: Pick<DesktopFolderItemMenuOptions, "onCreateShortcut">): ContextMenuItem[] => [
+    {
+        id: "send-to-desktop-shortcut",
+        label: "Desktop (create shortcut)",
+        disabled: true,
+        onSelect: onCreateShortcut,
+    },
+    {
+        id: "send-to-documents",
+        label: "My Documents",
+        disabled: true,
+    },
+    {
+        id: "send-to-mail",
+        label: "Mail Recipient",
+        disabled: true,
+    },
+];
+
 export const buildShellContextMenu = <T extends ShellContextSurface>(
     surface: T,
     options: ShellContextMenuOptions[T],
 ): ContextMenuItem[] => {
+    if (surface === "desktopFolderItem") {
+        const { canDelete, canRename, canOpen, onOpen, onExplore, onCreateShortcut, onDelete, onRename } = options as DesktopFolderItemMenuOptions;
+
+        return [
+            {
+                id: "desktop-item-open",
+                label: "Open",
+                disabled: !canOpen,
+                onSelect: onOpen,
+            },
+            {
+                id: "desktop-item-explore",
+                label: "Explore",
+                disabled: !canOpen,
+                onSelect: onExplore,
+            },
+            {
+                id: "desktop-item-search",
+                label: "Search...",
+                disabled: true,
+            },
+            {
+                id: "desktop-item-separator-open",
+                separator: true,
+            },
+            {
+                id: "desktop-item-sharing",
+                label: "Sharing and Security...",
+                disabled: true,
+            },
+            {
+                id: "desktop-item-separator-sharing",
+                separator: true,
+            },
+            {
+                id: "desktop-item-send-to",
+                label: "Send To",
+                submenu: buildSendToSubmenu({ onCreateShortcut }),
+            },
+            {
+                id: "desktop-item-separator-clipboard",
+                separator: true,
+            },
+            {
+                id: "desktop-item-cut",
+                label: "Cut",
+                disabled: true,
+            },
+            {
+                id: "desktop-item-copy",
+                label: "Copy",
+                disabled: true,
+            },
+            {
+                id: "desktop-item-paste",
+                label: "Paste",
+                disabled: true,
+            },
+            {
+                id: "desktop-item-separator-edit",
+                separator: true,
+            },
+            {
+                id: "desktop-item-create-shortcut",
+                label: "Create Shortcut",
+                onSelect: onCreateShortcut,
+            },
+            {
+                id: "desktop-item-delete",
+                label: "Delete",
+                disabled: !canDelete,
+                onSelect: onDelete,
+            },
+            {
+                id: "desktop-item-rename",
+                label: "Rename",
+                disabled: !canRename,
+                onSelect: onRename,
+            },
+            {
+                id: "desktop-item-separator-properties",
+                separator: true,
+            },
+            {
+                id: "desktop-item-properties",
+                label: "Properties",
+                disabled: true,
+            },
+        ];
+    }
+
     if (surface === "taskbar") {
         const { isTaskbarLocked, onOpenTaskManager, onToggleTaskbarLock } = options as TaskbarMenuOptions;
 
@@ -110,6 +232,15 @@ const normalizeDesktopPosition = (position?: AbsoluteObject) => {
     };
 };
 
+const offsetDesktopPosition = (position?: AbsoluteObject) => {
+    if (!position) return undefined;
+
+    return normalizeDesktopPosition({
+        top: (position.top || 0) + 18,
+        left: (position.left || 0) + 18,
+    });
+};
+
 export const createShellItemPayload = (
     kind: NewShellItemKind,
     containerId: string,
@@ -160,6 +291,33 @@ export const createShellItemPayload = (
             iconLarge: "/icon__share_folder--large.png",
             content: "placeholder",
             disabled: true,
+        } satisfies Application,
+    };
+};
+
+export const createShortcutShellItemPayload = (
+    sourceAppId: string,
+    sourceApplication: Application,
+    applications: Record<string, Application>,
+    position?: AbsoluteObject,
+) => {
+    const appId = `custom-shortcut-${generateUniqueId()}`;
+    const entryPosition = offsetDesktopPosition(position);
+    const entry: ShellEntry = entryPosition ? [appId, entryPosition] : appId;
+    const title = getUniqueShellItemTitle(`Shortcut to ${sourceApplication.title}`, applications);
+
+    return {
+        containerId: "desktop",
+        appId,
+        entry,
+        application: {
+            title,
+            icon: sourceApplication.icon,
+            iconLarge: sourceApplication.iconLarge,
+            link: sourceApplication.link,
+            redirect: sourceApplication.link ? undefined : (sourceApplication.redirect || sourceAppId),
+            disabled: sourceApplication.disabled,
+            shortcut: true,
         } satisfies Application,
     };
 };
