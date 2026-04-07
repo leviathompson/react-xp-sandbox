@@ -23,7 +23,7 @@ export const pointRules: PointRule[] = [
         description: "Launch the Solitaire application from any entry point.",
         points: 10,
         category: "application",
-        limit: { type: "perSession", maxAwards: 1 },
+        limit: { type: "perDay", maxAwards: 1 },
         metadata: { appId: "solitaire" },
     },
     {
@@ -32,7 +32,7 @@ export const pointRules: PointRule[] = [
         description: "Use File Explorer to create a new folder on the desktop.",
         points: 8,
         category: "system",
-        limit: { type: "perSession", maxAwards: 3 },
+        limit: { type: "perDay", maxAwards: 1 },
     },
     {
         id: "rename-folder",
@@ -40,7 +40,7 @@ export const pointRules: PointRule[] = [
         description: "Give a folder a new name from the shell context menu.",
         points: 5,
         category: "system",
-        limit: { type: "perSession", maxAwards: 3 },
+        limit: { type: "perDay", maxAwards: 1 },
     },
     {
         id: "delete-browser-history",
@@ -56,7 +56,7 @@ export const pointRules: PointRule[] = [
         description: "Place a shortcut to My Computer on the desktop and keep it there.",
         points: 5,
         category: "system",
-        limit: { type: "perSession", maxAwards: 1 },
+        limit: { type: "perDay", maxAwards: 1 },
         metadata: { targetAppId: "computer" },
     },
     {
@@ -65,7 +65,7 @@ export const pointRules: PointRule[] = [
         description: "Launch and play the In The End audio file.",
         points: 7,
         category: "application",
-        limit: { type: "perSession", maxAwards: 2 },
+        limit: { type: "perDay", maxAwards: 1 },
         metadata: { fileId: "inTheEnd" },
     },
     {
@@ -74,7 +74,7 @@ export const pointRules: PointRule[] = [
         description: "Trigger a restart via the shutdown modal and return to the desktop.",
         points: 12,
         category: "system",
-        limit: { type: "perSession", maxAwards: 1 },
+        limit: { type: "perDay", maxAwards: 1 },
     },
     {
         id: "visit-neopets",
@@ -82,7 +82,7 @@ export const pointRules: PointRule[] = [
         description: "Open the browser and navigate to neopets.com.",
         points: 6,
         category: "application",
-        limit: { type: "perSession", maxAwards: 1 },
+        limit: { type: "perDay", maxAwards: 1 },
         metadata: { url: "https://www.neopets.com" },
     },
     {
@@ -91,7 +91,7 @@ export const pointRules: PointRule[] = [
         description: "Find and open the .minecraft folder via File Explorer.",
         points: 9,
         category: "challenge",
-        limit: { type: "perSession", maxAwards: 1 },
+        limit: { type: "perDay", maxAwards: 1 },
     },
     {
         id: "play-interactive-buddy",
@@ -99,7 +99,7 @@ export const pointRules: PointRule[] = [
         description: "Launch the Interactive Buddy experience and interact with it.",
         points: 8,
         category: "application",
-        limit: { type: "perSession", maxAwards: 1 },
+        limit: { type: "perDay", maxAwards: 1 },
     },
     {
         id: "open-soundboard",
@@ -107,7 +107,7 @@ export const pointRules: PointRule[] = [
         description: "Open and trigger at least one sound in the Napoleon Dynamite soundboard.",
         points: 8,
         category: "application",
-        limit: { type: "perSession", maxAwards: 1 },
+        limit: { type: "perDay", maxAwards: 1 },
     },
     {
         id: "find-windows11",
@@ -115,7 +115,7 @@ export const pointRules: PointRule[] = [
         description: "Locate the hidden windows_11.exe file.",
         points: 15,
         category: "challenge",
-        limit: { type: "perSession", maxAwards: 1 },
+        limit: { type: "perDay", maxAwards: 1 },
         metadata: { fileId: "win11" },
     },
     {
@@ -124,7 +124,7 @@ export const pointRules: PointRule[] = [
         description: "Delete system32 and bring the whole machine down with it.",
         points: 20,
         category: "challenge",
-        limit: { type: "perSession", maxAwards: 1 },
+        limit: { type: "perDay", maxAwards: 1 },
     },
     {
         id: "click-100",
@@ -132,7 +132,7 @@ export const pointRules: PointRule[] = [
         description: "Complete the 100-click challenge.",
         points: 5,
         category: "challenge",
-        limit: { type: "perSession", maxAwards: 1 },
+        limit: { type: "perDay", maxAwards: 1 },
         metadata: { threshold: 100 },
     },
     {
@@ -141,7 +141,7 @@ export const pointRules: PointRule[] = [
         description: "Complete the 1,000-click challenge.",
         points: 12,
         category: "challenge",
-        limit: { type: "perSession", maxAwards: 1 },
+        limit: { type: "perDay", maxAwards: 1 },
         metadata: { threshold: 1000 },
     },
     {
@@ -150,7 +150,7 @@ export const pointRules: PointRule[] = [
         description: "Complete the 10,000-click challenge.",
         points: 30,
         category: "challenge",
-        limit: { type: "perLifetime", maxAwards: 1 },
+        limit: { type: "perDay", maxAwards: 1 },
         metadata: { threshold: 10000 },
     },
 ];

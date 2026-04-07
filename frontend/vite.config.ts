@@ -12,6 +12,10 @@ export default defineConfig({
                 target: "http://localhost:3001",
                 changeOrigin: true,
             },
+            "/proxy.php": {
+                target: "http://localhost:3001",
+                changeOrigin: true,
+            },
         },
     },
     resolve: {
@@ -21,7 +25,7 @@ export default defineConfig({
     },
     plugins: [
         react(),
-        tailwindcss()
+        tailwindcss(),
     ],
     css: {
         preprocessorOptions: {

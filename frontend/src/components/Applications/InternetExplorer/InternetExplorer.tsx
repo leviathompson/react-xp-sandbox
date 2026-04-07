@@ -23,7 +23,7 @@ type BrowserMenuItem = {
 const FAVORITES_MENU_ITEMS: BrowserMenuItem[] = [
     { label: "Add to favorites..."},
     { separator: true },
-    { label: "Neopets", url: "https://www.neopets.com" },
+    { label: "Neopets", url: "https://www.neopets.org" },
     { label: "Homestar Runner", url: "https://homestarrunner.com" },
     { label: "Newgrounds", url: "https://www.newgrounds.com" },
     { label: "Miniclip", url: "https://www.miniclip.com" },

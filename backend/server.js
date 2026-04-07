@@ -3,6 +3,14 @@ import { Pool } from "pg";
 
 const PORT = 3001;
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const BLOCKED_PROXY_RESPONSE_HEADERS = new Set([
+    "content-encoding",
+    "content-length",
+    "content-security-policy",
+    "content-security-policy-report-only",
+    "transfer-encoding",
+    "x-frame-options",
+]);
 
 const cors = (res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -24,6 +32,58 @@ const json = (res, status, data) => {
     cors(res);
     res.writeHead(status, { "Content-Type": "application/json" });
     res.end(JSON.stringify(data));
+};
+
+const proxyWaybackRequest = async (req, res, url) => {
+    const targetUrl = url.searchParams.get("url");
+    if (!targetUrl) {
+        cors(res);
+        res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("Missing url query parameter.");
+        return;
+    }
+
+    if (method === "GET" && url.pathname === "/proxy.php") {
+        await proxyWaybackRequest(req, res, url);
+        return;
+    }
+
+    let upstreamUrl;
+    try {
+        upstreamUrl = new URL(targetUrl);
+    } catch {
+        cors(res);
+        res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("Invalid url query parameter.");
+        return;
+    }
+
+    try {
+        const upstreamResponse = await fetch(upstreamUrl, {
+            redirect: "follow",
+            headers: {
+                accept: req.headers.accept || "*/*",
+                "user-agent": "React-XP Wayback Proxy",
+            },
+        });
+
+        const responseBody = Buffer.from(await upstreamResponse.arrayBuffer());
+
+        cors(res);
+        res.statusCode = upstreamResponse.status;
+        upstreamResponse.headers.forEach((value, key) => {
+            if (BLOCKED_PROXY_RESPONSE_HEADERS.has(key.toLowerCase())) return;
+            res.setHeader(key, value);
+        });
+
+        res.setHeader("Content-Length", String(responseBody.byteLength));
+        res.setHeader("X-React-XP-Proxy", "wayback");
+        res.end(responseBody);
+    } catch (err) {
+        cors(res);
+        res.writeHead(502, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end(err instanceof Error ? err.message : "Failed to fetch Wayback content.");
+    }
 };
 
 // Ensure user_sessions table exists on startup
