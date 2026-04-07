@@ -25,6 +25,16 @@
         "left": 135,
         "showOnTaskbar": false
     },
+    "taskManager": {
+        "title": "Windows Task Manager",
+        "icon": "/icon__computer.png",
+        "iconLarge": "/icon__computer--large.png",
+        "component": "TaskManager",
+        "height": 280,
+        "width": 380,
+        "top": 110,
+        "left": 145
+    },
     "outlook": {
         "title": "Microsoft Outlook",
         "iconLarge": "/icon__outlook--large.png",

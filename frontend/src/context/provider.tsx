@@ -1,10 +1,20 @@
-import { useReducer, useEffect } from "react";
+import { useReducer, useEffect, useState } from "react";
 import { Context } from "./context";
 import { reducer, initialState } from "./reducer";
+import type { ContextMenuState } from "./types";
 import type { ReactNode } from "react";
 
 export const Provider = ({ children }: { children: ReactNode }) => {
     const [state, dispatch] = useReducer(reducer, initialState);
+    const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+
+    const openContextMenu = (menu: ContextMenuState) => {
+        setContextMenu(menu);
+    };
+
+    const closeContextMenu = () => {
+        setContextMenu(null);
+    };
 
     useEffect(() => {
         if (state.isCRTEnabled) {
@@ -21,6 +31,10 @@ export const Provider = ({ children }: { children: ReactNode }) => {
             document.body.removeAttribute("data-theme");
         }
     }, [state.themeColor]);
+
+    useEffect(() => {
+        sessionStorage.setItem("isTaskbarLocked", String(state.isTaskbarLocked));
+    }, [state.isTaskbarLocked]);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -50,7 +64,7 @@ export const Provider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     return (
-        <Context value={{ ...state, dispatch }}>
+        <Context value={{ ...state, dispatch, contextMenu, openContextMenu, closeContextMenu }}>
             {children}
         </Context>
     );

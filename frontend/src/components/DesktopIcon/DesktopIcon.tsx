@@ -18,18 +18,19 @@ const DOUBLE_TAP_DELAY_MS = 350;
 const DOUBLE_TAP_MOVE_THRESHOLD_PX = 8;
 
 const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undefined, left = undefined, id, selectedId, setSelectedId }: DesktopIconProps) => {
-    const { currentWindows, dispatch } = useContext();
+    const { currentWindows, customApplications, dispatch } = useContext();
     const [position, setPosition] = useState<AbsoluteObject>({ top, right, bottom, left });
     const desktopIconRef = useRef<HTMLButtonElement | null>(null);
     const desktopIcon = desktopIconRef.current;
     const isActive = id === selectedId;
-    const appData = applications[appId];
-    const { title, icon, iconLarge, link } = { ...appData };
+    const appData = { ...(applications[appId] || {}), ...(customApplications[appId] || {}) };
+    const { title, icon, iconLarge, link, disabled } = { ...appData };
 
     const lastTouchTapRef = useRef(0);
     const skipNextDoubleClickRef = useRef(false);
 
     const activateIcon = () => {
+        if (disabled) return;
         if (link) return window.open(link, "_blank", "noopener,noreferrer");
 
         openApplication(appId, currentWindows, dispatch);
@@ -37,6 +38,8 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
     };
 
     const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
+        if (event.button !== 0) return;
+
         const desktopIconRect = desktopIcon?.getBoundingClientRect();
         if (!desktopIconRect) return;
 
@@ -113,7 +116,7 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
     const imageMask = (isActive) ? `url("${iconLarge || icon}")` : "";
 
     return (
-        <button ref={desktopIconRef} className={styles.desktopIcon} data-selected={isActive} data-link={!!link} onClick={onClickHandler} onPointerDown={onPointerDown} onDoubleClick={onDoubleClickHandler} style={{ top: position.top, right: position.right, bottom: position.bottom, left: position.left, touchAction: "none" }}>
+        <button ref={desktopIconRef} className={`${styles.desktopIcon} ${disabled ? "cursor-not-allowed" : ""}`} data-label="desktop-icon" data-selected={isActive} data-link={!!link} onClick={onClickHandler} onPointerDown={onPointerDown} onDoubleClick={onDoubleClickHandler} style={{ top: position.top, right: position.right, bottom: position.bottom, left: position.left, touchAction: "none" }}>
             <span style={{ maskImage: imageMask }}><img src={iconLarge || icon} width="50" draggable={false} /></span>
             <div className="relative w-full flex justify-center"><h4 className="text-center">{title}</h4></div>
         </button>

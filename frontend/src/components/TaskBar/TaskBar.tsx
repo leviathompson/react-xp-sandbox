@@ -2,7 +2,8 @@ import React, { Activity } from "react";
 import { useContext } from "../../context/context";
 import { Stopwatch } from "../Stopwatch/Stopwatch";
 import applicationsJSON from "../../data/applications.json";
-import { getCurrentWindow } from "../../utils/general";
+import { getCurrentWindow, generateUniqueId } from "../../utils/general";
+import { buildShellContextMenu } from "../../utils/shell";
 import StartMenu from "../StartMenu/StartMenu";
 import Tooltip from "../Tooltip/Tooltip";
 import styles from "./TaskBar.module.scss";
@@ -11,10 +12,11 @@ import type { Application } from "../../context/types";
 const applications = applicationsJSON as unknown as Record<string, Application>;
 
 const TaskBar = () => {
-    const { currentWindows, isStartVisible, dispatch } = useContext();
+    const { currentWindows, customApplications, isStartVisible, isTaskbarLocked, dispatch, openContextMenu } = useContext();
     const [systemTrayIconDismissed, setSystemTrayIconDismissed] = React.useState(false);
     const startButtonRef = React.useRef<HTMLButtonElement | null>(null);
     const startButton = startButtonRef.current;
+    const mergedApplications = { ...applications, ...customApplications };
 
     const windowTabClickHandler = (event: React.MouseEvent<HTMLElement>) => {
         const windowTabSelector = "[data-label=taskBarWindowTab]";
@@ -52,15 +54,56 @@ const TaskBar = () => {
         dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
     };
 
+    const openTaskManagerWindow = () => {
+        const existingWindow = currentWindows.find((window) => window.appId === "taskManager");
+
+        if (existingWindow) {
+            const updatedCurrentWindows = currentWindows.map((window) => ({
+                ...window,
+                active: window.id === existingWindow.id,
+                hidden: window.id === existingWindow.id ? false : window.hidden,
+            }));
+            dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
+            return;
+        }
+
+        const updatedCurrentWindows = currentWindows.map((window) => ({
+            ...window,
+            active: false,
+        }));
+
+        updatedCurrentWindows.push({
+            id: generateUniqueId(),
+            appId: "taskManager",
+            active: true,
+        });
+        dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
+    };
+
+    const onTaskbarContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+        event.preventDefault();
+
+        openContextMenu({
+            x: event.clientX,
+            y: event.clientY,
+            items: buildShellContextMenu("taskbar", {
+                isTaskbarLocked,
+                onOpenTaskManager: openTaskManagerWindow,
+                onToggleTaskbarLock: () => dispatch({ type: "SET_IS_TASKBAR_LOCKED", payload: !isTaskbarLocked }),
+            }),
+        });
+    };
+
     return (
-        <div className={`${styles.taskBar} flex justify-between`} data-label="taskbar">
+        <div className={`${styles.taskBar} flex justify-between`} data-label="taskbar" data-locked={isTaskbarLocked} onContextMenu={onTaskbarContextMenu}>
             <button ref={startButtonRef} className={`${styles.startButton}`} onClick={startButtonClickHandler} data-selected={isStartVisible}>Start</button>
             <Activity mode={isStartVisible ? "visible" : "hidden"}>
                 <StartMenu startButton={startButton} />
             </Activity>
             <ul className={`${styles.windows} flex items-center justify-start w-full`}>
                 {currentWindows.map((currentWindow, index) => {
-                    const appData = applications[currentWindow.appId];
+                    const appData = mergedApplications[currentWindow.appId];
+                    if (!appData) return null;
                     const { title, icon, iconLarge, showOnTaskbar = true } = { ...appData };
                     if (!showOnTaskbar) return;
 

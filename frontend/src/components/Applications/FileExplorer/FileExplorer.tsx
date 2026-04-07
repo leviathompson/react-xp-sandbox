@@ -4,18 +4,20 @@ import { usePoints } from "../../../context/points";
 import applicationsJSON from "../../../data/applications.json";
 import filesJSON from "../../../data/files.json";
 import { getCurrentWindow } from "../../../utils/general";
+import { buildShellContextMenu, createShellItemPayload } from "../../../utils/shell";
 import CollapseBox from "../../CollapseBox/CollapseBox";
 import WindowMenu from "../../WindowMenu/WindowMenu";
 import styles from "./FileExplorer.module.scss";
-import type { Application } from "../../../context/types";
+import type { Application, ShellEntry } from "../../../context/types";
 
-const Applications = applicationsJSON as unknown as Record<string, Application>;
-const Files = filesJSON as unknown as Record<string, string[] | File[]>;
+const BaseApplications = applicationsJSON as unknown as Record<string, Application>;
+const BaseFiles = filesJSON as unknown as Record<string, ShellEntry[]>;
 const DOUBLE_TAP_DELAY_MS = 350;
 
 const FileExplorer = ({ appId }: Record<string, string>) => {
-    const { currentWindows, username, dispatch } = useContext();
+    const { currentWindows, username, customFiles, customApplications, dispatch, openContextMenu } = useContext();
     const { awardPoints } = usePoints();
+    const Applications = { ...BaseApplications, ...customApplications };
 
     const resolveTitle = (id: string) =>
         Applications[id]?.userFolder ? username : Applications[id]?.title;
@@ -41,7 +43,7 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
     const appData = Applications[appId];
 
     const bgAccent = (["pictures", "music"].includes(appId) ? appId : null);
-    const documents = Files[appId];
+    const documents = [...(BaseFiles[appId] || []), ...(customFiles[appId] || [])];
 
     const updateWindow = (appId: string | null = null) => {
         if (appId && Applications[appId].link) return window.open(Applications[appId].link, "_blank", "noopener,noreferrer");
@@ -141,6 +143,25 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
 
         currentWindow.appId = previousWindowId;
         dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
+    };
+
+    const onBackgroundContextMenu = (event: React.MouseEvent<HTMLElement>) => {
+        if ((event.target as HTMLElement).closest("[data-label=file-explorer-item]")) return;
+
+        event.preventDefault();
+
+        openContextMenu({
+            x: event.clientX,
+            y: event.clientY,
+            items: buildShellContextMenu("fileExplorerBackground", {
+                onCreateItem: (kind) => {
+                    dispatch({
+                        type: "CREATE_SHELL_ITEM",
+                        payload: createShellItemPayload(kind, appId, Applications),
+                    });
+                },
+            }),
+        });
     };
 
     return (
@@ -247,13 +268,13 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                         </div>
                     </CollapseBox>
                 </aside>
-                <section className={`${styles.contents} relative w-full`}>
+                <section className={`${styles.contents} relative w-full`} onContextMenu={onBackgroundContextMenu}>
                     <div className="absolute inset-0 p-3 h-fit">
                         {appId === "computer" && <h3 className="w-full">Files Stored on this Computer</h3>}
                         {documents.map((item) => {
                             if (item === appId) return;
 
-                            const itemId = (Array.isArray(item) ? item[0] : item);
+                            const itemId = Array.isArray(item) ? item[0] : item;
                             const appData = Applications[itemId];
                             if (!appData) return;
                             
@@ -262,7 +283,7 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                             //const imageMask = (isActive) ? `url("${iconLarge || icon}")` : "";
 
                             return (
-                                <button key={itemId} data-id={itemId} data-selected={isActive} data-link={!!link} className={`${styles.file} ${(disabled) ? "cursor-not-allowed" : ""}`} onDoubleClick={(e) => fileDBClickHandler(e, itemId)} onClick={(e) => fileClickHandler(e, itemId)} onPointerUp={(event) => handleFileTouchPointerUp(event, itemId)}>
+                                <button key={itemId} data-label="file-explorer-item" data-id={itemId} data-selected={isActive} data-link={!!link} className={`${styles.file} ${(disabled) ? "cursor-not-allowed" : ""}`} onDoubleClick={(e) => fileDBClickHandler(e, itemId)} onClick={(e) => fileClickHandler(e, itemId)} onPointerUp={(event) => handleFileTouchPointerUp(event, itemId)}>
                                     <span className="flex items-center shrink-0"><img src={iconLarge || icon} width="35" height="35" draggable={false} /></span>
                                     <h4 className="px-0.5">{resolveTitle(itemId)}</h4>
                                 </button>

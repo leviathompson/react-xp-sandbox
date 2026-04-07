@@ -1,0 +1,76 @@
+.taskManager {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    padding: 0.9rem;
+    color: #000;
+    background: #ece9d8;
+}
+
+.listFrame {
+    flex: 1;
+    border: 0.1rem solid #7f9db9;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.headerRow {
+    display: grid;
+    grid-template-columns: 1fr 7rem;
+    gap: 0.8rem;
+    padding: 0.35rem 0.6rem;
+    border-bottom: 0.1rem solid #d5d5d5;
+    background: linear-gradient(180deg, #fafafa, #e7e7e7);
+    font-weight: 600;
+}
+
+.windowList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow: auto;
+    flex: 1;
+}
+
+.windowRow {
+    width: 100%;
+    border: none;
+    background: transparent;
+    display: grid;
+    grid-template-columns: 1fr 7rem;
+    gap: 0.8rem;
+    align-items: center;
+    text-align: left;
+    padding: 0.45rem 0.6rem;
+
+    &[data-selected="true"] {
+        background: #316ac5;
+        color: #fff;
+    }
+
+    &:not([data-selected="true"]):hover {
+        background: #edf3ff;
+    }
+}
+
+.windowTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+
+    span:last-child {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+.footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+}

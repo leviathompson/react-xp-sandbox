@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+export type ShellEntry = string | [string, AbsoluteObject];
+
 export interface startMenuItem {
     title: string;
     icon: string;
@@ -37,7 +39,7 @@ export interface Application {
     title: string;
     icon?: string;
     iconLarge?: string;
-    content: ReactNode | string;
+    content?: ReactNode | string;
     component?: string | undefined;
     link?: string;
     disabled?: boolean;
@@ -45,6 +47,28 @@ export interface Application {
     resizable?: boolean;
     showOnTaskbar?: boolean;
     userFolder?: boolean;
+    width?: number;
+    height?: number;
+    top?: number;
+    right?: number;
+    bottom?: number;
+    left?: number;
+}
+
+export interface ContextMenuItem {
+    id: string;
+    label?: string;
+    disabled?: boolean;
+    checked?: boolean;
+    separator?: boolean;
+    submenu?: ContextMenuItem[];
+    onSelect?: () => void;
+}
+
+export interface ContextMenuState {
+    x: number;
+    y: number;
+    items: ContextMenuItem[];
 }
 
 export type File = AbsoluteObject & {
@@ -69,6 +93,9 @@ export interface State {
     transitionLabel: string;
     isCRTEnabled: boolean;
     themeColor: themeColor;
+    isTaskbarLocked: boolean;
+    customFiles: Record<string, ShellEntry[]>;
+    customApplications: Record<string, Application>;
 }
 
 export type Action =
@@ -86,8 +113,22 @@ export type Action =
     | { type: "SET_IS_CRT_ENABLED"; payload: boolean; }
     | { type: "SET_THEME_COLOR"; payload: themeColor;}
     | { type: "SET_USERNAME"; payload: string; }
+    | { type: "SET_IS_TASKBAR_LOCKED"; payload: boolean; }
+    | {
+        type: "CREATE_SHELL_ITEM";
+        payload: {
+            containerId: string;
+            appId: string;
+            entry: ShellEntry;
+            application: Application;
+            contents?: ShellEntry[];
+        };
+    }
 
 
 export interface ContextType extends State {
     dispatch: React.Dispatch<Action>;
+    contextMenu: ContextMenuState | null;
+    openContextMenu: (menu: ContextMenuState) => void;
+    closeContextMenu: () => void;
 }

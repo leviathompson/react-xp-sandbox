@@ -32,6 +32,24 @@ export const reducer = (state: State, action: Action): State => {
         return { ...state, themeColor: action.payload };
     case "SET_USERNAME":
         return { ...state, username: action.payload };
+    case "SET_IS_TASKBAR_LOCKED":
+        return { ...state, isTaskbarLocked: action.payload };
+    case "CREATE_SHELL_ITEM": {
+        const { containerId, appId, entry, application, contents } = action.payload;
+
+        return {
+            ...state,
+            customFiles: {
+                ...state.customFiles,
+                [containerId]: [...(state.customFiles[containerId] || []), entry],
+                ...(contents ? { [appId]: contents } : {}),
+            },
+            customApplications: {
+                ...state.customApplications,
+                [appId]: application,
+            },
+        };
+    }
     default:
         return state;
     }
@@ -56,4 +74,7 @@ export const initialState: State = {
     transitionLabel: "",
     isCRTEnabled: true,
     themeColor: "blue",
+    isTaskbarLocked: sessionStorage.getItem("isTaskbarLocked") === "true",
+    customFiles: {},
+    customApplications: {},
 };

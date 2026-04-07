@@ -17,8 +17,8 @@ const applications = applicationsJSON as unknown as Record<string, Application>;
 
 const Window = ({ ...props }: WindowProps) => {
     const { id, appId, children, active = false, hidden = false } = props;
-    const { title, icon, iconLarge, showOnTaskbar = true, width = 500, height = 350, top = 75, right = undefined, bottom = undefined, left = 100, resizable = true } = { ...applications[appId] };
-    const { currentWindows, dispatch } = useContext();
+    const { currentWindows, customApplications, dispatch } = useContext();
+    const { title, icon, iconLarge, showOnTaskbar = true, width = 500, height = 350, top = 75, right = undefined, bottom = undefined, left = 100, resizable = true } = { ...(applications[appId] || {}), ...(customApplications[appId] || {}) };
 
     const dragWindowPadding = (window.innerWidth < 500) ? 12 : 3;
     const isBiggerThanViewport = (width + dragWindowPadding * 2 > window.innerWidth);
