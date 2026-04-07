@@ -1,9 +1,8 @@
 import { lazy, Suspense, useMemo } from "react";
+import type { currentWindow } from "../../context/types";
 
-interface WindowAppProps {
-    appId?: string;
+interface WindowAppProps extends Partial<currentWindow> {
     componentId?: string;
-    landingUrl?: string;
     content?: unknown;
 }
 

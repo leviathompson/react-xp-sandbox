@@ -2,24 +2,49 @@ import { useRef, useState, useEffect } from "react";
 import { useContext } from "../../../context/context";
 import { usePoints } from "../../../context/points";
 import applicationsJSON from "../../../data/applications.json";
+import { generateUniqueId } from "../../../utils/general";
 import { getBaseDomain, sameBaseDomain } from "../../../utils/general";
 import { getCurrentWindow } from "../../../utils/general";
-import WindowMenu from "../../WindowMenu/WindowMenu";
 import styles from "./InternetExplorer.module.scss";
 import type { Application } from "../../../context/types";
 
 
 const Applications = applicationsJSON as unknown as Record<string, Application>;
+const DEFAULT_HOME_PAGE = "https://www.msn.com";
+const TOP_LEVEL_MENUS = ["File", "Edit", "View", "Favorites", "Tools", "Help"];
+type ToolMenuItem = {
+    label?: string;
+    hasSubMenu?: boolean;
+    action?: "openInternetOptions";
+    separator?: boolean;
+};
+
+const TOOLS_MENU_ITEMS: ToolMenuItem[] = [
+    { label: "Mail and News", hasSubMenu: true },
+    { label: "Pop-up Blocker", hasSubMenu: true },
+    { label: "Manage Add-ons..." },
+    { label: "Synchronize..." },
+    { label: "Windows Update" },
+    { separator: true },
+    { label: "Diagnose Connection Problems..." },
+    { label: "RoboForm Toolbar" },
+    { label: "Save Forms" },
+    { label: "Fill Forms" },
+    { separator: true },
+    { label: "Internet Options...", action: "openInternetOptions" },
+] as const;
 
 const InternetExplorer = ({ appId }: Record<string, string>) => {
     const { currentWindows, dispatch } = useContext();
     const { awardPoints } = usePoints();
     const [isBackDisabled, setIsBackDisabled] = useState(true);
     const [isForwardDisabled, setIsForwardDisabled] = useState(true);
+    const [activeMenu, setActiveMenu] = useState<string | null>(null);
     const { currentWindow, updatedCurrentWindows } = getCurrentWindow(currentWindows);
-    const HOMEPAGE = currentWindow?.landingUrl || "https://www.jamiepates.com";
+    const HOMEPAGE = currentWindow?.homePage || currentWindow?.landingUrl || DEFAULT_HOME_PAGE;
 
     const inputFieldRef = useRef<HTMLInputElement | null>(null);
+    const menuRef = useRef<HTMLDivElement | null>(null);
     const inputField = inputFieldRef.current;
     const currentUrl = useRef<string>(HOMEPAGE);
     
@@ -30,15 +55,40 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
         if (currentWindow.forward) setIsForwardDisabled(currentWindow.forward.length === 0);
     }, [currentWindow, currentWindows]);
 
+    useEffect(() => {
+        const handlePointerDown = (event: PointerEvent) => {
+            if (menuRef.current?.contains(event.target as Node)) return;
+            setActiveMenu(null);
+        };
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== "Escape") return;
+
+            setActiveMenu(null);
+        };
+
+        document.addEventListener("pointerdown", handlePointerDown);
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            document.removeEventListener("pointerdown", handlePointerDown);
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, []);
 
     const appData = Applications[appId];
+
+    const setWindowCurrentUrl = (nextUrl: string) => {
+        currentUrl.current = nextUrl;
+        if (currentWindow) currentWindow.currentUrl = nextUrl;
+    };
 
     const backClickHandler = () => {
         if (!currentWindow?.history || !currentWindow?.forward || !inputField?.value) return;
 
-        currentUrl.current = inputField.value;
-        currentWindow.forward.push(currentUrl.current);
+        currentWindow.forward.push(inputField.value);
         inputField.value = currentWindow.history.pop() || "";
+        setWindowCurrentUrl(inputField.value);
         
         updateIframe();
         dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
@@ -47,9 +97,9 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
     const forwardClickHandler = () => {
         if (!currentWindow?.history || !currentWindow?.forward || !inputField?.value) return;
 
-        currentUrl.current = inputField.value;
-        currentWindow.history.push(currentUrl.current);
+        currentWindow.history.push(inputField.value);
         inputField.value = currentWindow.forward.pop() || "";
+        setWindowCurrentUrl(inputField.value);
         
         updateIframe();
         dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
@@ -59,15 +109,18 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
     const iframe = iframeRef.current;
 
     const getIframeSrc = (inputValue: string) => {
+        if (inputValue === "about:blank") return { url: "about:blank", value: "about:blank" };
+
         const value = (!inputValue.startsWith("http")) ? `https://${inputValue}` : inputValue;
         const wayBackUrl = "https://web.archive.org/web/20030612074004if_/";
         const url = (!value.includes(getBaseDomain())) ? `/proxy.php?url=${wayBackUrl}${value}` : value;
         return {url, value};
     };
 
-    const updateIframe = () => {
-        if (!inputField) return;
-        const {url, value} = getIframeSrc(inputField.value || HOMEPAGE);
+    const updateIframe = (nextValue?: string) => {
+        if (!inputField && !nextValue) return;
+        const inputValue = nextValue ?? inputField?.value ?? HOMEPAGE;
+        const {url, value} = getIframeSrc(inputValue);
 
         if (iframe) {
             if (sameBaseDomain(value)) {
@@ -79,7 +132,8 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
             }
         }
         
-        if (inputField && iframe) iframe.setAttribute("src", url);
+        if (inputField && nextValue !== undefined) inputField.value = nextValue;
+        if (iframe) iframe.setAttribute("src", url);
     };
 
     const submitURLHandler = () => {
@@ -90,7 +144,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
             if (currentWindow.forward) currentWindow.forward = [];
             const newUrl = inputField?.value ?? "";
             if (newUrl) {
-                currentUrl.current = newUrl;
+                setWindowCurrentUrl(newUrl);
                 if (newUrl.toLowerCase().includes("neopets")) awardPoints("visit-neopets");
             }
             dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
@@ -105,6 +159,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
     };
 
     const stopClickHandler = () => {
+        setWindowCurrentUrl("about:blank");
         if (iframe) iframe.setAttribute("src", "about:blank");
     };
 
@@ -114,13 +169,96 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
 
     const homeClickHandler = () => {
         if (inputField) inputField.value = HOMEPAGE;
-        if (iframe) iframe.setAttribute("src", HOMEPAGE);
+        setWindowCurrentUrl(HOMEPAGE);
+        updateIframe(HOMEPAGE);
+    };
+
+    const handleTopLevelMenuClick = (menuItem: string) => {
+        if (menuItem !== "Tools") return;
+        setActiveMenu((currentMenu) => currentMenu === menuItem ? null : menuItem);
+    };
+
+    const handleToolsMenuAction = (action?: string) => {
+        setActiveMenu(null);
+        if (action !== "openInternetOptions") return;
+        if (!currentWindow) return;
+
+        currentWindow.currentUrl = inputField?.value || currentUrl.current || HOMEPAGE;
+
+        const existingWindow = currentWindows.find((window) =>
+            window.appId === "internetOptions" && window.parentWindowId === currentWindow.id
+        );
+
+        if (existingWindow) {
+            const updatedWindows = currentWindows.map((window) => ({
+                ...window,
+                active: window.id === existingWindow.id,
+                hidden: window.id === existingWindow.id ? false : window.hidden,
+            }));
+            dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedWindows });
+            return;
+        }
+
+        const updatedWindows = currentWindows.map((window) => ({
+            ...window,
+            active: false,
+        }));
+        updatedWindows.push({
+            id: generateUniqueId(),
+            appId: "internetOptions",
+            parentWindowId: currentWindow.id,
+            active: true,
+        });
+        dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedWindows });
     };
 
     return (
-        <>
+        <div className={styles.internetExplorer}>
             <div className={styles.menusContainer}>
-                <WindowMenu menuItems={["File", "Edit", "View", "Favorites", "Tools", "Help"]} hasWindowsLogo={true} />
+                <div className={`${styles.windowMenu} flex justify-between`} ref={menuRef}>
+                    <div className="relative overflow-hidden w-full">
+                        <ul className="flex mx-1">
+                            {TOP_LEVEL_MENUS.map((menuItem) => {
+                                const isInteractive = menuItem === "Tools";
+
+                                return (
+                                    <li
+                                        key={menuItem}
+                                        className="display-block my-1 px-2.5 py-1"
+                                        data-active={activeMenu === menuItem}
+                                        data-enabled={isInteractive}
+                                    >
+                                        <button type="button" onClick={() => handleTopLevelMenuClick(menuItem)}>{menuItem}</button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </div>
+                    <img src="icon__windows_logo.png" height="100%" width="40" />
+
+                    {activeMenu === "Tools" && (
+                        <div className={styles.toolsMenu} role="menu" aria-label="Tools">
+                            {TOOLS_MENU_ITEMS.map((item, index) => {
+                                if ("separator" in item) {
+                                    return <div key={`separator-${index}`} className={styles.menuSeparator} />;
+                                }
+
+                                return (
+                                    <button
+                                        key={item.label}
+                                        type="button"
+                                        className={styles.toolsMenuItem}
+                                        role="menuitem"
+                                        onClick={() => handleToolsMenuAction(item.action)}
+                                    >
+                                        <span>{item.label}</span>
+                                        {item.hasSubMenu && <span>&gt;</span>}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
                 <section className={`${styles.appMenu} relative`}>
                     <div className="flex absolute">
                         <div className="flex shrink-0">
@@ -209,7 +347,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
                     </div>
                 </div>
             </div>
-        </>
+        </div>
     );
 };
 

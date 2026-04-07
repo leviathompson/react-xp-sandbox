@@ -19,6 +19,9 @@ export interface currentWindow {
     history?: string[];
     forward?: string[];
     landingUrl?: string | null;
+    homePage?: string | null;
+    currentUrl?: string | null;
+    parentWindowId?: string | number;
     showOnTaskbar?: boolean;
 }
 export type currentWindows = currentWindow[];
