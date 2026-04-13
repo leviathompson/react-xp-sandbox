@@ -1,6 +1,7 @@
 export interface ActiveSession {
     user_id: string;
     avatar_src: string | null;
+    personal_message: string | null;
     first_login_at: string;
     updated_at: string;
 }

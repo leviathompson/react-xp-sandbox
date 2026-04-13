@@ -93,7 +93,7 @@ const UserAccounts = () => {
         });
 
         try {
-            const profile = await saveUserProfile(trimmedUsername, draftAvatarSrc);
+            const profile = await saveUserProfile(trimmedUsername, { avatarSrc: draftAvatarSrc });
             dispatch({
                 type: "SET_AVATAR_SRC",
                 payload: profile.avatarSrc || draftAvatarSrc,

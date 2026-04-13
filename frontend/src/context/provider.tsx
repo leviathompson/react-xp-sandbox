@@ -43,6 +43,10 @@ export const Provider = ({ children }: { children: ReactNode }) => {
     }, [state.avatarSrc]);
 
     useEffect(() => {
+        sessionStorage.setItem("personalMessage", state.personalMessage);
+    }, [state.personalMessage]);
+
+    useEffect(() => {
         if (typeof window === "undefined") return;
 
         const loggedInJSON = sessionStorage.getItem("loggedIn");
@@ -73,6 +77,7 @@ export const Provider = ({ children }: { children: ReactNode }) => {
         const userId = state.username.trim();
         if (!userId) {
             dispatch({ type: "SET_AVATAR_SRC", payload: DEFAULT_AVATAR_SRC });
+            dispatch({ type: "SET_PERSONAL_MESSAGE", payload: "" });
             return;
         }
 
@@ -88,10 +93,15 @@ export const Provider = ({ children }: { children: ReactNode }) => {
                     type: "SET_AVATAR_SRC",
                     payload: profile?.avatarSrc || DEFAULT_AVATAR_SRC,
                 });
+                dispatch({
+                    type: "SET_PERSONAL_MESSAGE",
+                    payload: profile?.personalMessage || "",
+                });
             } catch (error) {
                 if (isCancelled || controller.signal.aborted) return;
                 console.error("Failed to load user profile", error);
                 dispatch({ type: "SET_AVATAR_SRC", payload: DEFAULT_AVATAR_SRC });
+                dispatch({ type: "SET_PERSONAL_MESSAGE", payload: "" });
             }
         };
 

@@ -4,6 +4,7 @@ import { DEFAULT_AVATAR_SRC } from "../../../data/avatars";
 import { buildChatAppId, fetchActiveSessions } from "../../../utils/messenger";
 import type { ActiveSession } from "../../../utils/messenger";
 import { openApplication, updateCurrentActiveWindow } from "../../../utils/general";
+import { saveUserProfile } from "../../../utils/userProfile";
 import WindowMenu from "../../WindowMenu/WindowMenu";
 import styles from "./Messenger.module.scss";
 
@@ -47,11 +48,19 @@ const formatLastSeen = (iso: string) => {
     return `${diffDays}d ago`;
 };
 
+const PERSONAL_MESSAGE_PLACEHOLDER = "<Type a personal message>";
+
 const Messenger = () => {
-    const { username, avatarSrc, currentWindows, dispatch } = useContext();
+    const { username, avatarSrc, personalMessage, currentWindows, dispatch } = useContext();
     const [sessions, setSessions] = useState<Awaited<ReturnType<typeof fetchActiveSessions>>["sessions"]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
+    const [draftPersonalMessage, setDraftPersonalMessage] = useState(personalMessage);
+    const [isSavingPersonalMessage, setIsSavingPersonalMessage] = useState(false);
+
+    useEffect(() => {
+        setDraftPersonalMessage(personalMessage);
+    }, [personalMessage]);
 
     useEffect(() => {
         let isCancelled = false;
@@ -90,6 +99,50 @@ const Messenger = () => {
             })),
         [sessions, username],
     );
+
+    const savePersonalMessage = async () => {
+        const trimmedUsername = username.trim();
+        const nextPersonalMessage = draftPersonalMessage.trim();
+
+        if (!trimmedUsername || nextPersonalMessage === personalMessage) return;
+
+        setIsSavingPersonalMessage(true);
+
+        try {
+            const profile = await saveUserProfile(trimmedUsername, { personalMessage: nextPersonalMessage });
+            dispatch({
+                type: "SET_PERSONAL_MESSAGE",
+                payload: profile.personalMessage || "",
+            });
+            setErrorMessage("");
+            setSessions((currentSessions) => currentSessions.map((session) => (
+                session.user_id === trimmedUsername
+                    ? {
+                        ...session,
+                        personal_message: profile.personalMessage,
+                    }
+                    : session
+            )));
+        } catch (error) {
+            setDraftPersonalMessage(personalMessage);
+            setErrorMessage(error instanceof Error ? error.message : "Unable to save your personal message.");
+        } finally {
+            setIsSavingPersonalMessage(false);
+        }
+    };
+
+    const onPersonalMessageKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            void savePersonalMessage();
+            return;
+        }
+
+        if (event.key === "Escape") {
+            event.preventDefault();
+            setDraftPersonalMessage(personalMessage);
+        }
+    };
 
     const openChatWindow = (peerId: string, peerAvatarSrc: string) => {
         const appId = buildChatAppId(peerId);
@@ -145,9 +198,17 @@ const Messenger = () => {
                     </div>
                 </div>
 
-                <button type="button" className={styles.statusInput}>
-                    &lt;Type a personal message&gt;
-                </button>
+                <input
+                    type="text"
+                    className={styles.statusInput}
+                    value={draftPersonalMessage}
+                    placeholder={PERSONAL_MESSAGE_PLACEHOLDER}
+                    maxLength={120}
+                    onChange={(event) => setDraftPersonalMessage(event.target.value)}
+                    onBlur={() => void savePersonalMessage()}
+                    onKeyDown={onPersonalMessageKeyDown}
+                    disabled={isSavingPersonalMessage}
+                />
             </header>
 
             <main className={styles.content}>
@@ -187,6 +248,11 @@ const Messenger = () => {
                                     <div className={styles.nameRow}>
                                         <strong>{session.user_id}</strong>
                                         <span className={styles.statusText}>({PRESENCE_LABELS[session.presence]})</span>
+                                        {session.personal_message && (
+                                            <span className={styles.personalMessage} title={session.personal_message}>
+                                                - {session.personal_message}
+                                            </span>
+                                        )}
                                     </div>
                                     <span className={styles.lastSeen}>Last active {formatLastSeen(session.updated_at)}</span>
                                 </div>

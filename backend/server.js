@@ -4,6 +4,7 @@ import { Pool } from "pg";
 const PORT = 3001;
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const MAX_AVATAR_SRC_LENGTH = 250000;
+const MAX_PERSONAL_MESSAGE_LENGTH = 120;
 const BLOCKED_PROXY_RESPONSE_HEADERS = new Set([
     "content-encoding",
     "content-length",
@@ -102,6 +103,10 @@ Promise.all([
     pool.query(`
         ALTER TABLE user_sessions
         ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    `),
+    pool.query(`
+        ALTER TABLE user_sessions
+        ADD COLUMN IF NOT EXISTS personal_message TEXT
     `),
     pool.query(`
         CREATE TABLE IF NOT EXISTS instant_messages (
@@ -205,7 +210,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // POST /api/profile ? save a user's avatar settings
+    // POST /api/profile ? save a user's public profile settings
     if (method === "POST" && url.pathname === "/api/profile") {
         let body;
         try {
@@ -216,37 +221,52 @@ const server = http.createServer(async (req, res) => {
         }
 
         const userId = typeof body.userId === "string" ? body.userId.trim() : "";
-        const avatarSrc = typeof body.avatarSrc === "string" ? body.avatarSrc.trim() : "";
+        const hasAvatarSrc = typeof body.avatarSrc === "string";
+        const hasPersonalMessage = typeof body.personalMessage === "string";
+        const avatarSrc = hasAvatarSrc ? body.avatarSrc.trim() : null;
+        const personalMessage = hasPersonalMessage ? body.personalMessage.trim() : null;
 
         if (!userId) {
             json(res, 400, { error: "userId required" });
             return;
         }
 
-        if (!avatarSrc) {
+        if (!hasAvatarSrc && !hasPersonalMessage) {
+            json(res, 400, { error: "Provide avatarSrc or personalMessage." });
+            return;
+        }
+
+        if (hasAvatarSrc && !avatarSrc) {
             json(res, 400, { error: "avatarSrc required" });
             return;
         }
 
-        if (avatarSrc.length > MAX_AVATAR_SRC_LENGTH) {
+        if (avatarSrc && avatarSrc.length > MAX_AVATAR_SRC_LENGTH) {
             json(res, 400, { error: "avatarSrc is too large" });
+            return;
+        }
+
+        if (personalMessage && personalMessage.length > MAX_PERSONAL_MESSAGE_LENGTH) {
+            json(res, 400, { error: "personalMessage is too long" });
             return;
         }
 
         try {
             const { rows } = await pool.query(
-                `INSERT INTO user_sessions (user_id, first_login_at, avatar_src, updated_at)
-                 VALUES ($1, NOW(), $2, NOW())
+                `INSERT INTO user_sessions (user_id, first_login_at, avatar_src, personal_message, updated_at)
+                 VALUES ($1, NOW(), $2, $3, NOW())
                  ON CONFLICT (user_id) DO UPDATE
-                     SET avatar_src = EXCLUDED.avatar_src,
+                     SET avatar_src = COALESCE(EXCLUDED.avatar_src, user_sessions.avatar_src),
+                         personal_message = COALESCE(EXCLUDED.personal_message, user_sessions.personal_message),
                          updated_at = NOW()
-                 RETURNING user_id, first_login_at, avatar_src, updated_at`,
-                [userId, avatarSrc]
+                 RETURNING user_id, first_login_at, avatar_src, personal_message, updated_at`,
+                [userId, avatarSrc, personalMessage]
             );
             json(res, 200, {
                 userId: rows[0].user_id,
                 firstLoginAt: rows[0].first_login_at,
                 avatarSrc: rows[0].avatar_src,
+                personalMessage: rows[0].personal_message,
                 updatedAt: rows[0].updated_at,
             });
         } catch (err) {
@@ -261,7 +281,7 @@ const server = http.createServer(async (req, res) => {
 
         try {
             const { rows } = await pool.query(
-                `SELECT user_id, avatar_src, first_login_at, updated_at
+                `SELECT user_id, avatar_src, personal_message, first_login_at, updated_at
                  FROM user_sessions
                  ORDER BY updated_at DESC, first_login_at DESC
                  LIMIT $1`,
@@ -373,13 +393,14 @@ const server = http.createServer(async (req, res) => {
                  ON CONFLICT (user_id) DO UPDATE
                      SET first_login_at = user_sessions.first_login_at,
                          updated_at = NOW()
-                 RETURNING user_id, first_login_at, avatar_src, updated_at`,
+                 RETURNING user_id, first_login_at, avatar_src, personal_message, updated_at`,
                 [userId]
             );
             json(res, 200, {
                 userId: rows[0].user_id,
                 firstLoginAt: rows[0].first_login_at,
                 avatarSrc: rows[0].avatar_src,
+                personalMessage: rows[0].personal_message,
                 updatedAt: rows[0].updated_at,
             });
         } catch (err) {
@@ -398,7 +419,7 @@ const server = http.createServer(async (req, res) => {
 
         try {
             const { rows } = await pool.query(
-                "SELECT user_id, avatar_src, first_login_at, updated_at FROM user_sessions WHERE user_id = $1",
+                "SELECT user_id, avatar_src, personal_message, first_login_at, updated_at FROM user_sessions WHERE user_id = $1",
                 [userId]
             );
             if (rows.length === 0) {
@@ -409,6 +430,7 @@ const server = http.createServer(async (req, res) => {
             json(res, 200, {
                 userId: rows[0].user_id,
                 avatarSrc: rows[0].avatar_src,
+                personalMessage: rows[0].personal_message,
                 firstLoginAt: rows[0].first_login_at,
                 updatedAt: rows[0].updated_at,
             });
@@ -428,14 +450,19 @@ const server = http.createServer(async (req, res) => {
 
         try {
             const { rows } = await pool.query(
-                "SELECT first_login_at, avatar_src FROM user_sessions WHERE user_id = $1",
+                "SELECT first_login_at, avatar_src, personal_message FROM user_sessions WHERE user_id = $1",
                 [userId]
             );
             if (rows.length === 0) {
                 json(res, 404, { error: "Session not found" });
                 return;
             }
-            json(res, 200, { userId, firstLoginAt: rows[0].first_login_at, avatarSrc: rows[0].avatar_src });
+            json(res, 200, {
+                userId,
+                firstLoginAt: rows[0].first_login_at,
+                avatarSrc: rows[0].avatar_src,
+                personalMessage: rows[0].personal_message,
+            });
         } catch (err) {
             json(res, 500, { error: err.message });
         }

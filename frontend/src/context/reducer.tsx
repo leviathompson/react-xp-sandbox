@@ -37,6 +37,8 @@ export const reducer = (state: State, action: Action): State => {
         return { ...state, currentWindows: action.payload };
     case "SET_AVATAR_SRC":
         return { ...state, avatarSrc: action.payload };
+    case "SET_PERSONAL_MESSAGE":
+        return { ...state, personalMessage: action.payload };
     case "SET_IS_START_VISIBLE":
         return { ...state, isStartVisible: action.payload };
     case "SET_IS_ALL_PROGRAMS_OPEN":
@@ -182,6 +184,7 @@ export const initialState: State = {
     ],
     username: sessionStorage.getItem("username") || "",
     avatarSrc: sessionStorage.getItem("avatarSrc") || DEFAULT_AVATAR_SRC,
+    personalMessage: sessionStorage.getItem("personalMessage") || "",
     isStartVisible: false,
     isAllProgramsOpen: false,
     isRecentDocumentsOpen: false,

@@ -1,6 +1,7 @@
 export interface UserProfile {
     userId: string;
     avatarSrc: string | null;
+    personalMessage: string | null;
 }
 
 const AVATAR_CANVAS_SIZE = 128;
@@ -15,7 +16,12 @@ export const fetchUserProfile = async (userId: string, signal?: AbortSignal): Pr
     return response.json() as Promise<UserProfile>;
 };
 
-export const saveUserProfile = async (userId: string, avatarSrc: string) => {
+export interface SaveUserProfileInput {
+    avatarSrc?: string;
+    personalMessage?: string;
+}
+
+export const saveUserProfile = async (userId: string, profile: SaveUserProfileInput) => {
     const response = await fetch("/api/profile", {
         method: "POST",
         headers: {
@@ -23,7 +29,7 @@ export const saveUserProfile = async (userId: string, avatarSrc: string) => {
         },
         body: JSON.stringify({
             userId,
-            avatarSrc,
+            ...profile,
         }),
     });
 

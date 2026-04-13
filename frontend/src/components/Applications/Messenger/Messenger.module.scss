@@ -56,8 +56,22 @@
     border-radius: 0.4rem;
     background: linear-gradient(180deg, #fbfcff 0%, #edf2fc 100%);
     padding: 0.55rem 0.8rem;
-    color: #8e99ab;
+    color: #52617e;
     font-size: 1.2rem;
+
+    &::placeholder {
+        color: #8e99ab;
+    }
+
+    &:focus {
+        outline: none;
+        border-color: #7297e0;
+        box-shadow: 0 0 0 0.1rem rgba(114, 151, 224, 0.18);
+    }
+
+    &:disabled {
+        color: #8e99ab;
+    }
 }
 
 .content {
@@ -209,21 +223,24 @@
 }
 
 .sessionMeta {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
     min-width: 0;
 }
 
 .nameRow {
     display: flex;
-    flex-wrap: wrap;
+    min-width: 0;
     gap: 0.4rem;
     align-items: baseline;
 
     strong {
+        flex-shrink: 0;
         color: #222;
         font-size: 1.25rem;
         font-weight: 600;
         line-height: 1.1;
-        word-break: break-word;
     }
 }
 
@@ -236,6 +253,15 @@
 .lastSeen {
     display: block;
     margin-top: 0.15rem;
+}
+
+.personalMessage {
+    min-width: 0;
+    overflow: hidden;
+    color: #5f6f8e;
+    font-size: 1.1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .emptyState {
