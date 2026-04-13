@@ -49,10 +49,14 @@
         "height": 390
     },
     "winMessenger": {
-        "title": "Windows Messenger",
+        "title": "MSN Messenger",
+        "icon": "/icon__messenger--large.png",
         "iconLarge": "/icon__messenger--large.png",
-        "content": "placeholder",
-        "disabled": true
+        "component": "Messenger",
+        "width": 270,
+        "height": 520,
+        "top": 40,
+        "left": 120
     },
     "winMediaPlayer": {
         "title": "Windows Media Player",

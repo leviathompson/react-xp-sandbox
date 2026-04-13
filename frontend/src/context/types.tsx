@@ -43,7 +43,7 @@ export interface Application {
     embedUrl?: string;
     artist?: string;
     album?: string;
-    content?: ReactNode | string;
+    content?: unknown;
     component?: string | undefined;
     link?: string;
     disabled?: boolean;
@@ -144,6 +144,13 @@ export type Action =
         payload: {
             appId: string;
             application: Partial<Application>;
+        };
+    }
+    | {
+        type: "REGISTER_CUSTOM_APPLICATION";
+        payload: {
+            appId: string;
+            application: Application;
         };
     }
     | {

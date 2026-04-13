@@ -11,7 +11,7 @@ interface StartMenuProps {
 }
 
 const StartMenu = ({ startButton }: StartMenuProps) => {
-    const { isStartVisible, isAllProgramsOpen, isRecentDocumentsOpen, isShutDownModalOpen, avatarSrc, dispatch } = useContext();
+    const { isStartVisible, isAllProgramsOpen, isRecentDocumentsOpen, isShutDownModalOpen, username, avatarSrc, dispatch } = useContext();
     const startMenuRef = useRef<HTMLDivElement | null>(null);
     const startMenu = startMenuRef.current;
     const allProgramsRef = useRef<HTMLDivElement | null>(null);
@@ -60,7 +60,7 @@ const StartMenu = ({ startButton }: StartMenuProps) => {
         <div ref={startMenuRef} className={`${styles.startMenu} bg-[#3e75d8] absolute z-10 left-0 bottom-12`}>
             <header className="flex items-center p-3">
                 <img src={avatarSrc} className="mr-3" width="50" height="50" />
-                <h1>User</h1>
+                <h1>{username.trim() || "User"}</h1>
             </header>
             <main className="flex">
                 <section className="bg-white text-[#373738] flex flex-col justify-between">

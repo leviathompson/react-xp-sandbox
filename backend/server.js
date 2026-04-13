@@ -103,6 +103,15 @@ Promise.all([
         ALTER TABLE user_sessions
         ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     `),
+    pool.query(`
+        CREATE TABLE IF NOT EXISTS instant_messages (
+            id BIGSERIAL PRIMARY KEY,
+            sender_id TEXT NOT NULL,
+            recipient_id TEXT NOT NULL,
+            body TEXT NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    `),
 ]).catch((err) => console.error("[debug-api] Failed to prepare user_sessions table:", err.message));
 
 const server = http.createServer(async (req, res) => {
@@ -246,6 +255,100 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // GET /api/sessions/active ? list recent user sessions for messenger
+    if (method === "GET" && url.pathname === "/api/sessions/active") {
+        const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 50, 1), 200);
+
+        try {
+            const { rows } = await pool.query(
+                `SELECT user_id, avatar_src, first_login_at, updated_at
+                 FROM user_sessions
+                 ORDER BY updated_at DESC, first_login_at DESC
+                 LIMIT $1`,
+                [limit]
+            );
+            json(res, 200, { sessions: rows });
+        } catch (err) {
+            json(res, 500, { error: err.message });
+        }
+        return;
+    }
+
+    // GET /api/messages/thread?userId=<id>&peerId=<id> ? fetch a direct-message thread
+    if (method === "GET" && url.pathname === "/api/messages/thread") {
+        const userId = (url.searchParams.get("userId") || "").trim();
+        const peerId = (url.searchParams.get("peerId") || "").trim();
+        const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 200, 1), 500);
+
+        if (!userId || !peerId) {
+            json(res, 400, { error: "userId and peerId are required" });
+            return;
+        }
+
+        try {
+            const { rows } = await pool.query(
+                `SELECT id, sender_id, recipient_id, body, created_at
+                 FROM instant_messages
+                 WHERE (sender_id = $1 AND recipient_id = $2)
+                    OR (sender_id = $2 AND recipient_id = $1)
+                 ORDER BY created_at ASC
+                 LIMIT $3`,
+                [userId, peerId, limit]
+            );
+            json(res, 200, { messages: rows });
+        } catch (err) {
+            json(res, 500, { error: err.message });
+        }
+        return;
+    }
+
+    // POST /api/messages ? persist a direct message between two users
+    if (method === "POST" && url.pathname === "/api/messages") {
+        let body;
+        try {
+            body = await readBody(req);
+        } catch {
+            json(res, 400, { error: "Invalid JSON body" });
+            return;
+        }
+
+        const senderId = typeof body.senderId === "string" ? body.senderId.trim() : "";
+        const recipientId = typeof body.recipientId === "string" ? body.recipientId.trim() : "";
+        const messageBody = typeof body.body === "string" ? body.body.trim() : "";
+
+        if (!senderId || !recipientId || !messageBody) {
+            json(res, 400, { error: "senderId, recipientId, and body are required" });
+            return;
+        }
+
+        if (messageBody.length > 2000) {
+            json(res, 400, { error: "Message is too long" });
+            return;
+        }
+
+        try {
+            const { rows } = await pool.query(
+                `INSERT INTO instant_messages (sender_id, recipient_id, body)
+                 VALUES ($1, $2, $3)
+                 RETURNING id, sender_id, recipient_id, body, created_at`,
+                [senderId, recipientId, messageBody]
+            );
+
+            await pool.query(
+                `INSERT INTO user_sessions (user_id, first_login_at, updated_at)
+                 VALUES ($1, NOW(), NOW())
+                 ON CONFLICT (user_id) DO UPDATE
+                     SET updated_at = NOW()`,
+                [senderId]
+            );
+
+            json(res, 200, { message: rows[0] });
+        } catch (err) {
+            json(res, 500, { error: err.message });
+        }
+        return;
+    }
+
     // POST /api/session/start — get-or-create the user's first login timestamp
     if (method === "POST" && url.pathname === "/api/session/start") {
         let body;
@@ -268,11 +371,17 @@ const server = http.createServer(async (req, res) => {
                 `INSERT INTO user_sessions (user_id, first_login_at)
                  VALUES ($1, NOW())
                  ON CONFLICT (user_id) DO UPDATE
-                     SET first_login_at = user_sessions.first_login_at
-                 RETURNING user_id, first_login_at, avatar_src`,
+                     SET first_login_at = user_sessions.first_login_at,
+                         updated_at = NOW()
+                 RETURNING user_id, first_login_at, avatar_src, updated_at`,
                 [userId]
             );
-            json(res, 200, { userId: rows[0].user_id, firstLoginAt: rows[0].first_login_at, avatarSrc: rows[0].avatar_src });
+            json(res, 200, {
+                userId: rows[0].user_id,
+                firstLoginAt: rows[0].first_login_at,
+                avatarSrc: rows[0].avatar_src,
+                updatedAt: rows[0].updated_at,
+            });
         } catch (err) {
             json(res, 500, { error: err.message });
         }

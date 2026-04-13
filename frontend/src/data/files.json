@@ -22,23 +22,30 @@
             }
         ],
         [
+            "winMessenger",
+            {
+                "top": 175,
+                "left": 5
+            }
+        ],
+        [
             "gitHub",
             {
-                "top": 185,
+                "top": 260,
                 "left": 5
             }
         ],
         [
             "kofi",
             {
-                "top": 270,
+                "top": 345,
                 "left": 5
             }
         ],
         [
             "solitaire",
             {
-                "top": 355,
+                "top": 430,
                 "left": 5
             }
         ],

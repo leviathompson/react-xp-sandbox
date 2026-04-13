@@ -156,6 +156,17 @@ export const reducer = (state: State, action: Action): State => {
             },
         };
     }
+    case "REGISTER_CUSTOM_APPLICATION": {
+        const { appId, application } = action.payload;
+
+        return {
+            ...state,
+            customApplications: {
+                ...state.customApplications,
+                [appId]: application,
+            },
+        };
+    }
     default:
         return state;
     }
