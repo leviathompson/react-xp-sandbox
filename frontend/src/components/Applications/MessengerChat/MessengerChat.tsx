@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useContext } from "../../../context/context";
 import { DEFAULT_AVATAR_SRC } from "../../../data/avatars";
+import { generateUniqueId, openApplication, updateCurrentActiveWindow } from "../../../utils/general";
 import { fetchDirectMessages, sendDirectMessage } from "../../../utils/messenger";
+import { addShellBrowserResultListener, openShellBrowserWindow } from "../../../utils/shellBrowser";
 import styles from "./MessengerChat.module.scss";
+import type { Application } from "../../../context/types";
 
 interface MessengerChatContent {
     peerId: string;
@@ -26,8 +29,14 @@ const formatTimestamp = (iso: string) => new Date(iso).toLocaleTimeString([], {
     minute: "2-digit",
 });
 
+const getAttachmentImageSrc = (application?: Application) => {
+    const nextContent = application?.content as { imageSrc?: string } | undefined;
+    return application?.assetSrc || nextContent?.imageSrc || application?.iconLarge || "";
+};
+const buildAttachmentAppId = (messageId: number) => `messengerAttachment:${messageId}`;
+
 const MessengerChat = ({ content }: MessengerChatProps) => {
-    const { username, avatarSrc } = useContext();
+    const { username, avatarSrc, currentWindows, dispatch } = useContext();
     const { peerId, peerAvatarSrc } = (content || {}) as MessengerChatContent;
     const [messages, setMessages] = useState<Awaited<ReturnType<typeof fetchDirectMessages>>["messages"]>([]);
     const [draftMessage, setDraftMessage] = useState("");
@@ -35,6 +44,12 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
     const [isSending, setIsSending] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
+    const dialogHandlersRef = useRef(new Map<string, (selection?: {
+        containerId: string;
+        appId?: string;
+        fileName?: string;
+        application?: Application;
+    }) => void>());
 
     useEffect(() => {
         if (!username || !peerId) return;
@@ -69,10 +84,22 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
         messagesEndRef.current?.scrollIntoView({ block: "end" });
     }, [messages]);
 
+    useEffect(() => addShellBrowserResultListener((detail) => {
+        const handler = dialogHandlersRef.current.get(detail.dialogId);
+        if (!handler) return;
+
+        dialogHandlersRef.current.delete(detail.dialogId);
+        handler(detail.selection);
+    }), []);
+
     const statusNote = useMemo(() => {
         if (!messages.length) return `${peerId} has not sent any messages yet.`;
 
         const lastMessage = messages[messages.length - 1];
+        if (lastMessage.attachment_src && !lastMessage.body) {
+            return `${lastMessage.sender_id} shared a picture at ${formatTimestamp(lastMessage.created_at)}.`;
+        }
+
         return `Last message ${formatTimestamp(lastMessage.created_at)} from ${lastMessage.sender_id}.`;
     }, [messages, peerId]);
 
@@ -94,11 +121,91 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
         }
     };
 
+    const onSendAttachment = async (application?: Application) => {
+        const attachmentSrc = getAttachmentImageSrc(application);
+        if (!username || !peerId || !attachmentSrc || !application) return;
+
+        setIsSending(true);
+        setErrorMessage("");
+
+        try {
+            const response = await sendDirectMessage(username, peerId, "", {
+                attachmentSrc,
+                attachmentName: application.title,
+            });
+            setMessages((currentMessages) => [...currentMessages, response.message]);
+        } catch (error) {
+            setErrorMessage(error instanceof Error ? error.message : "Unable to send picture.");
+        } finally {
+            setIsSending(false);
+        }
+    };
+
     const onDraftKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (event.key !== "Enter" || event.shiftKey) return;
 
         event.preventDefault();
         void onSend();
+    };
+
+    const openAttachment = (message: typeof messages[number]) => {
+        if (!message.attachment_src) return;
+
+        const appId = buildAttachmentAppId(message.id);
+        dispatch({
+            type: "REGISTER_CUSTOM_APPLICATION",
+            payload: {
+                appId,
+                application: {
+                    title: message.attachment_name || "Shared Picture",
+                    icon: "/icon__pictures.png",
+                    iconLarge: message.attachment_src,
+                    assetSrc: message.attachment_src,
+                    component: "PictureViewer",
+                    width: 560,
+                    height: 430,
+                    top: 95,
+                    left: 145,
+                },
+            },
+        });
+
+        const existingWindow = currentWindows.find((window) => window.appId === appId);
+        if (existingWindow) {
+            dispatch({
+                type: "SET_CURRENT_WINDOWS",
+                payload: updateCurrentActiveWindow(existingWindow.id, currentWindows),
+            });
+            return;
+        }
+
+        openApplication(appId, currentWindows, dispatch);
+    };
+
+    const openAttachmentPicker = () => {
+        const dialogId = generateUniqueId();
+
+        dialogHandlersRef.current.set(dialogId, (selection) => {
+            if (!selection?.application) return;
+            void onSendAttachment(selection.application);
+        });
+
+        openShellBrowserWindow({
+            dialogId,
+            title: "Send a Picture",
+            confirmLabel: "Send",
+            mode: "open",
+            currentWindows,
+            dispatch,
+            initialContainerId: "pictures",
+            filter: "imageAttachments",
+            icon: "/icon__pictures.png",
+            iconLarge: "/icon__pictures--large.png",
+            width: 620,
+            height: 430,
+            top: 110,
+            left: 175,
+        });
     };
 
     return (
@@ -147,7 +254,17 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
                                             <strong>{message.sender_id}</strong>
                                             <span>{formatTimestamp(message.created_at)}</span>
                                         </div>
-                                        <p>{message.body}</p>
+                                        {message.attachment_src && (
+                                            <button
+                                                type="button"
+                                                className={styles.attachmentCard}
+                                                onClick={() => openAttachment(message)}
+                                            >
+                                                <img src={message.attachment_src} alt={message.attachment_name || "Shared picture"} />
+                                                <span>{message.attachment_name || "Picture"}</span>
+                                            </button>
+                                        )}
+                                        {!!message.body && <p>{message.body}</p>}
                                     </div>
                                 </article>
                             );
@@ -158,9 +275,9 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
                     <div className={styles.composer}>
                         <div className={styles.composerToolbar}>
                             <button type="button">A</button>
-                            <button type="button">😊</button>
-                            <button type="button">📷</button>
-                            <button type="button">🎁</button>
+                            <button type="button">{"\uD83D\uDE0A"}</button>
+                            <button type="button" onClick={openAttachmentPicker} aria-label="Send a picture">{"\uD83D\uDCF7"}</button>
+                            <button type="button">{"\uD83C\uDF81"}</button>
                         </div>
 
                         <div className={styles.composerBody}>

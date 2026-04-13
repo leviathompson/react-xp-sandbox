@@ -58,6 +58,21 @@
         "top": 40,
         "left": 120
     },
+    "paint": {
+        "title": "Paint",
+        "windowTitle": "untitled - Paint",
+        "icon": "/icon__paint.webp",
+        "iconLarge": "/icon__paint.webp",
+        "component": "Paint",
+        "width": 680,
+        "height": 520,
+        "top": 80,
+        "left": 110,
+        "content": {
+            "documentKind": "paint",
+            "documentName": "untitled"
+        }
+    },
     "winMediaPlayer": {
         "title": "Windows Media Player",
         "iconLarge": "/icon__media_player--large.png",

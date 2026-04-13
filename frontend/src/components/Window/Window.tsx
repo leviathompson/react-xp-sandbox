@@ -18,7 +18,8 @@ const applications = applicationsJSON as unknown as Record<string, Application>;
 const Window = ({ ...props }: WindowProps) => {
     const { id, appId, children, active = false, hidden = false } = props;
     const { currentWindows, customApplications, dispatch } = useContext();
-    const { title, icon, iconLarge, showOnTaskbar = true, width = 500, height = 350, top = 75, right = undefined, bottom = undefined, left = 100, resizable = true } = { ...(applications[appId] || {}), ...(customApplications[appId] || {}) };
+    const { title, windowTitle, component, icon, iconLarge, showOnTaskbar = true, width = 500, height = 350, top = 75, right = undefined, bottom = undefined, left = 100, resizable = true } = { ...(applications[appId] || {}), ...(customApplications[appId] || {}) };
+    const resolvedWindowTitle = windowTitle || (component === "Paint" ? `${title === "Paint" ? "untitled" : title} - Paint` : title);
 
     const dragWindowPadding = (window.innerWidth < 500) ? 12 : 3;
     const isBiggerThanViewport = (width + dragWindowPadding * 2 > window.innerWidth);
@@ -245,7 +246,7 @@ const Window = ({ ...props }: WindowProps) => {
                     <div ref={titleBarRef} className={`${styles.titleBar} flex justify-between pointer-events-auto`} data-label="titlebar" style={{ touchAction: "none" }} onPointerDown={onTitleBarPointerDown} onDoubleClick={() => toggleMaximizeWindow(activeWindow)}>
                         <div className="flex items-center">
                             {showOnTaskbar && (icon || iconLarge) && <img src={icon || iconLarge} width="14" height="14" className="mx-2 min-w-[1.4rem]"></img>}
-                            <h3 className={(showOnTaskbar && (icon || iconLarge)) ? "" : "ml-2"}>{title}</h3>
+                            <h3 className={(showOnTaskbar && (icon || iconLarge)) ? "" : "ml-2"}>{resolvedWindowTitle}</h3>
                         </div>
                         <div className="flex">
                             {resizable && (

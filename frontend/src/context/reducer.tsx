@@ -4,7 +4,22 @@ import { generateUniqueId } from "../utils/general";
 import { defaultWallpaper } from "./defaults";
 import type { AbsoluteObject, Action, ShellEntry, State } from "./types";
 
-const initialShellFiles = JSON.parse(JSON.stringify(filesJSON)) as Record<string, ShellEntry[]>;
+const cloneJSON = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
+const readSessionJSON = <T,>(key: string, fallback: T): T => {
+    try {
+        const value = sessionStorage.getItem(key);
+        if (!value) return fallback;
+        return JSON.parse(value) as T;
+    } catch {
+        return fallback;
+    }
+};
+
+const defaultShellFiles = cloneJSON(filesJSON) as unknown as Record<string, ShellEntry[]>;
+const initialShellFiles = readSessionJSON("shellFiles", defaultShellFiles);
+const initialCustomFiles = readSessionJSON<Record<string, ShellEntry[]>>("customFiles", {});
+const initialCustomApplications = readSessionJSON<State["customApplications"]>("customApplications", {});
 const createInitialWindow = (appId: string, active = false) => ({
     id: generateUniqueId(),
     appId,
@@ -205,6 +220,6 @@ export const initialState: State = {
     themeColor: "blue",
     isTaskbarLocked: sessionStorage.getItem("isTaskbarLocked") === "true",
     shellFiles: initialShellFiles,
-    customFiles: {},
-    customApplications: {},
+    customFiles: initialCustomFiles,
+    customApplications: initialCustomApplications,
 };

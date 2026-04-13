@@ -11,6 +11,8 @@ export interface DirectMessage {
     sender_id: string;
     recipient_id: string;
     body: string;
+    attachment_src: string | null;
+    attachment_name: string | null;
     created_at: string;
 }
 
@@ -37,7 +39,17 @@ export const fetchDirectMessages = async (userId: string, peerId: string, limit 
     return response.json() as Promise<{ messages: DirectMessage[] }>;
 };
 
-export const sendDirectMessage = async (senderId: string, recipientId: string, body: string) => {
+export interface DirectMessageAttachment {
+    attachmentSrc?: string;
+    attachmentName?: string;
+}
+
+export const sendDirectMessage = async (
+    senderId: string,
+    recipientId: string,
+    body: string,
+    attachment?: DirectMessageAttachment,
+) => {
     const response = await fetch("/api/messages", {
         method: "POST",
         headers: {
@@ -47,6 +59,7 @@ export const sendDirectMessage = async (senderId: string, recipientId: string, b
             senderId,
             recipientId,
             body,
+            ...attachment,
         }),
     });
 

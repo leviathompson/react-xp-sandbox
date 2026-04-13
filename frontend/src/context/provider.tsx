@@ -47,6 +47,18 @@ export const Provider = ({ children }: { children: ReactNode }) => {
     }, [state.personalMessage]);
 
     useEffect(() => {
+        sessionStorage.setItem("shellFiles", JSON.stringify(state.shellFiles));
+    }, [state.shellFiles]);
+
+    useEffect(() => {
+        sessionStorage.setItem("customFiles", JSON.stringify(state.customFiles));
+    }, [state.customFiles]);
+
+    useEffect(() => {
+        sessionStorage.setItem("customApplications", JSON.stringify(state.customApplications));
+    }, [state.customApplications]);
+
+    useEffect(() => {
         if (typeof window === "undefined") return;
 
         const loggedInJSON = sessionStorage.getItem("loggedIn");

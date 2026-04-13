@@ -37,6 +37,7 @@ export interface AbsoluteObject {
 
 export interface Application {
     title: string;
+    windowTitle?: string;
     icon?: string;
     iconLarge?: string;
     assetSrc?: string;

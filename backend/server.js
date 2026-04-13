@@ -5,6 +5,7 @@ const PORT = 3001;
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const MAX_AVATAR_SRC_LENGTH = 250000;
 const MAX_PERSONAL_MESSAGE_LENGTH = 120;
+const MAX_ATTACHMENT_SRC_LENGTH = 500000;
 const BLOCKED_PROXY_RESPONSE_HEADERS = new Set([
     "content-encoding",
     "content-length",
@@ -116,6 +117,14 @@ Promise.all([
             body TEXT NOT NULL,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
+    `),
+    pool.query(`
+        ALTER TABLE instant_messages
+        ADD COLUMN IF NOT EXISTS attachment_src TEXT
+    `),
+    pool.query(`
+        ALTER TABLE instant_messages
+        ADD COLUMN IF NOT EXISTS attachment_name TEXT
     `),
 ]).catch((err) => console.error("[debug-api] Failed to prepare user_sessions table:", err.message));
 
@@ -307,7 +316,7 @@ const server = http.createServer(async (req, res) => {
 
         try {
             const { rows } = await pool.query(
-                `SELECT id, sender_id, recipient_id, body, created_at
+                `SELECT id, sender_id, recipient_id, body, attachment_src, attachment_name, created_at
                  FROM instant_messages
                  WHERE (sender_id = $1 AND recipient_id = $2)
                     OR (sender_id = $2 AND recipient_id = $1)
@@ -335,9 +344,11 @@ const server = http.createServer(async (req, res) => {
         const senderId = typeof body.senderId === "string" ? body.senderId.trim() : "";
         const recipientId = typeof body.recipientId === "string" ? body.recipientId.trim() : "";
         const messageBody = typeof body.body === "string" ? body.body.trim() : "";
+        const attachmentSrc = typeof body.attachmentSrc === "string" ? body.attachmentSrc.trim() : "";
+        const attachmentName = typeof body.attachmentName === "string" ? body.attachmentName.trim() : "";
 
-        if (!senderId || !recipientId || !messageBody) {
-            json(res, 400, { error: "senderId, recipientId, and body are required" });
+        if (!senderId || !recipientId || (!messageBody && !attachmentSrc)) {
+            json(res, 400, { error: "senderId, recipientId, and either body or attachmentSrc are required" });
             return;
         }
 
@@ -346,12 +357,17 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        if (attachmentSrc.length > MAX_ATTACHMENT_SRC_LENGTH) {
+            json(res, 400, { error: "Attachment is too large" });
+            return;
+        }
+
         try {
             const { rows } = await pool.query(
-                `INSERT INTO instant_messages (sender_id, recipient_id, body)
-                 VALUES ($1, $2, $3)
-                 RETURNING id, sender_id, recipient_id, body, created_at`,
-                [senderId, recipientId, messageBody]
+                `INSERT INTO instant_messages (sender_id, recipient_id, body, attachment_src, attachment_name)
+                 VALUES ($1, $2, $3, $4, $5)
+                 RETURNING id, sender_id, recipient_id, body, attachment_src, attachment_name, created_at`,
+                [senderId, recipientId, messageBody, attachmentSrc || null, attachmentName || null]
             );
 
             await pool.query(
