@@ -13,7 +13,7 @@ const applications = applicationsJSON as unknown as Record<string, Application>;
 
 const TaskBar = () => {
     const { currentWindows, customApplications, isStartVisible, isTaskbarLocked, dispatch, openContextMenu } = useContext();
-    const [systemTrayIconDismissed, setSystemTrayIconDismissed] = React.useState(false);
+    const [systemTrayIconDismissed, setSystemTrayIconDismissed] = React.useState(true);
     const startButtonRef = React.useRef<HTMLButtonElement | null>(null);
     const startButton = startButtonRef.current;
     const mergedApplications = { ...applications, ...customApplications };
@@ -38,7 +38,7 @@ const TaskBar = () => {
     };
 
     const systemTrayIconClickHandler = () => {
-        if (systemTrayIconDismissed) setSystemTrayIconDismissed(false);
+        setSystemTrayIconDismissed(false);
     };
 
     const startButtonClickHandler = (event: React.MouseEvent) => {

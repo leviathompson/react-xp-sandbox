@@ -12,8 +12,6 @@
     font-size: 0.8rem;
     opacity: 1;
     transition: 0.3s opacity ease-in-out;
-    animation: tooltip-fade-in 1.5s linear;
-
 
     &:before {
         content: "";
@@ -40,6 +38,10 @@
     &[data-dismissed="true"] {
         opacity: 0;
         pointer-events: none;
+    }
+
+    &[data-dismissed="false"] {
+        animation: tooltip-fade-in 1.5s linear;
     }
 
     .tooltipClose {

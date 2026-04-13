@@ -5,6 +5,13 @@ import { defaultWallpaper } from "./defaults";
 import type { AbsoluteObject, Action, ShellEntry, State } from "./types";
 
 const initialShellFiles = JSON.parse(JSON.stringify(filesJSON)) as Record<string, ShellEntry[]>;
+const createInitialWindow = (appId: string, active = false) => ({
+    id: generateUniqueId(),
+    appId,
+    active,
+    history: [],
+    forward: [],
+});
 
 const getShellEntryId = (entry: ShellEntry) => Array.isArray(entry) ? entry[0] : entry;
 
@@ -177,10 +184,11 @@ export const reducer = (state: State, action: Action): State => {
 export const initialState: State = {
     wallpaper: sessionStorage.getItem("wallpaper") || defaultWallpaper,
     currentTime: new Date(),
-    currentWindows: [{
-        id: generateUniqueId(),
-        appId: "readme",
-    },
+    currentWindows: [
+        createInitialWindow("readme"),
+        createInitialWindow("winMessenger"),
+        createInitialWindow("controlPanel"),
+        createInitialWindow("userAccounts", true),
     ],
     username: sessionStorage.getItem("username") || "",
     avatarSrc: sessionStorage.getItem("avatarSrc") || DEFAULT_AVATAR_SRC,
