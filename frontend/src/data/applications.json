@@ -95,9 +95,23 @@
     },
     "controlPanel": {
         "title": "Control Panel",
+        "icon": "/icon__control_panel--large.png",
         "iconLarge": "/icon__control_panel--large.png",
-        "content": "placeholder",
-        "disabled": true
+        "component": "ControlPanel",
+        "width": 690,
+        "height": 660,
+        "top": 35,
+        "left": 50
+    },
+    "userAccounts": {
+        "title": "User Accounts",
+        "icon": "/icon__switch_users--large.png",
+        "iconLarge": "/icon__switch_users--large.png",
+        "component": "UserAccounts",
+        "width": 560,
+        "height": 620,
+        "top": 55,
+        "left": 90
     },
     "programDefaults": {
         "title": "Set Program Access and Defaults",

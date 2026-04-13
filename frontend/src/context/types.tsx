@@ -88,6 +88,7 @@ export interface State {
     currentTime: Date;
     currentWindows: currentWindow[];
     username: string;
+    avatarSrc: string;
     isStartVisible: boolean;
     isAllProgramsOpen: boolean;
     isRecentDocumentsOpen: boolean;
@@ -109,6 +110,7 @@ export type Action =
     | { type: "SET_CURRENT_TIME"; payload: Date }
     | { type: "SET_CURRENT_WINDOWS"; payload: currentWindow[] }
     | { type: "SET_IS_START_VISIBLE"; payload: boolean }
+    | { type: "SET_AVATAR_SRC"; payload: string }
     | { type: "SET_IS_ALL_PROGRAMS_OPEN"; payload: boolean }
     | { type: "SET_IS_RECENT_DOCUMENTS_OPEN"; payload: boolean }
     | { type: "SET_IS_SHUTDOWN_MODAL_OPEN"; payload: boolean }

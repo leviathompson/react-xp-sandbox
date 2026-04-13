@@ -3,6 +3,7 @@ import { Pool } from "pg";
 
 const PORT = 3001;
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const MAX_AVATAR_SRC_LENGTH = 250000;
 const BLOCKED_PROXY_RESPONSE_HEADERS = new Set([
     "content-encoding",
     "content-length",
@@ -87,12 +88,22 @@ const proxyWaybackRequest = async (req, res, url) => {
 };
 
 // Ensure user_sessions table exists on startup
-pool.query(`
-    CREATE TABLE IF NOT EXISTS user_sessions (
-        user_id      TEXT        PRIMARY KEY,
-        first_login_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-`).catch((err) => console.error("[debug-api] Failed to create user_sessions table:", err.message));
+Promise.all([
+    pool.query(`
+        CREATE TABLE IF NOT EXISTS user_sessions (
+            user_id TEXT PRIMARY KEY,
+            first_login_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    `),
+    pool.query(`
+        ALTER TABLE user_sessions
+        ADD COLUMN IF NOT EXISTS avatar_src TEXT
+    `),
+    pool.query(`
+        ALTER TABLE user_sessions
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    `),
+]).catch((err) => console.error("[debug-api] Failed to prepare user_sessions table:", err.message));
 
 const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://localhost:${PORT}`);
@@ -185,6 +196,56 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // POST /api/profile ? save a user's avatar settings
+    if (method === "POST" && url.pathname === "/api/profile") {
+        let body;
+        try {
+            body = await readBody(req);
+        } catch {
+            json(res, 400, { error: "Invalid JSON body" });
+            return;
+        }
+
+        const userId = typeof body.userId === "string" ? body.userId.trim() : "";
+        const avatarSrc = typeof body.avatarSrc === "string" ? body.avatarSrc.trim() : "";
+
+        if (!userId) {
+            json(res, 400, { error: "userId required" });
+            return;
+        }
+
+        if (!avatarSrc) {
+            json(res, 400, { error: "avatarSrc required" });
+            return;
+        }
+
+        if (avatarSrc.length > MAX_AVATAR_SRC_LENGTH) {
+            json(res, 400, { error: "avatarSrc is too large" });
+            return;
+        }
+
+        try {
+            const { rows } = await pool.query(
+                `INSERT INTO user_sessions (user_id, first_login_at, avatar_src, updated_at)
+                 VALUES ($1, NOW(), $2, NOW())
+                 ON CONFLICT (user_id) DO UPDATE
+                     SET avatar_src = EXCLUDED.avatar_src,
+                         updated_at = NOW()
+                 RETURNING user_id, first_login_at, avatar_src, updated_at`,
+                [userId, avatarSrc]
+            );
+            json(res, 200, {
+                userId: rows[0].user_id,
+                firstLoginAt: rows[0].first_login_at,
+                avatarSrc: rows[0].avatar_src,
+                updatedAt: rows[0].updated_at,
+            });
+        } catch (err) {
+            json(res, 500, { error: err.message });
+        }
+        return;
+    }
+
     // POST /api/session/start — get-or-create the user's first login timestamp
     if (method === "POST" && url.pathname === "/api/session/start") {
         let body;
@@ -208,10 +269,40 @@ const server = http.createServer(async (req, res) => {
                  VALUES ($1, NOW())
                  ON CONFLICT (user_id) DO UPDATE
                      SET first_login_at = user_sessions.first_login_at
-                 RETURNING user_id, first_login_at`,
+                 RETURNING user_id, first_login_at, avatar_src`,
                 [userId]
             );
-            json(res, 200, { userId: rows[0].user_id, firstLoginAt: rows[0].first_login_at });
+            json(res, 200, { userId: rows[0].user_id, firstLoginAt: rows[0].first_login_at, avatarSrc: rows[0].avatar_src });
+        } catch (err) {
+            json(res, 500, { error: err.message });
+        }
+        return;
+    }
+
+    // GET /api/profile/:userId ? fetch saved profile settings
+    if (method === "GET" && url.pathname.startsWith("/api/profile/")) {
+        const userId = decodeURIComponent(url.pathname.slice("/api/profile/".length));
+        if (!userId) {
+            json(res, 400, { error: "userId required" });
+            return;
+        }
+
+        try {
+            const { rows } = await pool.query(
+                "SELECT user_id, avatar_src, first_login_at, updated_at FROM user_sessions WHERE user_id = $1",
+                [userId]
+            );
+            if (rows.length === 0) {
+                json(res, 404, { error: "Profile not found" });
+                return;
+            }
+
+            json(res, 200, {
+                userId: rows[0].user_id,
+                avatarSrc: rows[0].avatar_src,
+                firstLoginAt: rows[0].first_login_at,
+                updatedAt: rows[0].updated_at,
+            });
         } catch (err) {
             json(res, 500, { error: err.message });
         }
@@ -228,14 +319,14 @@ const server = http.createServer(async (req, res) => {
 
         try {
             const { rows } = await pool.query(
-                "SELECT first_login_at FROM user_sessions WHERE user_id = $1",
+                "SELECT first_login_at, avatar_src FROM user_sessions WHERE user_id = $1",
                 [userId]
             );
             if (rows.length === 0) {
                 json(res, 404, { error: "Session not found" });
                 return;
             }
-            json(res, 200, { userId, firstLoginAt: rows[0].first_login_at });
+            json(res, 200, { userId, firstLoginAt: rows[0].first_login_at, avatarSrc: rows[0].avatar_src });
         } catch (err) {
             json(res, 500, { error: err.message });
         }

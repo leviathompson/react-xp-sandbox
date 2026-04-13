@@ -6,7 +6,7 @@ import ShutDownModal from "../ShutDownModal/ShutDownModal";
 import styles from "./Login.module.scss";
 
 const Login = () => {
-    const {currentWindows, windowsInitiationState, isInitialBoot, transitionLabel, isShutDownModalOpen, username, dispatch} = useContext();
+    const {currentWindows, windowsInitiationState, isInitialBoot, transitionLabel, isShutDownModalOpen, username, avatarSrc, dispatch} = useContext();
     const [shutdownMsg, setShutdownMsg] = useState<React.ReactNode | null>(null);
     const usernameInputRef = useRef<HTMLInputElement | null>(null);
     const isUsernameValid = username.trim().length > 0;
@@ -147,7 +147,7 @@ const Login = () => {
                                 </div>
                             )}
                             <button type="button" className={`${styles.userContainer} flex p-3 gap-5`} data-init-state={windowsInitiationState} onClick={onUserClickHandler} disabled={!isUsernameValid || windowsInitiationState === "loggingIn"}>
-                                <img className={`${styles.avatar} m-1.5`} width="50" height="50" data-init-state={windowsInitiationState} src="/avatar__skateboard.png" />
+                                <img className={`${styles.avatar} m-1.5`} width="50" height="50" data-init-state={windowsInitiationState} src={avatarSrc} />
                                 <div className={`${styles.userNameContainer} flex flex-col`}>
                                     <h3  data-init-state={windowsInitiationState}>{isUsernameValid ? username : "User"}</h3>
                                     {!isInitialBoot && currentWindows.length > 0 && <p className="font-bold">{currentWindows.length} program{currentWindows.length > 1 ? "s" : ""} running.</p>}

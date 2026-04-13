@@ -1,6 +1,8 @@
 import { useReducer, useEffect, useState } from "react";
 import { Context } from "./context";
 import { reducer, initialState } from "./reducer";
+import { DEFAULT_AVATAR_SRC } from "../data/avatars";
+import { fetchUserProfile } from "../utils/userProfile";
 import type { ContextMenuState } from "./types";
 import type { ReactNode } from "react";
 
@@ -37,6 +39,10 @@ export const Provider = ({ children }: { children: ReactNode }) => {
     }, [state.isTaskbarLocked]);
 
     useEffect(() => {
+        sessionStorage.setItem("avatarSrc", state.avatarSrc);
+    }, [state.avatarSrc]);
+
+    useEffect(() => {
         if (typeof window === "undefined") return;
 
         const loggedInJSON = sessionStorage.getItem("loggedIn");
@@ -62,6 +68,41 @@ export const Provider = ({ children }: { children: ReactNode }) => {
             }
         }
     }, []);
+
+    useEffect(() => {
+        const userId = state.username.trim();
+        if (!userId) {
+            dispatch({ type: "SET_AVATAR_SRC", payload: DEFAULT_AVATAR_SRC });
+            return;
+        }
+
+        let isCancelled = false;
+        const controller = new AbortController();
+
+        const loadProfile = async () => {
+            try {
+                const profile = await fetchUserProfile(userId, controller.signal);
+                if (isCancelled) return;
+
+                dispatch({
+                    type: "SET_AVATAR_SRC",
+                    payload: profile?.avatarSrc || DEFAULT_AVATAR_SRC,
+                });
+            } catch (error) {
+                if (isCancelled || controller.signal.aborted) return;
+                console.error("Failed to load user profile", error);
+                dispatch({ type: "SET_AVATAR_SRC", payload: DEFAULT_AVATAR_SRC });
+            }
+        };
+
+        const delay = window.setTimeout(loadProfile, 250);
+
+        return () => {
+            isCancelled = true;
+            controller.abort();
+            window.clearTimeout(delay);
+        };
+    }, [state.username]);
 
     return (
         <Context value={{ ...state, dispatch, contextMenu, openContextMenu, closeContextMenu }}>

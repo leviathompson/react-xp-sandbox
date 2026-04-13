@@ -1,4 +1,5 @@
 import filesJSON from "../data/files.json";
+import { DEFAULT_AVATAR_SRC } from "../data/avatars";
 import { generateUniqueId } from "../utils/general";
 import { defaultWallpaper } from "./defaults";
 import type { AbsoluteObject, Action, ShellEntry, State } from "./types";
@@ -34,6 +35,8 @@ export const reducer = (state: State, action: Action): State => {
         return { ...state, currentTime: action.payload };
     case "SET_CURRENT_WINDOWS":
         return { ...state, currentWindows: action.payload };
+    case "SET_AVATAR_SRC":
+        return { ...state, avatarSrc: action.payload };
     case "SET_IS_START_VISIBLE":
         return { ...state, isStartVisible: action.payload };
     case "SET_IS_ALL_PROGRAMS_OPEN":
@@ -167,6 +170,7 @@ export const initialState: State = {
     },
     ],
     username: sessionStorage.getItem("username") || "",
+    avatarSrc: sessionStorage.getItem("avatarSrc") || DEFAULT_AVATAR_SRC,
     isStartVisible: false,
     isAllProgramsOpen: false,
     isRecentDocumentsOpen: false,
