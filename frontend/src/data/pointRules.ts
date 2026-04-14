@@ -65,7 +65,7 @@ export const pointRules: PointRule[] = [
         description: "Launch and play the In The End audio file.",
         points: 7,
         category: "application",
-        limit: { type: "perDay", maxAwards: 1 },
+        limit: { type: "perDay", maxAwards: 100 },
         metadata: { fileId: "inTheEnd" },
     },
     {

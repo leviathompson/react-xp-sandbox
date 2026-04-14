@@ -387,9 +387,16 @@ const server = http.createServer(async (req, res) => {
 
         try {
             const { rows } = await pool.query(
-                `SELECT user_id, avatar_src, personal_message, first_login_at, updated_at
-                 FROM user_sessions
-                 ORDER BY updated_at DESC, first_login_at DESC
+                `SELECT
+                    us.user_id,
+                    us.avatar_src,
+                    us.personal_message,
+                    us.first_login_at,
+                    us.updated_at,
+                    COALESCE(upt.lifetime_points, 0) AS score
+                 FROM user_sessions us
+                 LEFT JOIN user_point_totals upt ON upt.user_id = us.user_id
+                 ORDER BY us.updated_at DESC, us.first_login_at DESC
                  LIMIT $1`,
                 [limit]
             );

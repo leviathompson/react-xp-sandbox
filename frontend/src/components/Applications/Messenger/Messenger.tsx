@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import AnimatedScore from "../../AnimatedScore/AnimatedScore";
 import { useContext } from "../../../context/context";
 import { DEFAULT_AVATAR_SRC } from "../../../data/avatars";
-import { buildChatAppId, fetchActiveSessions } from "../../../utils/messenger";
+import { ACTIVE_SESSIONS_POLL_MS, buildChatAppId, fetchActiveSessions } from "../../../utils/messenger";
 import type { ActiveSession } from "../../../utils/messenger";
 import { openApplication, updateCurrentActiveWindow } from "../../../utils/general";
 import { saveUserProfile } from "../../../utils/userProfile";
@@ -57,6 +58,8 @@ const Messenger = () => {
     const [errorMessage, setErrorMessage] = useState("");
     const [draftPersonalMessage, setDraftPersonalMessage] = useState(personalMessage);
     const [isSavingPersonalMessage, setIsSavingPersonalMessage] = useState(false);
+    const sessionRowRefs = useRef(new Map<string, HTMLButtonElement>());
+    const previousRowPositionsRef = useRef(new Map<string, DOMRect>());
 
     useEffect(() => {
         setDraftPersonalMessage(personalMessage);
@@ -81,7 +84,7 @@ const Messenger = () => {
         };
 
         void loadSessions();
-        const interval = window.setInterval(loadSessions, 30000);
+        const interval = window.setInterval(loadSessions, ACTIVE_SESSIONS_POLL_MS);
 
         return () => {
             isCancelled = true;
@@ -91,14 +94,55 @@ const Messenger = () => {
 
     const visibleSessions = useMemo(
         () => sessions
-            .filter((session) => session.user_id !== username)
             .map((session) => ({
                 ...session,
                 avatarSrc: session.avatar_src || DEFAULT_AVATAR_SRC,
                 presence: getPresence(session, username),
-            })),
+            }))
+            .sort((a, b) => (
+                b.score - a.score
+                || new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+                || a.user_id.localeCompare(b.user_id)
+            )),
         [sessions, username],
     );
+    const currentUserSession = useMemo(
+        () => visibleSessions.find((session) => session.user_id === username) || null,
+        [visibleSessions, username],
+    );
+
+    useLayoutEffect(() => {
+        const nextPositions = new Map<string, DOMRect>();
+
+        visibleSessions.forEach((session) => {
+            const element = sessionRowRefs.current.get(session.user_id);
+            if (!element) return;
+
+            const nextRect = element.getBoundingClientRect();
+            nextPositions.set(session.user_id, nextRect);
+
+            const previousRect = previousRowPositionsRef.current.get(session.user_id);
+            if (!previousRect) return;
+
+            const deltaY = previousRect.top - nextRect.top;
+            if (Math.abs(deltaY) < 1) return;
+
+            element.style.transition = "none";
+            element.style.transform = `translateY(${deltaY}px)`;
+
+            window.requestAnimationFrame(() => {
+                element.style.transition = "transform 260ms cubic-bezier(0.22, 1, 0.36, 1)";
+                element.style.transform = "translateY(0)";
+            });
+        });
+
+        previousRowPositionsRef.current = nextPositions;
+    }, [visibleSessions]);
+
+    useEffect(() => () => {
+        sessionRowRefs.current.clear();
+        previousRowPositionsRef.current.clear();
+    }, []);
 
     const savePersonalMessage = async () => {
         const trimmedUsername = username.trim();
@@ -191,6 +235,11 @@ const Messenger = () => {
                 </div>
 
                 <div className={styles.profileRow}>
+                    <AnimatedScore
+                        value={currentUserSession?.score || 0}
+                        className={styles.profileScore}
+                        title={`${currentUserSession?.score || 0} points`}
+                    />
                     <img src={avatarSrc || DEFAULT_AVATAR_SRC} alt="" />
                     <div>
                         <h2>{username || "User"}</h2>
@@ -240,13 +289,32 @@ const Messenger = () => {
                                 key={session.user_id}
                                 type="button"
                                 className={styles.sessionRow}
-                                onClick={() => openChatWindow(session.user_id, session.avatarSrc)}
+                                data-self={session.user_id === username}
+                                onClick={() => {
+                                    if (session.user_id === username) return;
+                                    openChatWindow(session.user_id, session.avatarSrc);
+                                }}
+                                ref={(node) => {
+                                    if (node) {
+                                        sessionRowRefs.current.set(session.user_id, node);
+                                        return;
+                                    }
+
+                                    sessionRowRefs.current.delete(session.user_id);
+                                    previousRowPositionsRef.current.delete(session.user_id);
+                                }}
                             >
                                 <span className={styles.presenceIcon} data-presence={session.presence} />
+                                <AnimatedScore
+                                    value={session.score}
+                                    className={styles.score}
+                                    title={`${session.score} points`}
+                                />
                                 <img src={session.avatarSrc} alt="" />
                                 <div className={styles.sessionMeta}>
                                     <div className={styles.nameRow}>
                                         <strong>{session.user_id}</strong>
+                                        {session.user_id === username && <span className={styles.selfTag}>You</span>}
                                         <span className={styles.statusText}>({PRESENCE_LABELS[session.presence]})</span>
                                         {session.personal_message && (
                                             <span className={styles.personalMessage} title={session.personal_message}>

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext as useReactContext, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import pointRules, { type PointRule } from "../data/pointRules";
+import { useContext as useXPContext } from "./context";
 import { generateUniqueId } from "../utils/general";
 
 type AwardStatus =
@@ -39,6 +40,7 @@ type PointsState = {
 
 type PointsAction =
     | { type: "AWARD_POINTS"; payload: PointsAward }
+    | { type: "HYDRATE_STATE"; payload: PointsState }
     | { type: "RESET_SESSION" };
 
 interface PointsContextValue {
@@ -75,15 +77,20 @@ const ruleMap: Record<string, PointRule> = pointRules.reduce((map, rule) => {
 
 const SYNC_QUEUE_KEY = "xp_sync_queue_v1";
 
-const loadSyncQueue = (): PointsAward[] => {
+const getStorageKey = (userId: string) => `${STORAGE_KEY}:${userId}`;
+const getSyncQueueKey = (userId: string) => `${SYNC_QUEUE_KEY}:${userId}`;
+
+const loadSyncQueue = (userId: string): PointsAward[] => {
+    if (!userId || typeof window === "undefined") return [];
+    const storageKey = getSyncQueueKey(userId);
     if (typeof window === "undefined") return [];
-    try { return JSON.parse(window.localStorage.getItem(SYNC_QUEUE_KEY) ?? "[]"); }
+    try { return JSON.parse(window.localStorage.getItem(storageKey) ?? "[]"); }
     catch { return []; }
 };
 
-const saveSyncQueue = (queue: PointsAward[]) => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
+const saveSyncQueue = (userId: string, queue: PointsAward[]) => {
+    if (!userId || typeof window === "undefined") return;
+    window.localStorage.setItem(getSyncQueueKey(userId), JSON.stringify(queue));
 };
 
 const postEvent = async (award: PointsAward, userId: string): Promise<boolean> => {
@@ -109,9 +116,9 @@ const postEvent = async (award: PointsAward, userId: string): Promise<boolean> =
 
 const PointsContext = createContext<PointsContextValue | undefined>(undefined);
 
-const loadStoredState = (): StoredPointsState | null => {
-    if (typeof window === "undefined") return null;
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+const loadStoredState = (userId: string): StoredPointsState | null => {
+    if (!userId || typeof window === "undefined") return null;
+    const raw = window.localStorage.getItem(getStorageKey(userId));
     if (!raw) return null;
 
     try {
@@ -122,8 +129,8 @@ const loadStoredState = (): StoredPointsState | null => {
     }
 };
 
-const createInitialState = (): PointsState => {
-    const stored = loadStoredState();
+const createInitialState = (userId: string): PointsState => {
+    const stored = loadStoredState(userId);
     if (!stored) return { ...defaultState };
 
     return {
@@ -137,6 +144,8 @@ const createInitialState = (): PointsState => {
 
 const pointsReducer = (state: PointsState, action: PointsAction): PointsState => {
     switch (action.type) {
+    case "HYDRATE_STATE":
+        return action.payload;
     case "AWARD_POINTS": {
         const award = action.payload;
         const updatedAwards = [...state.awards, award];
@@ -219,30 +228,43 @@ const evaluateLimit = (
 const AWARD_DEBOUNCE_MS = 500;
 
 export const PointsProvider = ({ children }: { children: ReactNode }) => {
-    const [state, dispatch] = useReducer(pointsReducer, undefined, createInitialState);
+    const { username } = useXPContext();
+    const userId = username.trim();
+    const [state, dispatch] = useReducer(pointsReducer, { ...defaultState });
     const lastAwardTimeRef = useRef<Map<string, number>>(new Map());
-    const [pendingSyncCount, setPendingSyncCount] = useState(() => loadSyncQueue().length);
+    const [pendingSyncCount, setPendingSyncCount] = useState(0);
+
+    useEffect(() => {
+        if (!userId) {
+            dispatch({ type: "HYDRATE_STATE", payload: { ...defaultState } });
+            setPendingSyncCount(0);
+            lastAwardTimeRef.current.clear();
+            return;
+        }
+
+        dispatch({ type: "HYDRATE_STATE", payload: createInitialState(userId) });
+        setPendingSyncCount(loadSyncQueue(userId).length);
+        lastAwardTimeRef.current.clear();
+    }, [userId]);
 
     const syncEvent = useCallback(async (award: PointsAward) => {
-        const userId = sessionStorage.getItem("username") ?? "";
         if (!userId) return;
 
         const success = await postEvent(award, userId);
         if (!success) {
-            const queue = loadSyncQueue();
+            const queue = loadSyncQueue(userId);
             if (!queue.find((a) => a.id === award.id)) {
                 queue.push(award);
-                saveSyncQueue(queue);
+                saveSyncQueue(userId, queue);
                 setPendingSyncCount(queue.length);
             }
         }
-    }, []);
+    }, [userId]);
 
     const drainSyncQueue = useCallback(async () => {
-        const userId = sessionStorage.getItem("username") ?? "";
         if (!userId) return;
 
-        const queue = loadSyncQueue();
+        const queue = loadSyncQueue(userId);
         if (queue.length === 0) return;
 
         const remaining: PointsAward[] = [];
@@ -250,9 +272,9 @@ export const PointsProvider = ({ children }: { children: ReactNode }) => {
             const success = await postEvent(award, userId);
             if (!success) remaining.push(award);
         }
-        saveSyncQueue(remaining);
+        saveSyncQueue(userId, remaining);
         setPendingSyncCount(remaining.length);
-    }, []);
+    }, [userId]);
 
     useEffect(() => {
         drainSyncQueue();
@@ -265,9 +287,9 @@ export const PointsProvider = ({ children }: { children: ReactNode }) => {
     }), [state.lifetimePoints, state.lifetimeAwardCounts, state.awards]);
 
     useEffect(() => {
-        if (typeof window === "undefined") return;
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persistableSnapshot));
-    }, [persistableSnapshot]);
+        if (!userId || typeof window === "undefined") return;
+        window.localStorage.setItem(getStorageKey(userId), JSON.stringify(persistableSnapshot));
+    }, [persistableSnapshot, userId]);
 
     const awardPoints = useCallback((ruleId: PointRule["id"], options: AwardPointsOptions = {}): AwardStatus => {
         const rule = ruleMap[ruleId];
