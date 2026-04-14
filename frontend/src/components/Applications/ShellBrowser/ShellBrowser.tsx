@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useContext } from "../../../context/context";
 import applicationsJSON from "../../../data/applications.json";
+import { getThumbnailIconSrc } from "../../../utils/applicationIcon";
 import { emitShellBrowserResult, matchesShellBrowserFilter } from "../../../utils/shellBrowser";
 import { getShellEntryId } from "../../../utils/shell";
 import styles from "./ShellBrowser.module.scss";
@@ -217,7 +218,7 @@ const ShellBrowser = ({ id, content }: ShellBrowserProps) => {
                             data-selected={currentContainerId === placeAppId}
                             onClick={() => openFolder(placeAppId)}
                         >
-                            <img src={applications[placeAppId]?.iconLarge || applications[placeAppId]?.icon || "/icon__folder_open.png"} alt="" />
+                            <img src={getThumbnailIconSrc(applications[placeAppId]) || "/icon__folder_open.png"} alt="" />
                             <span>{resolveTitle(placeAppId)}</span>
                         </button>
                     ))}
@@ -243,7 +244,7 @@ const ShellBrowser = ({ id, content }: ShellBrowserProps) => {
                                     onDoubleClick={() => onItemDoubleClick(itemAppId, application)}
                                 >
                                     <span className={styles.nameCell}>
-                                        <img src={application.iconLarge || application.icon || (folder ? "/icon__folder_open.png" : "/icon__pictures.png")} alt="" />
+                                        <img src={getThumbnailIconSrc(application) || (folder ? "/icon__folder_open.png" : "/icon__pictures.png")} alt="" />
                                         <span>{resolveTitle(itemAppId)}</span>
                                     </span>
                                     <span className={styles.typeCell}>{folder ? "File Folder" : "Bitmap Image"}</span>

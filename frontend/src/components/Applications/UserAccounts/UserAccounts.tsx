@@ -114,81 +114,100 @@ const UserAccounts = () => {
 
     return (
         <div className={styles.userAccounts}>
-            <header className={styles.hero}>
-                <img src="/icon__switch_users--large.png" width="48" height="48" />
-                <div>
-                    <h1>User Accounts</h1>
-                    <p>Choose the picture shown for your account across this XP session.</p>
-                </div>
+            <header className={styles.toolbar}>
+                <button type="button" className={styles.toolbarButton}>
+                    <img src="/icon__back.png" width="22" height="22" alt="" />
+                    <span>Back</span>
+                </button>
+                <button type="button" className={styles.toolbarButton}>
+                    <img src="/icon__home--large.png" width="22" height="22" alt="" />
+                    <span>Home</span>
+                </button>
             </header>
 
             <main className={styles.content}>
-                <section className={styles.previewCard}>
-                    <div className={styles.previewHeader}>
-                        <img src={draftAvatarSrc} alt={`${trimmedUsername || "User"} avatar preview`} />
+                <aside className={styles.sidebar}>
+                    <section className={styles.sidebarPanel}>
+                        <h2>Current Picture</h2>
+                        <div className={styles.currentPicture}>
+                            <img src={draftAvatarSrc} alt={`${trimmedUsername || "User"} avatar preview`} />
+                            <div>
+                                <strong>{trimmedUsername || "User"}</strong>
+                                <p>{isCustomPicture ? "Custom picture" : "Built-in picture"}</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className={styles.sidebarPanel}>
+                        <h2>Related Tasks</h2>
+                        <button type="button" className={styles.sidebarLink} onClick={onBrowseForPicture}>
+                            Change account picture
+                        </button>
+                    </section>
+
+                    <section className={styles.sidebarPanel}>
+                        <h2>Learn About</h2>
+                        <p className={styles.sidebarInfo}>
+                            <img src="/icon__info.png" width="16" height="16" alt="" />
+                            <span>Your picture appears on the Welcome screen and in the Start menu.</span>
+                        </p>
+                    </section>
+                </aside>
+
+                <section className={styles.mainPanel}>
+                    <div className={styles.hero}>
+                        <img src="/icon__switch_users--large.png" width="38" height="38" alt="" />
                         <div>
-                            <p className={styles.label}>Current user name</p>
-                            <h2>{trimmedUsername || "User"}</h2>
-                            <p className={styles.subtle}>
-                                {isCustomPicture ? "Custom picture" : "Built-in picture"}
+                            <h1>Pick a new picture for your account</h1>
+                            <p>
+                                The picture you choose will appear on the Welcome screen for{" "}
+                                <strong>{trimmedUsername || "User"}</strong>.
                             </p>
                         </div>
                     </div>
 
-                    <div className={styles.accountField}>
-                        <label htmlFor="user-account-name">Account name</label>
-                        <input id="user-account-name" type="text" value={trimmedUsername} readOnly />
-                    </div>
-
-                    <p className={styles.helpText}>
-                        This picture is reused on the login screen, in the Start menu, and anywhere the public profile is shown later.
-                    </p>
-
-                    <div className={styles.actions}>
-                        <button type="button" onClick={onSave} disabled={!hasChanges || isSaving || !trimmedUsername}>
-                            {isSaving ? "Saving..." : "Save"}
-                        </button>
-                        <button type="button" onClick={onCancel} disabled={!hasChanges || isSaving}>
-                            Cancel
-                        </button>
-                    </div>
-
-                    <p className={styles.status} data-state={saveState.type}>
-                        {saveState.message}
-                    </p>
-                </section>
-
-                <section className={styles.pickerCard}>
-                    <div className={styles.pickerHeader}>
-                        <div>
-                            <h2>Choose a picture</h2>
-                            <p>Select one of the built-in avatars or upload your own image.</p>
+                    <div className={styles.avatarPicker}>
+                        <div className={styles.avatarGrid}>
+                            {avatarOptions.map((option) => (
+                                <button
+                                    key={option.id}
+                                    type="button"
+                                    className={styles.avatarOption}
+                                    data-selected={draftAvatarSrc === option.src}
+                                    onClick={() => onPickBuiltInAvatar(option.src)}
+                                    title={option.label}
+                                >
+                                    <img src={option.src} alt={option.label} />
+                                </button>
+                            ))}
                         </div>
-                        <button type="button" className={styles.browseButton} onClick={onBrowseForPicture}>
-                            Browse for more pictures
-                        </button>
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            className={styles.fileInput}
-                            onChange={onFileChange}
-                        />
                     </div>
 
-                    <div className={styles.avatarGrid}>
-                        {avatarOptions.map((option) => (
-                            <button
-                                key={option.id}
-                                type="button"
-                                className={styles.avatarOption}
-                                data-selected={draftAvatarSrc === option.src}
-                                onClick={() => onPickBuiltInAvatar(option.src)}
-                            >
-                                <img src={option.src} alt="" />
-                                <span>{option.label}</span>
+                    <button type="button" className={styles.browseLink} onClick={onBrowseForPicture}>
+                        <img src="/icon__pictures.png" width="18" height="18" alt="" />
+                        <span>Browse for more pictures</span>
+                    </button>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className={styles.fileInput}
+                        onChange={onFileChange}
+                    />
+
+                    <div className={styles.footer}>
+                        <p className={styles.status} data-state={saveState.type}>
+                            {saveState.message}
+                        </p>
+
+                        <div className={styles.actions}>
+                            <button type="button" onClick={onSave} disabled={!hasChanges || isSaving || !trimmedUsername}>
+                                {isSaving ? "Saving..." : "Change Picture"}
                             </button>
-                        ))}
+                            <button type="button" onClick={onCancel} disabled={!hasChanges || isSaving}>
+                                Cancel
+                            </button>
+                        </div>
                     </div>
                 </section>
             </main>

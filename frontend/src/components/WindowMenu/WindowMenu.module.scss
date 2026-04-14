@@ -23,11 +23,11 @@
             &:hover {
                 color: #fff;
                 background-color: #4069bf;
-                cursor: not-allowed;
+                cursor: default;
             }
 
             button {
-                cursor: not-allowed;
+                cursor: default;
             }
         }
     }

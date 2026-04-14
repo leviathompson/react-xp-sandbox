@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useContext } from "../../context/context";
 import { usePoints } from "../../context/points";
 import applicationsJSON from "../../data/applications.json";
+import { getThumbnailIconSrc } from "../../utils/applicationIcon";
 import { throttle } from "../../utils/general";
 import { openApplication } from "../../utils/general";
 import { SYSTEM32_APP_ID, buildShellContextMenu, createShortcutShellItemPayload, getDropContainerId } from "../../utils/shell";
@@ -30,7 +31,7 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
     const isActive = id === selectedId;
     const mergedApplications = { ...applications, ...customApplications };
     const appData = { ...(applications[appId] || {}), ...(customApplications[appId] || {}) };
-    const { title, icon, iconLarge, link, redirect, disabled, shortcut, component } = { ...appData };
+    const { title, link, redirect, disabled, shortcut, component } = { ...appData };
     const isCustomItem = !!customApplications[appId];
     const dropContainerId = getDropContainerId(appId, appData, mergedApplications);
     const triggerSystem32Crash = () => {
@@ -280,7 +281,8 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
         }
     };
 
-    const imageMask = isActive ? `url("${iconLarge || icon}")` : "";
+    const thumbnailIconSrc = getThumbnailIconSrc(appData);
+    const imageMask = isActive ? `url("${thumbnailIconSrc}")` : "";
 
     return (
         <button
@@ -302,7 +304,7 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
             onDoubleClick={onDoubleClickHandler}
             style={{ top: position.top, right: position.right, bottom: position.bottom, left: position.left, touchAction: "none" }}
         >
-            <span style={{ maskImage: imageMask }}><img src={iconLarge || icon} width="50" draggable={false} /></span>
+            <span style={{ maskImage: imageMask }}><img src={thumbnailIconSrc} width="50" draggable={false} /></span>
             <div className="relative w-full flex justify-center"><h4 className="text-center">{title}</h4></div>
         </button>
     );

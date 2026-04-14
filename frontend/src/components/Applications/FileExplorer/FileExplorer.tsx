@@ -3,6 +3,7 @@ import { useContext } from "../../../context/context";
 import { usePoints } from "../../../context/points";
 import applicationsJSON from "../../../data/applications.json";
 import { generateUniqueId, getCurrentWindow } from "../../../utils/general";
+import { getThumbnailIconSrc } from "../../../utils/applicationIcon";
 import { SYSTEM32_APP_ID, buildShellContextMenu, createShellItemPayload, createShortcutShellItemPayload, getDropContainerId, getShellEntryId } from "../../../utils/shell";
 import CollapseBox from "../../CollapseBox/CollapseBox";
 import WindowMenu from "../../WindowMenu/WindowMenu";
@@ -441,7 +442,8 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                             if (!appData) return;
                             
                             const isActive = (selectedItem === itemId);
-                            const { icon, iconLarge, disabled, link } = appData;
+                            const { disabled, link } = appData;
+                            const itemIconSrc = getThumbnailIconSrc(appData);
                             //const imageMask = (isActive) ? `url("${iconLarge || icon}")` : "";
 
                             return (
@@ -464,7 +466,7 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                                     onDrop={(event) => onItemDrop(event, itemId)}
                                     onPointerUp={(event) => handleFileTouchPointerUp(event, itemId)}
                                 >
-                                    <span className="flex items-center shrink-0"><img src={iconLarge || icon} width="35" height="35" draggable={false} /></span>
+                                    <span className="flex items-center shrink-0"><img src={itemIconSrc} width="35" height="35" draggable={false} /></span>
                                     <h4 className="px-0.5">{resolveTitle(itemId)}</h4>
                                 </button>
                             );

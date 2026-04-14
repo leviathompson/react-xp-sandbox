@@ -6,7 +6,7 @@ import { addShellBrowserResultListener, openShellBrowserWindow } from "../../../
 import { getShellEntryId } from "../../../utils/shell";
 import WindowMenu from "../../WindowMenu/WindowMenu";
 import styles from "./Paint.module.scss";
-import type { Application, ShellEntry, currentWindow } from "../../../context/types";
+import type { Application, ContextMenuItem, ShellEntry, currentWindow } from "../../../context/types";
 
 type PaintTool = "pencil" | "eraser" | "line" | "rectangle" | "ellipse" | "fill";
 
@@ -351,7 +351,7 @@ const Paint = ({ appId, id, content }: PaintProps) => {
         title,
         windowTitle: `${title} - Paint`,
         icon: "/icon__paint.webp",
-        iconLarge: "/icon__paint.webp",
+        iconLarge: imageSrc,
         assetSrc: imageSrc,
         component: "Paint",
         width: 680,
@@ -502,18 +502,54 @@ const Paint = ({ appId, id, content }: PaintProps) => {
         });
     };
 
+    const menuDefinitions: { label: string; items: ContextMenuItem[] }[] = [
+        {
+            label: "File",
+            items: [
+                { id: "file-new", label: "New", onSelect: onNew },
+                { id: "file-open", label: "Open", onSelect: () => openFileDialog("open") },
+                { id: "file-save", label: "Save", disabled: !isSavedDocument, onSelect: onQuickSave },
+                { id: "file-save-as", label: "Save As", onSelect: () => openFileDialog("save") },
+            ],
+        },
+        {
+            label: "Edit",
+            items: [
+                { id: "edit-undo", label: "Undo", disabled: !historyState.canUndo, onSelect: onUndo },
+                { id: "edit-redo", label: "Redo", disabled: !historyState.canRedo, onSelect: onRedo },
+            ],
+        },
+        {
+            label: "View",
+            items: [
+                { id: "view-tool-box", label: "Tool Box", checked: true, disabled: true },
+                { id: "view-color-box", label: "Color Box", checked: true, disabled: true },
+            ],
+        },
+        {
+            label: "Image",
+            items: [
+                { id: "image-clear", label: "Clear Image", onSelect: onNew },
+            ],
+        },
+        {
+            label: "Colors",
+            items: [
+                { id: "colors-edit", label: "Edit Colors...", disabled: true },
+            ],
+        },
+        {
+            label: "Help",
+            items: [
+                { id: "help-topics", label: "Help Topics", disabled: true },
+                { id: "help-about", label: "About Paint", disabled: true },
+            ],
+        },
+    ];
+
     return (
         <div className={styles.paint}>
-            <WindowMenu menuItems={["File", "Edit", "View", "Image", "Colors", "Help"]} />
-
-            <div className={styles.actionBar}>
-                <button type="button" onClick={onNew}>New</button>
-                <button type="button" onClick={() => openFileDialog("open")}>Open</button>
-                <button type="button" onClick={onQuickSave} disabled={!isSavedDocument}>Save</button>
-                <button type="button" onClick={() => openFileDialog("save")}>Save As</button>
-                <button type="button" onClick={onUndo} disabled={!historyState.canUndo}>Undo</button>
-                <button type="button" onClick={onRedo} disabled={!historyState.canRedo}>Redo</button>
-            </div>
+            <WindowMenu menus={menuDefinitions} />
 
             <div className={styles.workspace}>
                 <aside className={styles.toolbox}>
