@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useContext } from "../../../context/context";
+import { usePoints } from "../../../context/points";
 import { avatarOptions } from "../../../data/avatars";
 import { fileToAvatarDataUrl, saveUserProfile } from "../../../utils/userProfile";
 import styles from "./UserAccounts.module.scss";
@@ -12,6 +13,7 @@ type SaveState =
 
 const UserAccounts = () => {
     const { username, avatarSrc, dispatch } = useContext();
+    const { awardPoints } = usePoints();
     const [draftAvatarSrc, setDraftAvatarSrc] = useState(avatarSrc);
     const [isSaving, setIsSaving] = useState(false);
     const [saveState, setSaveState] = useState<SaveState>({
@@ -98,6 +100,7 @@ const UserAccounts = () => {
                 type: "SET_AVATAR_SRC",
                 payload: profile.avatarSrc || draftAvatarSrc,
             });
+            awardPoints("change-account-picture");
             setSaveState({
                 type: "success",
                 message: "Your new account picture was saved.",

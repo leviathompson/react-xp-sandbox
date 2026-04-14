@@ -1,6 +1,7 @@
 import { createPortal } from "react-dom";
 import { useContext } from "../../context/context";
 import { usePoints } from "../../context/points";
+import { getCurrentWindowsStorageKey } from "../../context/reducer";
 import playSound from "../../utils/sounds";
 import Button from "../Button/Button";
 import styles from "./ShutDownModal.module.scss";
@@ -10,14 +11,20 @@ interface ShutDownModalProps {
 }
 
 const ShutDownModal = ({ isLogout = true }: ShutDownModalProps) => {
-    const {windowsInitiationState, dispatch} = useContext();
+    const {windowsInitiationState, username, dispatch} = useContext();
     const { awardPoints } = usePoints();
+    const clearPersistedWindows = () => {
+        const userId = username.trim();
+        if (!userId) return;
+        sessionStorage.removeItem(getCurrentWindowsStorageKey(userId));
+    };
     
     const closeModel = () => {
         dispatch({ type: "SET_IS_SHUTDOWN_MODAL_OPEN", payload: false});
     };
 
     const logOutHandler = (isSwitchUsers = false) => {
+        clearPersistedWindows();
         if (!isSwitchUsers) {
             dispatch({ type: "SET_CURRENT_WINDOWS", payload: []});
             playSound("shutdown", true);
@@ -37,6 +44,7 @@ const ShutDownModal = ({ isLogout = true }: ShutDownModalProps) => {
 
     const shutDownHandler = (isRestart = false) => {
         if (isRestart) awardPoints("restart-computer");
+        clearPersistedWindows();
         dispatch({ type: "SET_CURRENT_WINDOWS", payload: []});
         playSound("shutdown", true);
 

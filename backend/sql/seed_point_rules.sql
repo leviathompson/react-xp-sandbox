@@ -68,9 +68,9 @@ VALUES
         '{"limit":{"type":"perSession","maxAwards":1}}'::jsonb
     ),
     (
-        'play-interactive-buddy',
-        'Play Interactive Buddy',
-        'Launch the Interactive Buddy experience and interact with it.',
+        'open-bonzi-buddy',
+        'Open Bonzi Buddy',
+        'Launch Bonzi Buddy.',
         'application',
         8,
         '{"limit":{"type":"perSession","maxAwards":1}}'::jsonb

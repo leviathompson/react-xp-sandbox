@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useContext } from "../../context/context";
+import { usePoints } from "../../context/points";
 import { buildShellContextMenu, createShellItemPayload } from "../../utils/shell";
 import DesktopIcon from "../DesktopIcon/DesktopIcon";
 import styles from "./Desktop.module.scss";
@@ -9,6 +10,7 @@ const Applications = applicationsJSON as unknown as Record<string, Application>;
 
 const Desktop = () => {
     const { shellFiles, customApplications, dispatch, openContextMenu } = useContext();
+    const { awardPoints } = usePoints();
     const [selectedId, setSelectedId] = useState<number | string>("");
     const [isDragOver, setIsDragOver] = useState(false);
     const desktopRef = useRef<HTMLDivElement | null>(null);
@@ -36,6 +38,10 @@ const Desktop = () => {
                         type: "CREATE_SHELL_ITEM",
                         payload: createShellItemPayload(kind, "desktop", applications, position),
                     });
+
+                    if (kind === "folder") {
+                        awardPoints("create-desktop-folder");
+                    }
                 },
             }),
         });

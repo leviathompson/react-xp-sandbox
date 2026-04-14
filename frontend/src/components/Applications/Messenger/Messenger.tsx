@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import AnimatedScore from "../../AnimatedScore/AnimatedScore";
 import { useContext } from "../../../context/context";
+import { usePoints } from "../../../context/points";
 import { DEFAULT_AVATAR_SRC } from "../../../data/avatars";
 import { ACTIVE_SESSIONS_POLL_MS, fetchActiveSessions, openMessengerChatWindow } from "../../../utils/messenger";
 import { subscribeToMessengerRealtime } from "../../../utils/messengerRealtime";
@@ -53,6 +54,7 @@ const PERSONAL_MESSAGE_PLACEHOLDER = "<Type a personal message>";
 
 const Messenger = () => {
     const { username, avatarSrc, personalMessage, currentWindows, dispatch } = useContext();
+    const { awardPoints } = usePoints();
     const [sessions, setSessions] = useState<Awaited<ReturnType<typeof fetchActiveSessions>>["sessions"]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
@@ -60,6 +62,10 @@ const Messenger = () => {
     const [isSavingPersonalMessage, setIsSavingPersonalMessage] = useState(false);
     const sessionRowRefs = useRef(new Map<string, HTMLButtonElement>());
     const previousRowPositionsRef = useRef(new Map<string, DOMRect>());
+
+    useEffect(() => {
+        awardPoints("open-messenger");
+    }, [awardPoints]);
 
     useEffect(() => {
         setDraftPersonalMessage(personalMessage);

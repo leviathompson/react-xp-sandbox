@@ -95,6 +95,10 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
         const application = Applications[appId];
         if (!application) return;
 
+        if (appId === "win11") {
+            awardPoints("find-windows11");
+        }
+
         if (application.link) {
             window.open(application.link, "_blank", "noopener,noreferrer");
             return;
@@ -141,6 +145,9 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                 onOpen: () => fileDBClickHandler(null, itemId),
                 onExplore: () => fileDBClickHandler(null, itemId),
                 onCreateShortcut: () => {
+                    if (itemId === "computer") {
+                        awardPoints("create-my-computer-shortcut");
+                    }
                     dispatch({
                         type: "CREATE_SHELL_ITEM",
                         payload: createShortcutShellItemPayload(itemId, itemApplication, Applications, getDesktopShortcutPosition()),
@@ -194,13 +201,15 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
 
     const fileClickHandler = (_: unknown, appId: string | null = null) => {
         if (!appId) return;
+        if (appId === "win11") {
+            awardPoints("find-windows11");
+        }
         setSelectedItem(appId);
 
         const secondClick = (e: PointerEvent) => onSecondClick(e, appId);
         const onSecondClick = (event: PointerEvent, appId: string) => {
-            const target = (event.target as HTMLElement);
-
-            const targetId = (target.closest("[data-selected]") as HTMLElement)?.dataset.id;
+            const target = event.target instanceof HTMLElement ? event.target : null;
+            const targetId = target ? (target.closest("[data-selected]") as HTMLElement | null)?.dataset.id : undefined;
             if (targetId === appId) return;
 
             setSelectedItem((targetId) ? targetId : null);
@@ -309,6 +318,9 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
         if (draggedItem.appId === SYSTEM32_APP_ID && targetContainerId === "recycleBin") {
             triggerSystem32Crash();
             return;
+        }
+        if (draggedItem.appId === "computer" && targetContainerId === "recycleBin") {
+            awardPoints("trash-my-computer");
         }
 
         dispatch({

@@ -11,11 +11,20 @@ import WindowManagement from "./components/WindowManagement/WindowManagement";
 import { useContext } from "./context/context";
 import { usePoints } from "./context/points";
 
-const CLICK_THRESHOLDS = [
+export const CLICK_THRESHOLDS = [
     { ruleId: "click-100" as const, threshold: 100 },
     { ruleId: "click-1000" as const, threshold: 1000 },
     { ruleId: "click-10000" as const, threshold: 10000 },
 ];
+
+export const awardClickThresholdPoints = (
+    count: number,
+    awardPoints: (ruleId: typeof CLICK_THRESHOLDS[number]["ruleId"]) => void,
+) => {
+    for (const { ruleId, threshold } of CLICK_THRESHOLDS) {
+        if (count === threshold) awardPoints(ruleId);
+    }
+};
 
 function App() {
     const {windowsInitiationState, isInitialBoot, initiationStage, dispatch} = useContext();
@@ -27,10 +36,7 @@ function App() {
 
         const onClickCapture = () => {
             clickCountRef.current += 1;
-            const count = clickCountRef.current;
-            for (const { ruleId, threshold } of CLICK_THRESHOLDS) {
-                if (count === threshold) awardPoints(ruleId);
-            }
+            awardClickThresholdPoints(clickCountRef.current, awardPoints);
         };
 
         document.addEventListener("click", onClickCapture);

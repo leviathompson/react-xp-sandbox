@@ -7,6 +7,7 @@ import type { AbsoluteObject, Action, AccountStateSnapshot, ShellEntry, State } 
 const cloneJSON = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 const getShellEntryId = (entry: ShellEntry) => Array.isArray(entry) ? entry[0] : entry;
+const DEFAULT_WINDOW_APPS = ["readme", "winMessenger", "controlPanel", "userAccounts"] as const;
 
 export const mergeShellFilesWithDefaults = (
     defaults: Record<string, ShellEntry[]>,
@@ -71,6 +72,30 @@ const createInitialWindow = (appId: string, active = false) => ({
     history: [],
     forward: [],
 });
+
+export const createDefaultWindows = () => DEFAULT_WINDOW_APPS.map((appId, index) =>
+    createInitialWindow(appId, index === DEFAULT_WINDOW_APPS.length - 1)
+);
+
+export const getCurrentWindowsStorageKey = (userId: string) => `xp_current_windows_v1:${userId}`;
+
+export const loadPersistedCurrentWindows = (userId: string) => {
+    if (typeof window === "undefined") return createDefaultWindows();
+
+    const normalizedUserId = userId.trim();
+    if (!normalizedUserId) return createDefaultWindows();
+
+    const persistedState = sessionStorage.getItem(getCurrentWindowsStorageKey(normalizedUserId));
+    if (!persistedState) return createDefaultWindows();
+
+    try {
+        const parsed = JSON.parse(persistedState) as State["currentWindows"];
+        if (!Array.isArray(parsed) || parsed.length === 0) return createDefaultWindows();
+        return cloneJSON(parsed);
+    } catch {
+        return createDefaultWindows();
+    }
+};
 
 const buildShellEntry = (appId: string, containerId: string, position?: AbsoluteObject): ShellEntry => {
     if (containerId !== "desktop") return appId;
@@ -253,12 +278,7 @@ export const reducer = (state: State, action: Action): State => {
 export const initialState: State = {
     wallpaper: defaultWallpaper,
     currentTime: new Date(),
-    currentWindows: [
-        createInitialWindow("readme"),
-        createInitialWindow("winMessenger"),
-        createInitialWindow("controlPanel"),
-        createInitialWindow("userAccounts", true),
-    ],
+    currentWindows: loadPersistedCurrentWindows(sessionStorage.getItem("username") || ""),
     username: sessionStorage.getItem("username") || "",
     avatarSrc: DEFAULT_AVATAR_SRC,
     personalMessage: "",

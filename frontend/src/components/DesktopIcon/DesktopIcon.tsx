@@ -116,6 +116,9 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
                         triggerSystem32Crash();
                         return;
                     }
+                    if (appId === "computer" && targetContainerId === "recycleBin") {
+                        awardPoints("trash-my-computer");
+                    }
                     dispatch({
                         type: "MOVE_SHELL_ITEM",
                         payload: {
@@ -193,6 +196,9 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
                 onOpen: activateIcon,
                 onExplore: activateIcon,
                 onCreateShortcut: () => {
+                    if (appId === "computer") {
+                        awardPoints("create-my-computer-shortcut");
+                    }
                     dispatch({
                         type: "CREATE_SHELL_ITEM",
                         payload: createShortcutShellItemPayload(appId, appData, mergedApplications, shortcutSourcePosition),
@@ -268,6 +274,9 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
         if (draggedItem.appId === SYSTEM32_APP_ID && dropContainerId === "recycleBin") {
             triggerSystem32Crash();
             return;
+        }
+        if (draggedItem.appId === "computer" && dropContainerId === "recycleBin") {
+            awardPoints("trash-my-computer");
         }
         dispatch({
             type: "MOVE_SHELL_ITEM",
