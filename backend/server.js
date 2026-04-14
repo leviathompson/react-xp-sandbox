@@ -1,5 +1,7 @@
 import http from "http";
+import express from "express";
 import { Pool } from "pg";
+import bonziTtsRouter from "./tts-proxy.js";
 
 const PORT = 3001;
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -128,6 +130,9 @@ Promise.all([
     `),
 ]).catch((err) => console.error("[debug-api] Failed to prepare user_sessions table:", err.message));
 
+const ttsProxyApp = express();
+ttsProxyApp.use("/api/tts", bonziTtsRouter);
+
 const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://localhost:${PORT}`);
     const method = req.method.toUpperCase();
@@ -136,6 +141,11 @@ const server = http.createServer(async (req, res) => {
         cors(res);
         res.writeHead(204);
         res.end();
+        return;
+    }
+
+    if (url.pathname === "/api/tts" || url.pathname.startsWith("/api/tts/")) {
+        ttsProxyApp(req, res);
         return;
     }
 

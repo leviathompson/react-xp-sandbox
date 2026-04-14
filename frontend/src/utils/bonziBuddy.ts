@@ -1,42 +1,22 @@
-interface MeSpeakModule {
-    isConfigLoaded: () => boolean;
-    isVoiceLoaded: (voiceId?: string) => boolean;
-    loadConfig: (config: Record<string, unknown>) => void;
-    loadVoice: (voice: Record<string, unknown>) => void;
-    stop: () => void;
-    speak: (text: string, options?: Record<string, number | string>) => void;
-}
-
-let bonziInitPromise: Promise<MeSpeakModule> | null = null;
+let activeAudio: HTMLAudioElement | null = null;
+let activeAudioUrl: string | null = null;
+let activeRequest: AbortController | null = null;
 let lastBonziGreetingAt = 0;
 
 const BONZI_GREETING_COOLDOWN_MS = 1200;
-const BONZI_VOICE_ID = "en/en-us";
+const BONZI_GREETING_TEXT = "Well! Hello there! I don't believe we've been properly introduced. I'm Bonzi! What is your name?";
 
-const loadBonziSpeech = async () => {
-    if (!bonziInitPromise) {
-        bonziInitPromise = Promise.all([
-            import("mespeak"),
-            import("mespeak/src/mespeak_config.json"),
-            import("mespeak/voices/en/en-us.json"),
-        ]).then(([meSpeakModule, configModule, voiceModule]) => {
-            const meSpeak = (meSpeakModule.default || meSpeakModule) as unknown as MeSpeakModule;
-            const config = (configModule.default || configModule) as Record<string, unknown>;
-            const voice = (voiceModule.default || voiceModule) as Record<string, unknown>;
-
-            if (!meSpeak.isConfigLoaded()) {
-                meSpeak.loadConfig(config);
-            }
-
-            if (!meSpeak.isVoiceLoaded(BONZI_VOICE_ID)) {
-                meSpeak.loadVoice(voice);
-            }
-
-            return meSpeak;
-        });
+const cleanupActiveAudio = () => {
+    if (activeAudio) {
+        activeAudio.pause();
+        activeAudio.src = "";
+        activeAudio = null;
     }
 
-    return bonziInitPromise;
+    if (activeAudioUrl) {
+        URL.revokeObjectURL(activeAudioUrl);
+        activeAudioUrl = null;
+    }
 };
 
 export const speakBonziGreeting = async () => {
@@ -44,12 +24,31 @@ export const speakBonziGreeting = async () => {
     if (now - lastBonziGreetingAt < BONZI_GREETING_COOLDOWN_MS) return;
     lastBonziGreetingAt = now;
 
-    const meSpeak = await loadBonziSpeech();
-    meSpeak.stop();
-    meSpeak.speak("Hello, I am Bonzi Buddy", {
-        amplitude: 100,
-        pitch: 58,
-        speed: 155,
-        voice: BONZI_VOICE_ID,
-    });
+    activeRequest?.abort();
+    activeRequest = new AbortController();
+    cleanupActiveAudio();
+
+    try {
+        const response = await fetch(`/api/tts/bonzi?text=${encodeURIComponent(BONZI_GREETING_TEXT)}`, {
+            signal: activeRequest.signal,
+        });
+
+        if (!response.ok) {
+            throw new Error(`Bonzi TTS request failed with status ${response.status}`);
+        }
+
+        const audioBlob = await response.blob();
+        if (activeRequest.signal.aborted) return;
+
+        activeAudioUrl = URL.createObjectURL(audioBlob);
+        activeAudio = new Audio(activeAudioUrl);
+        activeAudio.addEventListener("ended", cleanupActiveAudio, { once: true });
+        await activeAudio.play();
+    } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        console.warn("[bonzi] Unable to play Bonzi Buddy greeting.", error);
+        cleanupActiveAudio();
+    } finally {
+        activeRequest = null;
+    }
 };
