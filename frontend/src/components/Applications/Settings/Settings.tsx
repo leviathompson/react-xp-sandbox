@@ -52,7 +52,6 @@ const Setting = () => {
     const onApply = () => {
         if (selectedTab === "desktop") {
             dispatch({ type: "SET_WALLPAPER", payload: selectedWallpaper});
-            sessionStorage.setItem("wallpaper", selectedWallpaper);
         }
 
         if (selectedTab === "settings") {

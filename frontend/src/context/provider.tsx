@@ -1,14 +1,44 @@
-import { useReducer, useEffect, useState } from "react";
+import { useReducer, useEffect, useMemo, useRef, useState } from "react";
 import { Context } from "./context";
-import { reducer, initialState } from "./reducer";
+import { createDefaultAccountState, defaultShellFiles, mergeShellFilesWithDefaults, reducer, initialState } from "./reducer";
 import { DEFAULT_AVATAR_SRC } from "../data/avatars";
-import { fetchUserProfile } from "../utils/userProfile";
+import { fetchUserProfile, saveUserProfile, startUserSession, type UserProfile } from "../utils/userProfile";
+import { defaultWallpaper } from "./defaults";
 import type { ContextMenuState } from "./types";
 import type { ReactNode } from "react";
+
+const SAVE_DEBOUNCE_MS = 400;
+
+const normalizeProfileState = (profile: UserProfile | null) => {
+    const customFiles = profile?.customFiles ?? {};
+
+    return {
+        avatarSrc: profile?.avatarSrc || DEFAULT_AVATAR_SRC,
+        personalMessage: profile?.personalMessage || "",
+        wallpaper: profile?.wallpaper || defaultWallpaper,
+        currentTime: new Date(profile?.firstLoginAt || Date.now()),
+        isTaskbarLocked: profile?.isTaskbarLocked ?? false,
+        shellFiles: mergeShellFilesWithDefaults(defaultShellFiles, profile?.shellFiles ?? defaultShellFiles, customFiles),
+        customFiles,
+        customApplications: profile?.customApplications ?? {},
+    };
+};
+
+const serializeAccountSnapshot = (snapshot: {
+    avatarSrc: string;
+    personalMessage: string;
+    wallpaper: string;
+    isTaskbarLocked: boolean;
+    shellFiles: unknown;
+    customFiles: unknown;
+    customApplications: unknown;
+}) => JSON.stringify(snapshot);
 
 export const Provider = ({ children }: { children: ReactNode }) => {
     const [state, dispatch] = useReducer(reducer, initialState);
     const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+    const hydratedUserRef = useRef<string | null>(null);
+    const lastSavedAccountRef = useRef("");
 
     const openContextMenu = (menu: ContextMenuState) => {
         setContextMenu(menu);
@@ -35,30 +65,6 @@ export const Provider = ({ children }: { children: ReactNode }) => {
     }, [state.themeColor]);
 
     useEffect(() => {
-        sessionStorage.setItem("isTaskbarLocked", String(state.isTaskbarLocked));
-    }, [state.isTaskbarLocked]);
-
-    useEffect(() => {
-        sessionStorage.setItem("avatarSrc", state.avatarSrc);
-    }, [state.avatarSrc]);
-
-    useEffect(() => {
-        sessionStorage.setItem("personalMessage", state.personalMessage);
-    }, [state.personalMessage]);
-
-    useEffect(() => {
-        sessionStorage.setItem("shellFiles", JSON.stringify(state.shellFiles));
-    }, [state.shellFiles]);
-
-    useEffect(() => {
-        sessionStorage.setItem("customFiles", JSON.stringify(state.customFiles));
-    }, [state.customFiles]);
-
-    useEffect(() => {
-        sessionStorage.setItem("customApplications", JSON.stringify(state.customApplications));
-    }, [state.customApplications]);
-
-    useEffect(() => {
         if (typeof window === "undefined") return;
 
         const loggedInJSON = sessionStorage.getItem("loggedIn");
@@ -72,24 +78,14 @@ export const Provider = ({ children }: { children: ReactNode }) => {
                 console.error("Failed to parse windowColor from localStorage", error);
             }
         }
-
-        const wallpaper = sessionStorage.getItem("wallpaper");
-        if (wallpaper) {
-            try {
-                if(!wallpaper) return;
-                
-                dispatch({ type: "SET_WALLPAPER", payload: wallpaper});
-            } catch (error) {
-                console.error("Failed to parse wallpaper from localStorage", error);
-            }
-        }
     }, []);
 
     useEffect(() => {
         const userId = state.username.trim();
         if (!userId) {
-            dispatch({ type: "SET_AVATAR_SRC", payload: DEFAULT_AVATAR_SRC });
-            dispatch({ type: "SET_PERSONAL_MESSAGE", payload: "" });
+            hydratedUserRef.current = null;
+            lastSavedAccountRef.current = "";
+            dispatch({ type: "HYDRATE_ACCOUNT_STATE", payload: createDefaultAccountState() });
             return;
         }
 
@@ -101,19 +97,12 @@ export const Provider = ({ children }: { children: ReactNode }) => {
                 const profile = await fetchUserProfile(userId, controller.signal);
                 if (isCancelled) return;
 
-                dispatch({
-                    type: "SET_AVATAR_SRC",
-                    payload: profile?.avatarSrc || DEFAULT_AVATAR_SRC,
-                });
-                dispatch({
-                    type: "SET_PERSONAL_MESSAGE",
-                    payload: profile?.personalMessage || "",
-                });
+                const nextState = normalizeProfileState(profile);
+                dispatch({ type: "HYDRATE_ACCOUNT_STATE", payload: nextState });
             } catch (error) {
                 if (isCancelled || controller.signal.aborted) return;
                 console.error("Failed to load user profile", error);
-                dispatch({ type: "SET_AVATAR_SRC", payload: DEFAULT_AVATAR_SRC });
-                dispatch({ type: "SET_PERSONAL_MESSAGE", payload: "" });
+                dispatch({ type: "HYDRATE_ACCOUNT_STATE", payload: createDefaultAccountState() });
             }
         };
 
@@ -125,6 +114,82 @@ export const Provider = ({ children }: { children: ReactNode }) => {
             window.clearTimeout(delay);
         };
     }, [state.username]);
+
+    useEffect(() => {
+        const userId = state.username.trim();
+        if (!userId || state.windowsInitiationState !== "loggedIn") return;
+
+        let isCancelled = false;
+        const controller = new AbortController();
+
+        const loadAccountSession = async () => {
+            try {
+                const profile = await startUserSession(userId, controller.signal);
+                if (isCancelled) return;
+
+                const nextState = normalizeProfileState(profile);
+                dispatch({ type: "HYDRATE_ACCOUNT_STATE", payload: nextState });
+                hydratedUserRef.current = userId;
+                lastSavedAccountRef.current = serializeAccountSnapshot({
+                    avatarSrc: nextState.avatarSrc,
+                    personalMessage: nextState.personalMessage,
+                    wallpaper: nextState.wallpaper,
+                    isTaskbarLocked: nextState.isTaskbarLocked,
+                    shellFiles: nextState.shellFiles,
+                    customFiles: nextState.customFiles,
+                    customApplications: nextState.customApplications,
+                });
+            } catch (error) {
+                if (isCancelled || controller.signal.aborted) return;
+                console.error("Failed to load account session", error);
+            }
+        };
+
+        void loadAccountSession();
+
+        return () => {
+            isCancelled = true;
+            controller.abort();
+        };
+    }, [state.username, state.windowsInitiationState]);
+
+    const accountSnapshot = useMemo(() => ({
+        avatarSrc: state.avatarSrc,
+        personalMessage: state.personalMessage,
+        wallpaper: state.wallpaper,
+        isTaskbarLocked: state.isTaskbarLocked,
+        shellFiles: state.shellFiles,
+        customFiles: state.customFiles,
+        customApplications: state.customApplications,
+    }), [
+        state.avatarSrc,
+        state.personalMessage,
+        state.wallpaper,
+        state.isTaskbarLocked,
+        state.shellFiles,
+        state.customFiles,
+        state.customApplications,
+    ]);
+
+    useEffect(() => {
+        const userId = state.username.trim();
+        if (!userId || state.windowsInitiationState !== "loggedIn") return;
+        if (hydratedUserRef.current !== userId) return;
+
+        const serializedSnapshot = serializeAccountSnapshot(accountSnapshot);
+        if (serializedSnapshot === lastSavedAccountRef.current) return;
+
+        const timeoutId = window.setTimeout(async () => {
+            try {
+                await saveUserProfile(userId, accountSnapshot);
+                lastSavedAccountRef.current = serializedSnapshot;
+            } catch (error) {
+                console.error("Failed to save account state", error);
+            }
+        }, SAVE_DEBOUNCE_MS);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [accountSnapshot, state.username, state.windowsInitiationState]);
 
     return (
         <Context value={{ ...state, dispatch, contextMenu, openContextMenu, closeContextMenu }}>

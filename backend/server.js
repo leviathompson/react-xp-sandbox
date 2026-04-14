@@ -8,6 +8,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const MAX_AVATAR_SRC_LENGTH = 250000;
 const MAX_PERSONAL_MESSAGE_LENGTH = 120;
 const MAX_ATTACHMENT_SRC_LENGTH = 500000;
+const MAX_WALLPAPER_LENGTH = 120;
 const BLOCKED_PROXY_RESPONSE_HEADERS = new Set([
     "content-encoding",
     "content-length",
@@ -38,6 +39,21 @@ const json = (res, status, data) => {
     res.writeHead(status, { "Content-Type": "application/json" });
     res.end(JSON.stringify(data));
 };
+
+const isPlainObject = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
+
+const mapUserSessionRow = (row) => ({
+    userId: row.user_id,
+    firstLoginAt: row.first_login_at,
+    avatarSrc: row.avatar_src,
+    personalMessage: row.personal_message,
+    wallpaper: row.wallpaper,
+    isTaskbarLocked: Boolean(row.is_taskbar_locked),
+    shellFiles: row.shell_files,
+    customFiles: row.custom_files,
+    customApplications: row.custom_applications,
+    updatedAt: row.updated_at,
+});
 
 const proxyWaybackRequest = async (req, res, url) => {
     const targetUrl = url.searchParams.get("url");
@@ -110,6 +126,26 @@ Promise.all([
     pool.query(`
         ALTER TABLE user_sessions
         ADD COLUMN IF NOT EXISTS personal_message TEXT
+    `),
+    pool.query(`
+        ALTER TABLE user_sessions
+        ADD COLUMN IF NOT EXISTS wallpaper TEXT
+    `),
+    pool.query(`
+        ALTER TABLE user_sessions
+        ADD COLUMN IF NOT EXISTS is_taskbar_locked BOOLEAN NOT NULL DEFAULT FALSE
+    `),
+    pool.query(`
+        ALTER TABLE user_sessions
+        ADD COLUMN IF NOT EXISTS shell_files JSONB
+    `),
+    pool.query(`
+        ALTER TABLE user_sessions
+        ADD COLUMN IF NOT EXISTS custom_files JSONB
+    `),
+    pool.query(`
+        ALTER TABLE user_sessions
+        ADD COLUMN IF NOT EXISTS custom_applications JSONB
     `),
     pool.query(`
         CREATE TABLE IF NOT EXISTS instant_messages (
@@ -242,16 +278,28 @@ const server = http.createServer(async (req, res) => {
         const userId = typeof body.userId === "string" ? body.userId.trim() : "";
         const hasAvatarSrc = typeof body.avatarSrc === "string";
         const hasPersonalMessage = typeof body.personalMessage === "string";
+        const hasWallpaper = typeof body.wallpaper === "string";
+        const hasIsTaskbarLocked = typeof body.isTaskbarLocked === "boolean";
+        const hasShellFiles = isPlainObject(body.shellFiles);
+        const hasCustomFiles = isPlainObject(body.customFiles);
+        const hasCustomApplications = isPlainObject(body.customApplications);
         const avatarSrc = hasAvatarSrc ? body.avatarSrc.trim() : null;
         const personalMessage = hasPersonalMessage ? body.personalMessage.trim() : null;
+        const wallpaper = hasWallpaper ? body.wallpaper.trim() : null;
+        const isTaskbarLocked = hasIsTaskbarLocked ? body.isTaskbarLocked : null;
+        const shellFiles = hasShellFiles ? body.shellFiles : null;
+        const customFiles = hasCustomFiles ? body.customFiles : null;
+        const customApplications = hasCustomApplications ? body.customApplications : null;
 
         if (!userId) {
             json(res, 400, { error: "userId required" });
             return;
         }
 
-        if (!hasAvatarSrc && !hasPersonalMessage) {
-            json(res, 400, { error: "Provide avatarSrc or personalMessage." });
+        if (!hasAvatarSrc && !hasPersonalMessage && !hasWallpaper && !hasIsTaskbarLocked && !hasShellFiles && !hasCustomFiles && !hasCustomApplications) {
+            json(res, 400, {
+                error: "Provide avatarSrc, personalMessage, wallpaper, isTaskbarLocked, shellFiles, customFiles, or customApplications.",
+            });
             return;
         }
 
@@ -270,24 +318,63 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        if (hasWallpaper && !wallpaper) {
+            json(res, 400, { error: "wallpaper required" });
+            return;
+        }
+
+        if (wallpaper && wallpaper.length > MAX_WALLPAPER_LENGTH) {
+            json(res, 400, { error: "wallpaper is too long" });
+            return;
+        }
+
         try {
             const { rows } = await pool.query(
-                `INSERT INTO user_sessions (user_id, first_login_at, avatar_src, personal_message, updated_at)
-                 VALUES ($1, NOW(), $2, $3, NOW())
+                `INSERT INTO user_sessions (
+                    user_id,
+                    first_login_at,
+                    avatar_src,
+                    personal_message,
+                    wallpaper,
+                    is_taskbar_locked,
+                    shell_files,
+                    custom_files,
+                    custom_applications,
+                    updated_at
+                 )
+                 VALUES ($1, NOW(), $2, $3, $4, COALESCE($5, FALSE), $6::jsonb, $7::jsonb, $8::jsonb, NOW())
                  ON CONFLICT (user_id) DO UPDATE
                      SET avatar_src = COALESCE(EXCLUDED.avatar_src, user_sessions.avatar_src),
                          personal_message = COALESCE(EXCLUDED.personal_message, user_sessions.personal_message),
+                         wallpaper = COALESCE(EXCLUDED.wallpaper, user_sessions.wallpaper),
+                         is_taskbar_locked = COALESCE($5, user_sessions.is_taskbar_locked),
+                         shell_files = COALESCE(EXCLUDED.shell_files, user_sessions.shell_files),
+                         custom_files = COALESCE(EXCLUDED.custom_files, user_sessions.custom_files),
+                         custom_applications = COALESCE(EXCLUDED.custom_applications, user_sessions.custom_applications),
                          updated_at = NOW()
-                 RETURNING user_id, first_login_at, avatar_src, personal_message, updated_at`,
-                [userId, avatarSrc, personalMessage]
+                 RETURNING
+                    user_id,
+                    first_login_at,
+                    avatar_src,
+                    personal_message,
+                    wallpaper,
+                    is_taskbar_locked,
+                    shell_files,
+                    custom_files,
+                    custom_applications,
+                    updated_at`,
+                [
+                    userId,
+                    avatarSrc,
+                    personalMessage,
+                    wallpaper,
+                    isTaskbarLocked,
+                    shellFiles ? JSON.stringify(shellFiles) : null,
+                    customFiles ? JSON.stringify(customFiles) : null,
+                    customApplications ? JSON.stringify(customApplications) : null,
+                ]
             );
-            json(res, 200, {
-                userId: rows[0].user_id,
-                firstLoginAt: rows[0].first_login_at,
-                avatarSrc: rows[0].avatar_src,
-                personalMessage: rows[0].personal_message,
-                updatedAt: rows[0].updated_at,
-            });
+            json(res, 200, mapUserSessionRow(rows[0]));
         } catch (err) {
             json(res, 500, { error: err.message });
         }
@@ -419,16 +506,20 @@ const server = http.createServer(async (req, res) => {
                  ON CONFLICT (user_id) DO UPDATE
                      SET first_login_at = user_sessions.first_login_at,
                          updated_at = NOW()
-                 RETURNING user_id, first_login_at, avatar_src, personal_message, updated_at`,
+                 RETURNING
+                    user_id,
+                    first_login_at,
+                    avatar_src,
+                    personal_message,
+                    wallpaper,
+                    is_taskbar_locked,
+                    shell_files,
+                    custom_files,
+                    custom_applications,
+                    updated_at`,
                 [userId]
             );
-            json(res, 200, {
-                userId: rows[0].user_id,
-                firstLoginAt: rows[0].first_login_at,
-                avatarSrc: rows[0].avatar_src,
-                personalMessage: rows[0].personal_message,
-                updatedAt: rows[0].updated_at,
-            });
+            json(res, 200, mapUserSessionRow(rows[0]));
         } catch (err) {
             json(res, 500, { error: err.message });
         }
@@ -445,7 +536,19 @@ const server = http.createServer(async (req, res) => {
 
         try {
             const { rows } = await pool.query(
-                "SELECT user_id, avatar_src, personal_message, first_login_at, updated_at FROM user_sessions WHERE user_id = $1",
+                `SELECT
+                    user_id,
+                    avatar_src,
+                    personal_message,
+                    wallpaper,
+                    is_taskbar_locked,
+                    shell_files,
+                    custom_files,
+                    custom_applications,
+                    first_login_at,
+                    updated_at
+                 FROM user_sessions
+                 WHERE user_id = $1`,
                 [userId]
             );
             if (rows.length === 0) {
@@ -453,13 +556,7 @@ const server = http.createServer(async (req, res) => {
                 return;
             }
 
-            json(res, 200, {
-                userId: rows[0].user_id,
-                avatarSrc: rows[0].avatar_src,
-                personalMessage: rows[0].personal_message,
-                firstLoginAt: rows[0].first_login_at,
-                updatedAt: rows[0].updated_at,
-            });
+            json(res, 200, mapUserSessionRow(rows[0]));
         } catch (err) {
             json(res, 500, { error: err.message });
         }
@@ -476,19 +573,26 @@ const server = http.createServer(async (req, res) => {
 
         try {
             const { rows } = await pool.query(
-                "SELECT first_login_at, avatar_src, personal_message FROM user_sessions WHERE user_id = $1",
+                `SELECT
+                    user_id,
+                    first_login_at,
+                    avatar_src,
+                    personal_message,
+                    wallpaper,
+                    is_taskbar_locked,
+                    shell_files,
+                    custom_files,
+                    custom_applications,
+                    updated_at
+                 FROM user_sessions
+                 WHERE user_id = $1`,
                 [userId]
             );
             if (rows.length === 0) {
                 json(res, 404, { error: "Session not found" });
                 return;
             }
-            json(res, 200, {
-                userId,
-                firstLoginAt: rows[0].first_login_at,
-                avatarSrc: rows[0].avatar_src,
-                personalMessage: rows[0].personal_message,
-            });
+            json(res, 200, mapUserSessionRow(rows[0]));
         } catch (err) {
             json(res, 500, { error: err.message });
         }

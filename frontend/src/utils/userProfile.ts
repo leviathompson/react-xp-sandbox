@@ -1,7 +1,16 @@
+import type { Application, ShellEntry } from "../context/types";
+
 export interface UserProfile {
     userId: string;
+    firstLoginAt: string;
     avatarSrc: string | null;
     personalMessage: string | null;
+    wallpaper: string | null;
+    isTaskbarLocked: boolean;
+    shellFiles: Record<string, ShellEntry[]> | null;
+    customFiles: Record<string, ShellEntry[]> | null;
+    customApplications: Record<string, Application> | null;
+    updatedAt?: string;
 }
 
 const AVATAR_CANVAS_SIZE = 128;
@@ -19,6 +28,11 @@ export const fetchUserProfile = async (userId: string, signal?: AbortSignal): Pr
 export interface SaveUserProfileInput {
     avatarSrc?: string;
     personalMessage?: string;
+    wallpaper?: string;
+    isTaskbarLocked?: boolean;
+    shellFiles?: Record<string, ShellEntry[]>;
+    customFiles?: Record<string, ShellEntry[]>;
+    customApplications?: Record<string, Application>;
 }
 
 export const saveUserProfile = async (userId: string, profile: SaveUserProfileInput) => {
@@ -36,6 +50,24 @@ export const saveUserProfile = async (userId: string, profile: SaveUserProfileIn
     if (!response.ok) {
         const error = await response.json().catch(() => ({ error: "Failed to save profile." })) as { error?: string };
         throw new Error(error.error || "Failed to save profile.");
+    }
+
+    return response.json() as Promise<UserProfile>;
+};
+
+export const startUserSession = async (userId: string, signal?: AbortSignal): Promise<UserProfile> => {
+    const response = await fetch("/api/session/start", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        signal,
+        body: JSON.stringify({ userId }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: "Failed to start session." })) as { error?: string };
+        throw new Error(error.error || "Failed to start session.");
     }
 
     return response.json() as Promise<UserProfile>;

@@ -29,7 +29,7 @@
             }
         ],
         [
-            "gitHub",
+            "paint",
             {
                 "top": 260,
                 "left": 5
@@ -43,16 +43,9 @@
             }
         ],
         [
-            "paint",
-            {
-                "top": 5,
-                "left": 90
-            }
-        ],
-        [
             "bonziBuddy",
             {
-                "top": 90,
+                "top": 5,
                 "left": 90
             }
         ],

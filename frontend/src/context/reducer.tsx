@@ -2,52 +2,68 @@ import filesJSON from "../data/files.json";
 import { DEFAULT_AVATAR_SRC } from "../data/avatars";
 import { generateUniqueId } from "../utils/general";
 import { defaultWallpaper } from "./defaults";
-import type { AbsoluteObject, Action, ShellEntry, State } from "./types";
+import type { AbsoluteObject, Action, AccountStateSnapshot, ShellEntry, State } from "./types";
 
 const cloneJSON = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
-const readSessionJSON = <T,>(key: string, fallback: T): T => {
-    try {
-        const value = sessionStorage.getItem(key);
-        if (!value) return fallback;
-        return JSON.parse(value) as T;
-    } catch {
-        return fallback;
-    }
-};
-
 const getShellEntryId = (entry: ShellEntry) => Array.isArray(entry) ? entry[0] : entry;
 
-const mergeShellFilesWithDefaults = (
+export const mergeShellFilesWithDefaults = (
     defaults: Record<string, ShellEntry[]>,
     current: Record<string, ShellEntry[]>,
+    customFiles: Record<string, ShellEntry[]>,
 ) => {
-    const merged = cloneJSON(current);
+    const merged: Record<string, ShellEntry[]> = {};
+    const containerIds = new Set([
+        ...Object.keys(defaults),
+        ...Object.keys(current),
+        ...Object.keys(customFiles),
+    ]);
 
-    Object.entries(defaults).forEach(([containerId, defaultEntries]) => {
-        if (!merged[containerId]) {
-            merged[containerId] = cloneJSON(defaultEntries);
+    containerIds.forEach((containerId) => {
+        const defaultEntries = defaults[containerId] || [];
+        const currentEntries = current[containerId] || [];
+        const customEntries = customFiles[containerId] || [];
+        const defaultEntryIds = new Set(defaultEntries.map(getShellEntryId));
+        const customEntryIds = new Set(customEntries.map(getShellEntryId));
+
+        if (
+            currentEntries.length === 0
+            && defaultEntries.length === 0
+            && customEntries.length === 0
+            && !Object.prototype.hasOwnProperty.call(customFiles, containerId)
+        ) {
             return;
         }
 
-        const knownEntryIds = new Set(merged[containerId].map(getShellEntryId));
-        defaultEntries.forEach((entry) => {
-            if (!knownEntryIds.has(getShellEntryId(entry))) {
-                merged[containerId].push(cloneJSON(entry));
-            }
+        const nextEntries = currentEntries
+            .filter((entry) => defaultEntryIds.has(getShellEntryId(entry)) || customEntryIds.has(getShellEntryId(entry)))
+            .map((entry) => cloneJSON(entry));
+        const knownEntryIds = new Set(nextEntries.map(getShellEntryId));
+
+        [...defaultEntries, ...customEntries].forEach((entry) => {
+            if (knownEntryIds.has(getShellEntryId(entry))) return;
+            nextEntries.push(cloneJSON(entry));
+            knownEntryIds.add(getShellEntryId(entry));
         });
+
+        merged[containerId] = nextEntries;
     });
 
     return merged;
 };
 
-const defaultShellFiles = cloneJSON(filesJSON) as unknown as Record<string, ShellEntry[]>;
-const initialShellFiles = mergeShellFilesWithDefaults(
-    defaultShellFiles,
-    readSessionJSON("shellFiles", defaultShellFiles),
-);
-const initialCustomFiles = readSessionJSON<Record<string, ShellEntry[]>>("customFiles", {});
-const initialCustomApplications = readSessionJSON<State["customApplications"]>("customApplications", {});
+export const defaultShellFiles = cloneJSON(filesJSON) as unknown as Record<string, ShellEntry[]>;
+export const createDefaultAccountState = (): AccountStateSnapshot => ({
+    avatarSrc: DEFAULT_AVATAR_SRC,
+    personalMessage: "",
+    wallpaper: defaultWallpaper,
+    currentTime: new Date(),
+    isTaskbarLocked: false,
+    shellFiles: cloneJSON(defaultShellFiles),
+    customFiles: {},
+    customApplications: {},
+});
 const createInitialWindow = (appId: string, active = false) => ({
     id: generateUniqueId(),
     appId,
@@ -81,6 +97,18 @@ export const reducer = (state: State, action: Action): State => {
         return { ...state, wallpaper: action.payload };
     case "SET_CURRENT_TIME":
         return { ...state, currentTime: action.payload };
+    case "HYDRATE_ACCOUNT_STATE":
+        return {
+            ...state,
+            avatarSrc: action.payload.avatarSrc,
+            personalMessage: action.payload.personalMessage,
+            wallpaper: action.payload.wallpaper,
+            currentTime: action.payload.currentTime,
+            isTaskbarLocked: action.payload.isTaskbarLocked,
+            shellFiles: cloneJSON(action.payload.shellFiles),
+            customFiles: cloneJSON(action.payload.customFiles),
+            customApplications: cloneJSON(action.payload.customApplications),
+        };
     case "SET_CURRENT_WINDOWS":
         return { ...state, currentWindows: action.payload };
     case "SET_AVATAR_SRC":
@@ -223,7 +251,7 @@ export const reducer = (state: State, action: Action): State => {
 };
 
 export const initialState: State = {
-    wallpaper: sessionStorage.getItem("wallpaper") || defaultWallpaper,
+    wallpaper: defaultWallpaper,
     currentTime: new Date(),
     currentWindows: [
         createInitialWindow("readme"),
@@ -232,8 +260,8 @@ export const initialState: State = {
         createInitialWindow("userAccounts", true),
     ],
     username: sessionStorage.getItem("username") || "",
-    avatarSrc: sessionStorage.getItem("avatarSrc") || DEFAULT_AVATAR_SRC,
-    personalMessage: sessionStorage.getItem("personalMessage") || "",
+    avatarSrc: DEFAULT_AVATAR_SRC,
+    personalMessage: "",
     isStartVisible: false,
     isAllProgramsOpen: false,
     isRecentDocumentsOpen: false,
@@ -244,8 +272,8 @@ export const initialState: State = {
     transitionLabel: "",
     isCRTEnabled: true,
     themeColor: "blue",
-    isTaskbarLocked: sessionStorage.getItem("isTaskbarLocked") === "true",
-    shellFiles: initialShellFiles,
-    customFiles: initialCustomFiles,
-    customApplications: initialCustomApplications,
+    isTaskbarLocked: false,
+    shellFiles: cloneJSON(defaultShellFiles),
+    customFiles: {},
+    customApplications: {},
 };

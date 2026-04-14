@@ -107,6 +107,17 @@ export interface State {
     customApplications: Record<string, Application>;
 }
 
+export interface AccountStateSnapshot {
+    avatarSrc: string;
+    personalMessage: string;
+    wallpaper: string;
+    currentTime: Date;
+    isTaskbarLocked: boolean;
+    shellFiles: Record<string, ShellEntry[]>;
+    customFiles: Record<string, ShellEntry[]>;
+    customApplications: Record<string, Application>;
+}
+
 export type Action =
     | { type: "SET_WALLPAPER"; payload: string }
     | { type: "SET_CURRENT_TIME"; payload: Date }
@@ -125,6 +136,7 @@ export type Action =
     | { type: "SET_THEME_COLOR"; payload: themeColor;}
     | { type: "SET_USERNAME"; payload: string; }
     | { type: "SET_IS_TASKBAR_LOCKED"; payload: boolean; }
+    | { type: "HYDRATE_ACCOUNT_STATE"; payload: AccountStateSnapshot }
     | {
         type: "CREATE_SHELL_ITEM";
         payload: {
