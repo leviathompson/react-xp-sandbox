@@ -3,6 +3,7 @@ import AnimatedScore from "../../AnimatedScore/AnimatedScore";
 import { useContext } from "../../../context/context";
 import { DEFAULT_AVATAR_SRC } from "../../../data/avatars";
 import { ACTIVE_SESSIONS_POLL_MS, fetchActiveSessions, openMessengerChatWindow } from "../../../utils/messenger";
+import { subscribeToMessengerRealtime } from "../../../utils/messengerRealtime";
 import type { ActiveSession } from "../../../utils/messenger";
 import { saveUserProfile } from "../../../utils/userProfile";
 import WindowMenu from "../../WindowMenu/WindowMenu";
@@ -90,6 +91,27 @@ const Messenger = () => {
             window.clearInterval(interval);
         };
     }, []);
+
+    useEffect(() => {
+        if (!username.trim()) return;
+
+        return subscribeToMessengerRealtime(username, (event) => {
+            if (event.type !== "points_updated") return;
+
+            const { userId, score } = event.payload;
+            setSessions((currentSessions) => {
+                const targetIndex = currentSessions.findIndex((session) => session.user_id === userId);
+                if (targetIndex === -1) return currentSessions;
+                if (currentSessions[targetIndex].score === score) return currentSessions;
+
+                return currentSessions.map((session) => (
+                    session.user_id === userId
+                        ? { ...session, score }
+                        : session
+                ));
+            });
+        });
+    }, [username]);
 
     const visibleSessions = useMemo(
         () => sessions

@@ -1,6 +1,7 @@
 import http from "http";
 import express from "express";
 import { Pool } from "pg";
+import WebSocket, { WebSocketServer } from "ws";
 import bonziTtsRouter from "./tts-proxy.js";
 
 const PORT = 3001;
@@ -54,6 +55,50 @@ const mapUserSessionRow = (row) => ({
     customApplications: row.custom_applications,
     updatedAt: row.updated_at,
 });
+
+const normalizeUserId = (value) => typeof value === "string" ? value.trim() : "";
+
+const wsServer = new WebSocketServer({ noServer: true });
+const realtimeClientsByUser = new Map();
+
+const sendRealtimeEvent = (socket, type, payload) => {
+    if (socket.readyState !== WebSocket.OPEN) return;
+    socket.send(JSON.stringify({ type, payload }));
+};
+
+const sendRealtimeEventToUser = (userId, type, payload) => {
+    const normalizedUserId = normalizeUserId(userId);
+    if (!normalizedUserId) return;
+
+    const sockets = realtimeClientsByUser.get(normalizedUserId);
+    if (!sockets) return;
+
+    sockets.forEach((socket) => sendRealtimeEvent(socket, type, payload));
+};
+
+const broadcastRealtimeEvent = (type, payload) => {
+    wsServer.clients.forEach((socket) => sendRealtimeEvent(socket, type, payload));
+};
+
+const attachRealtimeClient = (userId, socket) => {
+    const normalizedUserId = normalizeUserId(userId);
+    if (!normalizedUserId) return;
+
+    const sockets = realtimeClientsByUser.get(normalizedUserId) || new Set();
+    sockets.add(socket);
+    realtimeClientsByUser.set(normalizedUserId, sockets);
+    socket.userId = normalizedUserId;
+
+    socket.on("close", () => {
+        const currentSockets = realtimeClientsByUser.get(normalizedUserId);
+        if (!currentSockets) return;
+
+        currentSockets.delete(socket);
+        if (currentSockets.size === 0) {
+            realtimeClientsByUser.delete(normalizedUserId);
+        }
+    });
+};
 
 const proxyWaybackRequest = async (req, res, url) => {
     const targetUrl = url.searchParams.get("url");
@@ -164,6 +209,19 @@ Promise.all([
 const ttsProxyApp = express();
 ttsProxyApp.use("/api/tts", bonziTtsRouter);
 
+wsServer.on("connection", (socket, req) => {
+    const requestUrl = new URL(req.url, `http://localhost:${PORT}`);
+    const userId = normalizeUserId(requestUrl.searchParams.get("userId"));
+
+    if (!userId) {
+        socket.close(1008, "userId is required");
+        return;
+    }
+
+    attachRealtimeClient(userId, socket);
+    sendRealtimeEvent(socket, "ready", { userId });
+});
+
 const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://localhost:${PORT}`);
     const method = req.method.toUpperCase();
@@ -252,12 +310,30 @@ const server = http.createServer(async (req, res) => {
         }
 
         try {
-            await pool.query(
+            const insertResult = await pool.query(
                 `INSERT INTO point_events (user_id, client_id, rule_id, points, awarded_at, metadata)
                  VALUES ($1, $2::uuid, $3, $4, $5, $6)
-                 ON CONFLICT (user_id, client_id) DO NOTHING`,
+                 ON CONFLICT (user_id, client_id) DO NOTHING
+                 RETURNING user_id`,
                 [userId, clientId, ruleId, points, awardedAt ?? new Date().toISOString(), metadata ?? {}]
             );
+
+            if (insertResult.rows.length > 0) {
+                const totalsResult = await pool.query(
+                    "SELECT lifetime_points, updated_at FROM user_point_totals WHERE user_id = $1",
+                    [userId]
+                );
+                const totals = totalsResult.rows[0];
+
+                if (totals) {
+                    broadcastRealtimeEvent("points_updated", {
+                        userId,
+                        score: Number(totals.lifetime_points) || 0,
+                        updatedAt: totals.updated_at,
+                    });
+                }
+            }
+
             json(res, 200, { ok: true });
         } catch (err) {
             json(res, 500, { error: err.message });
@@ -520,6 +596,19 @@ const server = http.createServer(async (req, res) => {
                 [senderId]
             );
 
+            const senderProfileResult = await pool.query(
+                "SELECT avatar_src FROM user_sessions WHERE user_id = $1",
+                [senderId]
+            );
+            const senderAvatarSrc = senderProfileResult.rows[0]?.avatar_src || null;
+
+            sendRealtimeEventToUser(recipientId, "message_created", {
+                message: {
+                    ...rows[0],
+                    sender_avatar_src: senderAvatarSrc,
+                },
+            });
+
             json(res, 200, { message: rows[0] });
         } catch (err) {
             json(res, 500, { error: err.message });
@@ -645,6 +734,26 @@ const server = http.createServer(async (req, res) => {
     }
 
     json(res, 404, { error: "Not found" });
+});
+
+server.on("upgrade", (req, socket, head) => {
+    const requestUrl = new URL(req.url, `http://localhost:${PORT}`);
+    if (requestUrl.pathname !== "/ws/messenger") {
+        socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+        socket.destroy();
+        return;
+    }
+
+    const userId = normalizeUserId(requestUrl.searchParams.get("userId"));
+    if (!userId) {
+        socket.write("HTTP/1.1 400 Bad Request\r\n\r\n");
+        socket.destroy();
+        return;
+    }
+
+    wsServer.handleUpgrade(req, socket, head, (upgradedSocket) => {
+        wsServer.emit("connection", upgradedSocket, req);
+    });
 });
 
 server.listen(PORT, () => {

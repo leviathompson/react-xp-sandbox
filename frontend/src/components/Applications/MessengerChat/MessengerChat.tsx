@@ -4,6 +4,7 @@ import { useContext } from "../../../context/context";
 import { DEFAULT_AVATAR_SRC } from "../../../data/avatars";
 import { generateUniqueId, openApplication, updateCurrentActiveWindow } from "../../../utils/general";
 import { ACTIVE_SESSIONS_POLL_MS, DIRECT_MESSAGES_POLL_MS, fetchActiveSessions, fetchDirectMessages, sendDirectMessage } from "../../../utils/messenger";
+import { subscribeToMessengerRealtime } from "../../../utils/messengerRealtime";
 import { addShellBrowserResultListener, openShellBrowserWindow } from "../../../utils/shellBrowser";
 import styles from "./MessengerChat.module.scss";
 import type { Application } from "../../../context/types";
@@ -81,6 +82,44 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
             isCancelled = true;
             window.clearInterval(interval);
         };
+    }, [peerId, username]);
+
+    useEffect(() => {
+        if (!username || !peerId) return;
+
+        return subscribeToMessengerRealtime(username, (event) => {
+            if (event.type === "message_created") {
+                const { message } = event.payload;
+                const isThreadMatch = (
+                    (message.sender_id === username && message.recipient_id === peerId)
+                    || (message.sender_id === peerId && message.recipient_id === username)
+                );
+
+                if (!isThreadMatch) return;
+
+                setMessages((currentMessages) => {
+                    if (currentMessages.some((currentMessage) => currentMessage.id === message.id)) {
+                        return currentMessages;
+                    }
+
+                    return [...currentMessages, message];
+                });
+                return;
+            }
+
+            if (event.type !== "points_updated") return;
+
+            const { userId, score } = event.payload;
+            if (userId !== username && userId !== peerId) return;
+
+            setSessionScores((currentScores) => {
+                if (currentScores[userId] === score) return currentScores;
+                return {
+                    ...currentScores,
+                    [userId]: score,
+                };
+            });
+        });
     }, [peerId, username]);
 
     useEffect(() => {

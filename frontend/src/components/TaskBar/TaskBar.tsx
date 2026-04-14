@@ -9,6 +9,7 @@ import TaskBarNotifications, { type TaskBarNotificationItem } from "../TaskBarNo
 import Tooltip from "../Tooltip/Tooltip";
 import { buildShellContextMenu } from "../../utils/shell";
 import { DIRECT_MESSAGES_POLL_MS, fetchIncomingDirectMessages, openMessengerChatWindow, openMessengerWindow } from "../../utils/messenger";
+import { subscribeToMessengerRealtime } from "../../utils/messengerRealtime";
 import { generateUniqueId, getCurrentWindow } from "../../utils/general";
 import { playMessengerPopSound } from "../../utils/sounds";
 import styles from "./TaskBar.module.scss";
@@ -39,6 +40,7 @@ const TaskBar = () => {
     } = useContext();
     const [systemTrayIconDismissed, setSystemTrayIconDismissed] = React.useState(true);
     const [notifications, setNotifications] = React.useState<TaskBarNotificationItem[]>([]);
+    const [isRealtimeConnected, setIsRealtimeConnected] = React.useState(false);
     const startButtonRef = React.useRef<HTMLButtonElement | null>(null);
     const notificationTimersRef = React.useRef(new Map<number, number>());
     const notificationRemovalTimersRef = React.useRef(new Map<number, number>());
@@ -121,6 +123,26 @@ const TaskBar = () => {
 
     React.useEffect(() => {
         if (!username.trim()) {
+            setIsRealtimeConnected(false);
+            return;
+        }
+
+        return subscribeToMessengerRealtime(
+            username,
+            (event) => {
+                if (event.type !== "message_created") return;
+
+                const { message } = event.payload;
+                lastIncomingMessageIdRef.current = Math.max(lastIncomingMessageIdRef.current, Number(message.id) || 0);
+                hasPrimedIncomingRef.current = true;
+                enqueueNotification(message);
+            },
+            setIsRealtimeConnected,
+        );
+    }, [enqueueNotification, username]);
+
+    React.useEffect(() => {
+        if (!username.trim()) {
             lastIncomingMessageIdRef.current = 0;
             hasPrimedIncomingRef.current = false;
             knownNotificationIdsRef.current.clear();
@@ -161,12 +183,14 @@ const TaskBar = () => {
         };
 
         void loadIncomingMessages();
+        if (isRealtimeConnected) return;
+
         const interval = window.setInterval(loadIncomingMessages, DIRECT_MESSAGES_POLL_MS);
 
         return () => {
             window.clearInterval(interval);
         };
-    }, [enqueueNotification, username]);
+    }, [enqueueNotification, isRealtimeConnected, username]);
 
     React.useEffect(() => () => {
         notificationTimersRef.current.forEach((timer) => window.clearTimeout(timer));
