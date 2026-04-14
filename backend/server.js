@@ -64,11 +64,6 @@ const proxyWaybackRequest = async (req, res, url) => {
         return;
     }
 
-    if (method === "GET" && url.pathname === "/proxy.php") {
-        await proxyWaybackRequest(req, res, url);
-        return;
-    }
-
     let upstreamUrl;
     try {
         upstreamUrl = new URL(targetUrl);
@@ -177,6 +172,11 @@ const server = http.createServer(async (req, res) => {
         cors(res);
         res.writeHead(204);
         res.end();
+        return;
+    }
+
+    if (method === "GET" && url.pathname === "/proxy.php") {
+        await proxyWaybackRequest(req, res, url);
         return;
     }
 
@@ -427,6 +427,44 @@ const server = http.createServer(async (req, res) => {
                  ORDER BY created_at ASC
                  LIMIT $3`,
                 [userId, peerId, limit]
+            );
+            json(res, 200, { messages: rows });
+        } catch (err) {
+            json(res, 500, { error: err.message });
+        }
+        return;
+    }
+
+    // GET /api/messages/incoming?userId=<id>&afterId=<id> ? fetch recent incoming DMs for notifications
+    if (method === "GET" && url.pathname === "/api/messages/incoming") {
+        const userId = (url.searchParams.get("userId") || "").trim();
+        const afterId = Math.max(Number(url.searchParams.get("afterId")) || 0, 0);
+        const limit = Math.min(Math.max(Number(url.searchParams.get("limit")) || 50, 1), 200);
+
+        if (!userId) {
+            json(res, 400, { error: "userId is required" });
+            return;
+        }
+
+        try {
+            const { rows } = await pool.query(
+                `SELECT
+                    im.id,
+                    im.sender_id,
+                    im.recipient_id,
+                    im.body,
+                    im.attachment_src,
+                    im.attachment_name,
+                    im.created_at,
+                    us.avatar_src AS sender_avatar_src
+                 FROM instant_messages im
+                 LEFT JOIN user_sessions us ON us.user_id = im.sender_id
+                 WHERE im.recipient_id = $1
+                   AND im.sender_id <> $1
+                   AND im.id > $2
+                 ORDER BY im.id ASC
+                 LIMIT $3`,
+                [userId, afterId, limit]
             );
             json(res, 200, { messages: rows });
         } catch (err) {

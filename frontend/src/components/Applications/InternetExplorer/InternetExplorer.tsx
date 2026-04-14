@@ -1,9 +1,10 @@
 import { useRef, useState, useEffect } from "react";
+import type { HTMLAttributeReferrerPolicy } from "react";
 import { useContext } from "../../../context/context";
 import { usePoints } from "../../../context/points";
 import applicationsJSON from "../../../data/applications.json";
 import { generateUniqueId } from "../../../utils/general";
-import { getBaseDomain, sameBaseDomain } from "../../../utils/general";
+import { sameBaseDomain } from "../../../utils/general";
 import { getCurrentWindow } from "../../../utils/general";
 import styles from "./InternetExplorer.module.scss";
 import type { Application } from "../../../context/types";
@@ -18,6 +19,10 @@ type BrowserMenuItem = {
     action?: "openInternetOptions";
     url?: string;
     separator?: boolean;
+};
+type IframeSecurity = {
+    sandbox?: string;
+    referrerPolicy?: HTMLAttributeReferrerPolicy;
 };
 
 const FAVORITES_MENU_ITEMS: BrowserMenuItem[] = [
@@ -129,21 +134,47 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
 
         const value = (!inputValue.startsWith("http")) ? `https://${inputValue}` : inputValue;
         const wayBackUrl = "https://web.archive.org/web/20030612074004if_/";
-        const url = (!value.includes(getBaseDomain())) ? `/proxy.php?url=${wayBackUrl}${value}` : value;
+        const url = sameBaseDomain(value) ? value : `/proxy.php?url=${encodeURIComponent(`${wayBackUrl}${value}`)}`;
         return {url, value};
+    };
+
+    const getIframeSecurity = (targetValue: string): IframeSecurity => {
+        if (targetValue === "about:blank") {
+            return {
+                sandbox: undefined,
+                referrerPolicy: undefined,
+            };
+        }
+
+        if (sameBaseDomain(targetValue)) {
+            return {
+                sandbox: "allow-same-origin allow-forms",
+                referrerPolicy: "no-referrer",
+            };
+        }
+
+        return {
+            sandbox: "allow-forms allow-scripts",
+            referrerPolicy: "no-referrer",
+        };
     };
 
     const updateIframe = (nextValue?: string) => {
         if (!inputField && !nextValue) return;
         const inputValue = nextValue ?? inputField?.value ?? HOMEPAGE;
         const {url, value} = getIframeSrc(inputValue);
+        const { sandbox, referrerPolicy } = getIframeSecurity(value);
 
         if (iframe) {
-            if (sameBaseDomain(value)) {
-                iframe.setAttribute("sandbox", "allow-same-origin allow-forms");
-                iframe.setAttribute("referrerPolicy", "no-referrer");
+            if (sandbox) {
+                iframe.setAttribute("sandbox", sandbox);
             } else {
                 iframe.removeAttribute("sandbox");
+            }
+
+            if (referrerPolicy) {
+                iframe.setAttribute("referrerPolicy", referrerPolicy);
+            } else {
                 iframe.removeAttribute("referrerPolicy");
             }
         }
@@ -252,6 +283,9 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
     const toggleFavoritesBar = () => {
         setActiveExplorerBar((currentBar) => currentBar === "favorites" ? null : "favorites");
     };
+
+    const initialIframe = getIframeSrc(inputField?.value || HOMEPAGE);
+    const initialIframeSecurity = getIframeSecurity(initialIframe.value);
 
     return (
         <div className={styles.internetExplorer}>
@@ -416,7 +450,14 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
                     </aside>
                 )}
                 <div className={styles.browserFrame}>
-                    <iframe ref={iframeRef} src={getIframeSrc(inputField?.value || HOMEPAGE).url} width="100%" height="100%" />
+                    <iframe
+                        ref={iframeRef}
+                        src={initialIframe.url}
+                        sandbox={initialIframeSecurity.sandbox}
+                        referrerPolicy={initialIframeSecurity.referrerPolicy}
+                        width="100%"
+                        height="100%"
+                    />
                 </div>
             </main >
             <div className={`${styles.statusBar} flex justify-between px-2 py-0.5`}>

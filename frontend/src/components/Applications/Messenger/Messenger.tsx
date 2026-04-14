@@ -2,9 +2,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import AnimatedScore from "../../AnimatedScore/AnimatedScore";
 import { useContext } from "../../../context/context";
 import { DEFAULT_AVATAR_SRC } from "../../../data/avatars";
-import { ACTIVE_SESSIONS_POLL_MS, buildChatAppId, fetchActiveSessions } from "../../../utils/messenger";
+import { ACTIVE_SESSIONS_POLL_MS, fetchActiveSessions, openMessengerChatWindow } from "../../../utils/messenger";
 import type { ActiveSession } from "../../../utils/messenger";
-import { openApplication, updateCurrentActiveWindow } from "../../../utils/general";
 import { saveUserProfile } from "../../../utils/userProfile";
 import WindowMenu from "../../WindowMenu/WindowMenu";
 import styles from "./Messenger.module.scss";
@@ -188,42 +187,6 @@ const Messenger = () => {
         }
     };
 
-    const openChatWindow = (peerId: string, peerAvatarSrc: string) => {
-        const appId = buildChatAppId(peerId);
-
-        dispatch({
-            type: "REGISTER_CUSTOM_APPLICATION",
-            payload: {
-                appId,
-                application: {
-                    title: peerId,
-                    icon: "/icon__messenger--large.png",
-                    iconLarge: "/icon__messenger--large.png",
-                    component: "MessengerChat",
-                    width: 440,
-                    height: 370,
-                    top: 65,
-                    left: 150,
-                    content: {
-                        peerId,
-                        peerAvatarSrc,
-                    },
-                },
-            },
-        });
-
-        const existingWindow = currentWindows.find((window) => window.appId === appId);
-        if (existingWindow) {
-            dispatch({
-                type: "SET_CURRENT_WINDOWS",
-                payload: updateCurrentActiveWindow(existingWindow.id, currentWindows),
-            });
-            return;
-        }
-
-        openApplication(appId, currentWindows, dispatch);
-    };
-
     return (
         <div className={styles.messenger}>
             <WindowMenu menuItems={["File", "Contacts", "Actions", "Tools", "Help"]} />
@@ -292,7 +255,7 @@ const Messenger = () => {
                                 data-self={session.user_id === username}
                                 onClick={() => {
                                     if (session.user_id === username) return;
-                                    openChatWindow(session.user_id, session.avatarSrc);
+                                    openMessengerChatWindow(session.user_id, session.avatarSrc, currentWindows, dispatch);
                                 }}
                                 ref={(node) => {
                                     if (node) {

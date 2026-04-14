@@ -118,3 +118,39 @@ export const playAwardSound = (points: number) => {
     const totalDuration = resolveStart + 0.4 - ctx.currentTime;
     setTimeout(() => ctx.close(), totalDuration * 1000 + 100);
 };
+export const playMessengerPopSound = () => {
+    const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+
+    const ctx = new AudioCtx();
+    if (ctx.state === "suspended") ctx.resume();
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.16, ctx.currentTime);
+    masterGain.connect(ctx.destination);
+
+    const osc = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(720, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(420, ctx.currentTime + 0.11);
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(1400, ctx.currentTime);
+    filter.Q.setValueAtTime(2.5, ctx.currentTime);
+
+    gain.gain.setValueAtTime(0.001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.9, ctx.currentTime + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(masterGain);
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.18);
+
+    setTimeout(() => ctx.close(), 320);
+};

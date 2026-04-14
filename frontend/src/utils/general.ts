@@ -67,10 +67,11 @@ export const getBaseDomain = (url: string = window.location.hostname) => {
     return url;
 };
 
-export const sameBaseDomain = (urlA: string, urlB: string = window.location.hostname) => {
+export const sameBaseDomain = (urlA: string, urlB: string = window.location.origin) => {
     try {
-        const a = getBaseDomain(new URL(urlA).hostname);
-        const b = getBaseDomain(new URL(urlB).hostname);
+        const a = getBaseDomain(new URL(urlA, window.location.origin).hostname);
+        const bHost = urlB.includes("://") ? new URL(urlB).hostname : urlB;
+        const b = getBaseDomain(bHost);
         return a === b;
     } catch {
         return false;
