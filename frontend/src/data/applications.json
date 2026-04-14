@@ -73,6 +73,17 @@
             "documentName": "untitled"
         }
     },
+    "bonziBuddy": {
+        "title": "Bonzi Buddy",
+        "icon": "/icon__BonziBUDDY.webp",
+        "iconLarge": "/icon__BonziBUDDY.webp",
+        "component": "BonziBuddy",
+        "width": 320,
+        "height": 360,
+        "top": 105,
+        "left": 135,
+        "resizable": false
+    },
     "winMediaPlayer": {
         "title": "Windows Media Player",
         "iconLarge": "/icon__media_player--large.png",

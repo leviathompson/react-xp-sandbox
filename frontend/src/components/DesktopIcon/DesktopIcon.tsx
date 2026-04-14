@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useContext } from "../../context/context";
 import { usePoints } from "../../context/points";
 import applicationsJSON from "../../data/applications.json";
+import { speakBonziGreeting } from "../../utils/bonziBuddy";
 import { getThumbnailIconSrc } from "../../utils/applicationIcon";
 import { throttle } from "../../utils/general";
 import { openApplication } from "../../utils/general";
@@ -51,6 +52,9 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
     const activateIcon = () => {
         if (disabled) return;
         if (link) return window.open(link, "_blank", "noopener,noreferrer");
+        if (appId === "bonziBuddy") {
+            void speakBonziGreeting();
+        }
 
         openApplication(redirect || appId, currentWindows, dispatch);
         setSelectedId("");

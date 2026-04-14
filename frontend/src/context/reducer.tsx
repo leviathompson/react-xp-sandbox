@@ -16,8 +16,36 @@ const readSessionJSON = <T,>(key: string, fallback: T): T => {
     }
 };
 
+const getShellEntryId = (entry: ShellEntry) => Array.isArray(entry) ? entry[0] : entry;
+
+const mergeShellFilesWithDefaults = (
+    defaults: Record<string, ShellEntry[]>,
+    current: Record<string, ShellEntry[]>,
+) => {
+    const merged = cloneJSON(current);
+
+    Object.entries(defaults).forEach(([containerId, defaultEntries]) => {
+        if (!merged[containerId]) {
+            merged[containerId] = cloneJSON(defaultEntries);
+            return;
+        }
+
+        const knownEntryIds = new Set(merged[containerId].map(getShellEntryId));
+        defaultEntries.forEach((entry) => {
+            if (!knownEntryIds.has(getShellEntryId(entry))) {
+                merged[containerId].push(cloneJSON(entry));
+            }
+        });
+    });
+
+    return merged;
+};
+
 const defaultShellFiles = cloneJSON(filesJSON) as unknown as Record<string, ShellEntry[]>;
-const initialShellFiles = readSessionJSON("shellFiles", defaultShellFiles);
+const initialShellFiles = mergeShellFilesWithDefaults(
+    defaultShellFiles,
+    readSessionJSON("shellFiles", defaultShellFiles),
+);
 const initialCustomFiles = readSessionJSON<Record<string, ShellEntry[]>>("customFiles", {});
 const initialCustomApplications = readSessionJSON<State["customApplications"]>("customApplications", {});
 const createInitialWindow = (appId: string, active = false) => ({
@@ -27,8 +55,6 @@ const createInitialWindow = (appId: string, active = false) => ({
     history: [],
     forward: [],
 });
-
-const getShellEntryId = (entry: ShellEntry) => Array.isArray(entry) ? entry[0] : entry;
 
 const buildShellEntry = (appId: string, containerId: string, position?: AbsoluteObject): ShellEntry => {
     if (containerId !== "desktop") return appId;
