@@ -165,3 +165,86 @@ export const playWalletCelebrationSound = () => {
 
     setTimeout(() => ctx.close(), 1600);
 };
+
+export const playWalletLockdownSound = () => {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.18, ctx.currentTime);
+    masterGain.connect(ctx.destination);
+
+    const clunkOffsets = [0, 0.22, 0.48];
+    clunkOffsets.forEach((offset, index) => {
+        const osc = ctx.createOscillator();
+        const noise = ctx.createBufferSource();
+        const noiseBuffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.12), ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < data.length; i += 1) {
+            data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+        }
+
+        const oscGain = ctx.createGain();
+        const noiseGain = ctx.createGain();
+        const lowpass = ctx.createBiquadFilter();
+        const start = ctx.currentTime + offset;
+
+        osc.type = "square";
+        osc.frequency.setValueAtTime(96 - index * 8, start);
+        osc.frequency.exponentialRampToValueAtTime(54 - index * 4, start + 0.16);
+
+        lowpass.type = "lowpass";
+        lowpass.frequency.setValueAtTime(620, start);
+        lowpass.Q.setValueAtTime(0.8, start);
+
+        oscGain.gain.setValueAtTime(0.001, start);
+        oscGain.gain.exponentialRampToValueAtTime(0.95, start + 0.008);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, start + 0.16);
+
+        noise.buffer = noiseBuffer;
+        noiseGain.gain.setValueAtTime(0.001, start);
+        noiseGain.gain.exponentialRampToValueAtTime(0.55, start + 0.004);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, start + 0.1);
+
+        osc.connect(lowpass);
+        lowpass.connect(oscGain);
+        oscGain.connect(masterGain);
+
+        noise.connect(noiseGain);
+        noiseGain.connect(lowpass);
+
+        osc.start(start);
+        osc.stop(start + 0.17);
+        noise.start(start);
+        noise.stop(start + 0.11);
+    });
+
+    const laserOffsets = [0.1, 0.34, 0.62, 0.82];
+    laserOffsets.forEach((offset, index) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const bandpass = ctx.createBiquadFilter();
+        const start = ctx.currentTime + offset;
+
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(1800 + index * 160, start);
+        osc.frequency.exponentialRampToValueAtTime(260 + index * 45, start + 0.18);
+
+        bandpass.type = "bandpass";
+        bandpass.frequency.setValueAtTime(1200, start);
+        bandpass.Q.setValueAtTime(7, start);
+
+        gain.gain.setValueAtTime(0.001, start);
+        gain.gain.exponentialRampToValueAtTime(0.2, start + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.19);
+
+        osc.connect(bandpass);
+        bandpass.connect(gain);
+        gain.connect(masterGain);
+
+        osc.start(start);
+        osc.stop(start + 0.2);
+    });
+
+    setTimeout(() => ctx.close(), 1800);
+};

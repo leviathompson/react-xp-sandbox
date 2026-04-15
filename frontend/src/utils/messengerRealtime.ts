@@ -20,6 +20,9 @@ type CryptoWalletState = {
     lockedUntil: string | null;
     failedAttempts: number;
     balanceUsd: number;
+    doomsdayEndsAt: string | null;
+    isDoomsdayActive: boolean;
+    isPermanentlyLocked: boolean;
 };
 
 type CryptoWalletStateEvent = {
@@ -29,7 +32,14 @@ type CryptoWalletStateEvent = {
     };
 };
 
-export type MessengerRealtimeEvent = ReadyEvent | MessageCreatedEvent | CryptoWalletStateEvent;
+type SystemResetEvent = {
+    type: "system_reset";
+    payload: {
+        reason: "nuke";
+    };
+};
+
+export type MessengerRealtimeEvent = ReadyEvent | MessageCreatedEvent | CryptoWalletStateEvent | SystemResetEvent;
 
 interface RealtimeSubscriber {
     onEvent: (event: MessengerRealtimeEvent) => void;

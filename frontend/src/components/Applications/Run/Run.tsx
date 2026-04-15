@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useContext } from "../../../context/context";
 import applicationsJSON from "../../../data/applications.json";
+import { resetCryptoWalletDoomsday, startCryptoWalletDoomsday } from "../../../utils/cryptoWallet";
 import { openApplication } from "../../../utils/general";
 import { generateUniqueId } from "../../../utils/general";
 import Button from "../../Button/Button";
@@ -9,6 +10,14 @@ import type { Application } from "../../../context/types";
 import type { currentWindow } from "../../../context/types";
 
 const Applications = applicationsJSON as unknown as Record<string, Application>;
+const runAdminCommand = async (path: string) => {
+    await fetch(path, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+    });
+};
 
 const Run = () => {
     const { currentWindows, dispatch } = useContext();
@@ -29,20 +38,46 @@ const Run = () => {
         event.preventDefault();
         const form = event.currentTarget;
         const inputField = form.elements.namedItem("command") as HTMLInputElement;
+        const command = inputField.value.trim();
+        const normalizedCommand = command.toLowerCase();
 
-        if (inputField.value.toLowerCase() === "%appdata%") {
+        const closeRunWindow = () => {
+            dispatch({ type: "SET_CURRENT_WINDOWS", payload: currentWindows.filter((item) => item.appId !== "run") });
+        };
+
+        const startTimerMatch = normalizedCommand.match(/^%starttimer(\d+)%$/);
+        if (startTimerMatch) {
+            const minutes = Number(startTimerMatch[1]);
+            void startCryptoWalletDoomsday(minutes);
+            closeRunWindow();
+            return;
+        }
+
+        if (normalizedCommand === "%resettimer%") {
+            void resetCryptoWalletDoomsday();
+            closeRunWindow();
+            return;
+        }
+
+        if (normalizedCommand === "%nuke%") {
+            void runAdminCommand("/api/admin/nuke");
+            closeRunWindow();
+            return;
+        }
+
+        if (normalizedCommand === "%appdata%") {
             openApplication("roamingFolder", currentWindows, dispatch);
             return;
         }
 
-        if (inputField.value.startsWith("http")) {
+        if (command.startsWith("http")) {
             const newWindow: currentWindow = {
                 id: generateUniqueId(),
                 appId: "internetExplorer",
                 active: true,
                 history: [],
                 forward: [],
-                landingUrl: inputField.value
+                landingUrl: command
             };
             
             const updatedCurrentWindows = currentWindows.filter((item) => item.appId !== "run");
@@ -53,12 +88,12 @@ const Run = () => {
         };
 
 
-        if (inputField.value in Applications) {
-            openApplication(inputField.value, currentWindows, dispatch);
+        if (command in Applications) {
+            openApplication(command, currentWindows, dispatch);
             return;
         }
 
-        const appId = Object.entries(Applications).find(([, item]) => item.title.toLowerCase() === inputField.value.toLowerCase())?.[0];
+        const appId = Object.entries(Applications).find(([, item]) => item.title.toLowerCase() === normalizedCommand)?.[0];
         if (appId && !Applications[appId].disabled && !Applications[appId].link) {
             openApplication(appId, currentWindows, dispatch);
         } 

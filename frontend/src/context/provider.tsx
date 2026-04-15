@@ -11,6 +11,7 @@ import {
     initialState,
 } from "./reducer";
 import { DEFAULT_AVATAR_SRC } from "../data/avatars";
+import { subscribeToMessengerRealtime } from "../utils/messengerRealtime";
 import { fetchUserProfile, saveUserProfile, startUserSession, type UserProfile } from "../utils/userProfile";
 import { defaultWallpaper } from "./defaults";
 import type { ContextMenuState } from "./types";
@@ -42,6 +43,18 @@ const serializeAccountSnapshot = (snapshot: {
     customFiles: unknown;
     customApplications: unknown;
 }) => JSON.stringify(snapshot);
+
+const clearAppSessionStorage = () => {
+    if (typeof window === "undefined") return;
+
+    const keysToRemove = Object.keys(sessionStorage).filter((key) => (
+        key === "loggedIn"
+        || key === "username"
+        || key.startsWith("xp_current_windows_v1:")
+    ));
+
+    keysToRemove.forEach((key) => sessionStorage.removeItem(key));
+};
 
 export const Provider = ({ children }: { children: ReactNode }) => {
     const [state, dispatch] = useReducer(reducer, initialState);
@@ -214,6 +227,30 @@ export const Provider = ({ children }: { children: ReactNode }) => {
 
         return () => window.clearTimeout(timeoutId);
     }, [accountSnapshot, state.username, state.windowsInitiationState]);
+
+    useEffect(() => {
+        const userId = state.username.trim();
+        if (!userId) return;
+
+        return subscribeToMessengerRealtime(userId, (event) => {
+            if (event.type !== "system_reset") return;
+
+            hydratedUserRef.current = null;
+            lastSavedAccountRef.current = "";
+            clearAppSessionStorage();
+
+            dispatch({ type: "SET_IS_START_VISIBLE", payload: false });
+            dispatch({ type: "SET_IS_ALL_PROGRAMS_OPEN", payload: false });
+            dispatch({ type: "SET_IS_RECENT_DOCUMENTS_OPEN", payload: false });
+            dispatch({ type: "SET_IS_SHUTDOWN_MODAL_OPEN", payload: false });
+            dispatch({ type: "SET_TRANSITION_LABEL", payload: "" });
+            dispatch({ type: "SET_INITIATION_STAGE", payload: 0 });
+            dispatch({ type: "SET_IS_INITIAL_BOOT", payload: true });
+            dispatch({ type: "SET_CURRENT_WINDOWS", payload: createDefaultWindows() });
+            dispatch({ type: "SET_USERNAME", payload: "" });
+            dispatch({ type: "SET_WINDOWS_INITIATION_STATE", payload: "bios" });
+        });
+    }, [state.username]);
 
     return (
         <Context value={{ ...state, dispatch, contextMenu, openContextMenu, closeContextMenu }}>

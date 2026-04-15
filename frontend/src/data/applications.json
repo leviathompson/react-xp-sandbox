@@ -388,7 +388,7 @@
         "title": "ReadMe.txt",
         "iconLarge": "/icon__notepad--large.png",
         "component": "Notepad",
-        "content": "ReadMe\n\nThis branch removes the arcade-style points system so the desktop can support more narrative interactions.\n\nWhat changed:\n- no score displays in MSN Messenger\n- no award toasts or debug panel\n- no hidden point challenges tied to app actions\n\nCore desktop behavior remains the same.\n",
+        "content": "Your uncle Gerrit bit the dust. \n\nHe was a distant relative and you didn't know him at all, but you've been asked to help execute his last will and testament. \n\nSurrounded by family you've never met before, you come to learn that, while Gerrit was not very tech literate, he was an early adopter of cryptocurrency, valuing his estate at over 18 million dollars. \n\nIf you can gain access to his Bitcoin wallet, the reward will be split among the heirs. \n\nFor security reasons, you only have ten minutes to claim your inheritance. You must work together to search Gerrit's computer and crack the password to his bitcoin wallet before the data is scrambled and the coin vault doors are sealed forever. \n\nGood luck.",
         "height": 290,
         "width": 330,
         "top": 25,

@@ -1,8 +1,8 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useContext } from "../../../context/context";
 import { fetchCryptoWalletState, unlockCryptoWallet, type CryptoWalletState } from "../../../utils/cryptoWallet";
 import { subscribeToMessengerRealtime } from "../../../utils/messengerRealtime";
-import { playWalletBuzzerSound, playWalletCelebrationSound } from "../../../utils/sounds";
+import { playWalletBuzzerSound, playWalletCelebrationSound, playWalletLockdownSound } from "../../../utils/sounds";
 import WindowMenu from "../../WindowMenu/WindowMenu";
 import styles from "./CryptoWallet.module.scss";
 
@@ -14,6 +14,9 @@ const initialWalletState: CryptoWalletState = {
     lockedUntil: null,
     failedAttempts: 0,
     balanceUsd: 18369236.67,
+    doomsdayEndsAt: null,
+    isDoomsdayActive: false,
+    isPermanentlyLocked: false,
 };
 
 const TARGET_BTC_BALANCE = 180.01;
@@ -35,6 +38,12 @@ const confettiPieces = Array.from({ length: 30 }, (_, index) => ({
     size: `${0.8 + (index % 4) * 0.18}rem`,
 }));
 
+const lockBars = Array.from({ length: 12 }, (_, index) => ({
+    id: index,
+    left: `${index * 8.6}%`,
+    delay: `${index * 0.06}s`,
+}));
+
 const formatCurrency = (amount: number) => amount.toLocaleString("en-US", {
     style: "currency",
     currency: "USD",
@@ -46,6 +55,18 @@ const formatLockTime = (lockedUntil: string | null, now: number) => {
     if (!lockedUntil) return null;
 
     const remainingMs = new Date(lockedUntil).getTime() - now;
+    if (remainingMs <= 0) return "00:00";
+
+    const totalSeconds = Math.ceil(remainingMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+};
+
+const formatDoomsdayTime = (doomsdayEndsAt: string | null, now: number) => {
+    if (!doomsdayEndsAt) return null;
+
+    const remainingMs = new Date(doomsdayEndsAt).getTime() - now;
     if (remainingMs <= 0) return "00:00";
 
     const totalSeconds = Math.ceil(remainingMs / 1000);
@@ -68,6 +89,7 @@ const CryptoWallet = () => {
     const [isCelebrating, setIsCelebrating] = useState(false);
     const [isErrorBuzzing, setIsErrorBuzzing] = useState(false);
     const [now, setNow] = useState(Date.now());
+    const hadPermanentLockRef = useRef(false);
 
     useEffect(() => {
         let isCancelled = false;
@@ -103,17 +125,30 @@ const CryptoWallet = () => {
             if (event.type !== "crypto_wallet_state") return;
             setWalletState(event.payload.state);
 
+            if (event.payload.state.isPermanentlyLocked) {
+                setAuthStage("credentials");
+                setDisplayBalance(0);
+                setVerificationCode("");
+                setStatusMessage("DOOMSDAY TRIGGERED. Coin Vault permanently sealed.");
+                return;
+            }
+
             if (event.payload.state.isLocked) {
                 setAuthStage("credentials");
                 setDisplayBalance(0);
                 setVerificationCode("");
                 setStatusMessage("Wallet locked due to repeated failures. Shared cooldown active.");
+                return;
+            }
+
+            if (event.payload.state.isDoomsdayActive) {
+                setStatusMessage("Doomsday countdown active. Vault will seal permanently when the timer expires.");
             }
         });
     }, [username]);
 
     useEffect(() => {
-        if (!walletState.isLocked) return;
+        if (!walletState.lockedUntil || walletState.isPermanentlyLocked) return;
 
         const unlockTime = walletState.lockedUntil ? new Date(walletState.lockedUntil).getTime() : 0;
         if (unlockTime > now) return;
@@ -162,7 +197,27 @@ const CryptoWallet = () => {
         return () => window.cancelAnimationFrame(animationFrame);
     }, [authStage, walletState.balanceUsd, celebrationTick]);
 
+    useEffect(() => {
+        if (authStage === "unlocked") return;
+        if (walletState.isPermanentlyLocked) {
+            setStatusMessage("DOOMSDAY TRIGGERED. Coin Vault permanently sealed.");
+            return;
+        }
+        if (walletState.isDoomsdayActive) {
+            setStatusMessage("Doomsday countdown active. Vault will seal permanently when the timer expires.");
+        }
+    }, [authStage, walletState.isDoomsdayActive, walletState.isPermanentlyLocked]);
+
+    useEffect(() => {
+        if (walletState.isPermanentlyLocked && !hadPermanentLockRef.current) {
+            playWalletLockdownSound();
+        }
+
+        hadPermanentLockRef.current = walletState.isPermanentlyLocked;
+    }, [walletState.isPermanentlyLocked]);
+
     const countdown = useMemo(() => formatLockTime(walletState.lockedUntil, now), [walletState.lockedUntil, now]);
+    const doomsdayCountdown = useMemo(() => formatDoomsdayTime(walletState.doomsdayEndsAt, now), [walletState.doomsdayEndsAt, now]);
     const displayBtc = authStage === "unlocked" && walletState.balanceUsd > 0
         ? TARGET_BTC_BALANCE * (displayBalance / walletState.balanceUsd)
         : 0;
@@ -230,6 +285,7 @@ const CryptoWallet = () => {
             className={styles.wallet}
             data-celebrating={isCelebrating}
             data-error={isErrorBuzzing}
+            data-permalocked={walletState.isPermanentlyLocked}
         >
             {isCelebrating && (
                 <div className={styles.confettiLayer} aria-hidden="true">
@@ -250,6 +306,31 @@ const CryptoWallet = () => {
                 </div>
             )}
 
+            {walletState.isPermanentlyLocked && (
+                <div className={styles.lockdownOverlay} aria-hidden="true">
+                    <div className={styles.lockdownGlow} />
+                    <div className={styles.lockdownBars}>
+                        {lockBars.map((bar) => (
+                            <span
+                                key={bar.id}
+                                className={styles.lockdownBar}
+                                style={{ left: bar.left, animationDelay: bar.delay }}
+                            />
+                        ))}
+                    </div>
+                    <div className={styles.lockdownCenterpiece}>
+                        <div className={styles.holoPadlock}>
+                            <span className={styles.holoShackle} />
+                            <span className={styles.holoBody}>
+                                <span className={styles.holoKeyhole} />
+                            </span>
+                        </div>
+                        <strong>PERMA-LOCK ENGAGED</strong>
+                        <p>Coin Vault permanently sealed.</p>
+                    </div>
+                </div>
+            )}
+
             <div className={styles.menuBar}>
                 <WindowMenu menuItems={["File", "Settings", "Transactions", "Help"]} />
             </div>
@@ -262,6 +343,26 @@ const CryptoWallet = () => {
                 </div>
                 <div className={styles.coinBadge} aria-hidden="true">B</div>
             </div>
+
+            {(walletState.isDoomsdayActive || walletState.isPermanentlyLocked) && (
+                <div
+                    className={styles.doomsdayBar}
+                    data-active={walletState.isDoomsdayActive}
+                    data-expired={walletState.isPermanentlyLocked}
+                >
+                    <span>Doomsday Timer</span>
+                    <strong>
+                        {walletState.isPermanentlyLocked
+                            ? "EXPIRED"
+                            : doomsdayCountdown || "00:00"}
+                    </strong>
+                    <small>
+                        {walletState.isPermanentlyLocked
+                            ? "Coin Vault permanently sealed"
+                            : "Countdown shared across all users"}
+                    </small>
+                </div>
+            )}
 
             <div className={styles.dashboard}>
                 <section className={styles.balanceCard}>
@@ -290,8 +391,26 @@ const CryptoWallet = () => {
                     </div>
                     <div className={styles.statusRow}>
                         <span>Lockout</span>
-                        <strong>{walletState.isLocked ? countdown || "00:00" : authStage === "verification" ? "2FA" : "Ready"}</strong>
+                        <strong>
+                            {walletState.isPermanentlyLocked
+                                ? "PERMA-LOCK"
+                                : walletState.lockedUntil
+                                    ? countdown || "00:00"
+                                    : authStage === "verification"
+                                        ? "2FA"
+                                        : "Ready"}
+                        </strong>
                     </div>
+                    {(walletState.isDoomsdayActive || walletState.isPermanentlyLocked) && (
+                        <div className={styles.statusRow}>
+                            <span>Doomsday</span>
+                            <strong>
+                                {walletState.isPermanentlyLocked
+                                    ? "EXPIRED"
+                                    : doomsdayCountdown || "00:00"}
+                            </strong>
+                        </div>
+                    )}
                 </section>
             </div>
 
@@ -345,7 +464,11 @@ const CryptoWallet = () => {
                     )}
 
                     <p className={styles.statusMessage}>{statusMessage}</p>
-                    <p className={styles.warning}>Three failed password attempts triggers a shared five-minute lockout for every user.</p>
+                    <p className={styles.warning}>
+                        Three failed password attempts triggers a shared five-minute lockout for every user.
+                        {walletState.isDoomsdayActive && " Global doomsday countdown in progress."}
+                        {walletState.isPermanentlyLocked && " Permanent vault lockdown active."}
+                    </p>
                 </section>
 
                 <section className={styles.transactionsPanel}>

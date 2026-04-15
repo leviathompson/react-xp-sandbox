@@ -1,4 +1,4 @@
-﻿.wallet {
+.wallet {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -9,6 +9,10 @@
 
     &[data-celebrating="true"] {
         animation: walletFlash 0.22s steps(2, end) 6;
+    }
+
+    &[data-permalocked="true"] {
+        filter: saturate(0.88) contrast(1.04);
     }
 }
 
@@ -31,6 +35,131 @@
     animation-fill-mode: forwards;
 }
 
+.lockdownOverlay {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    overflow: hidden;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(18, 4, 8, 0.12), rgba(8, 0, 0, 0.42));
+}
+
+.lockdownGlow {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 50% 45%, rgba(255, 58, 92, 0.28) 0%, transparent 28%),
+        radial-gradient(circle at 50% 55%, rgba(84, 222, 255, 0.12) 0%, transparent 22%);
+    animation: lockdownPulse 1.8s ease-in-out infinite;
+}
+
+.lockdownBars {
+    position: absolute;
+    inset: 0;
+}
+
+.lockdownBar {
+    position: absolute;
+    top: -110%;
+    width: 0.6rem;
+    height: 220%;
+    border-left: 0.1rem solid rgba(255, 148, 164, 0.45);
+    border-right: 0.1rem solid rgba(255, 83, 111, 0.75);
+    background: linear-gradient(180deg, rgba(255, 235, 240, 0.2) 0%, rgba(255, 61, 94, 0.78) 36%, rgba(62, 10, 18, 0.92) 100%);
+    box-shadow: 0 0 1rem rgba(255, 64, 95, 0.35);
+    animation: barsDrop 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.lockdownCenterpiece {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 28rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    text-align: center;
+
+    strong {
+        color: #ff4d63;
+        font-family: "Courier New", monospace;
+        font-size: 2.7rem;
+        font-weight: 700;
+        letter-spacing: 0.18rem;
+        text-shadow: 0 0 0.8rem rgb(39, 2, 8);
+        animation: warningFlicker 1.15s steps(2, end) infinite;
+    }
+
+    p {
+        color: #ffccd5;
+        font-size: 1.1rem;
+        letter-spacing: 0.08rem;
+        text-transform: uppercase;
+    }
+}
+
+.holoPadlock {
+    position: relative;
+    width: 8rem;
+    height: 10.2rem;
+    filter: drop-shadow(0 0 0.8rem rgba(78, 239, 255, 0.5));
+}
+
+.holoShackle {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 4.5rem;
+    height: 4rem;
+    transform: translateX(-50%);
+    border: 0.7rem solid rgba(114, 241, 255, 0.95);
+    border-bottom: none;
+    border-radius: 2.5rem 2.5rem 0 0;
+    box-shadow: 0 0 0.8rem rgba(107, 227, 255, 0.45);
+    animation: holoFloat 1.8s ease-in-out infinite;
+}
+
+.holoBody {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 8rem;
+    height: 6.7rem;
+    transform: translateX(-50%);
+    border: 0.5rem solid rgba(117, 238, 255, 0.95);
+    border-radius: 1.1rem;
+    background:
+        linear-gradient(180deg, rgba(111, 247, 255, 0.32) 0%, rgba(20, 106, 148, 0.18) 100%),
+        repeating-linear-gradient(180deg, rgba(112, 244, 255, 0.22) 0, rgba(112, 244, 255, 0.22) 0.18rem, transparent 0.18rem, transparent 0.42rem);
+    box-shadow: inset 0 0 1rem rgba(113, 244, 255, 0.18), 0 0 1.4rem rgba(76, 220, 255, 0.3);
+}
+
+.holoKeyhole {
+    position: absolute;
+    top: 2.2rem;
+    left: 50%;
+    width: 1rem;
+    height: 2rem;
+    transform: translateX(-50%);
+    border-radius: 0.8rem 0.8rem 0.35rem 0.35rem;
+    background: rgba(170, 15, 43, 0.95);
+    box-shadow: 0 0 0.8rem rgba(250, 63, 96, 0.35);
+
+    &::before {
+        content: "";
+        position: absolute;
+        top: -0.75rem;
+        left: 50%;
+        width: 1.6rem;
+        height: 1.6rem;
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background: linear-gradient(180deg, rgba(255, 121, 144, 0.95) 0%, rgba(170, 15, 43, 0.95) 100%);
+    }
+}
+
 .menuBar {
     background: linear-gradient(180deg, #dfe4eb 0%, #c1c8d2 100%);
     border-bottom: 0.1rem solid #6a7480;
@@ -51,6 +180,49 @@
         font-size: 2.2rem;
         font-weight: 700;
         line-height: 1.1;
+    }
+}
+
+.doomsdayBar {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.55rem 1.2rem;
+    border-bottom: 0.1rem solid #6f7884;
+    background: linear-gradient(180deg, #361012 0%, #170607 100%);
+    color: #ffb0b0;
+
+    span,
+    small {
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08rem;
+    }
+
+    strong {
+        color: #ffd36b;
+        font-family: "Courier New", monospace;
+        font-size: 1.35rem;
+    }
+
+    small {
+        color: #f1c1c1;
+        text-align: right;
+    }
+
+    &[data-active="true"] {
+        background: linear-gradient(180deg, #6d1014 0%, #2f0608 100%);
+        box-shadow: inset 0 0 1.4rem rgba(255, 75, 75, 0.16);
+    }
+
+    &[data-expired="true"] {
+        background: linear-gradient(180deg, #9c1117 0%, #3a0609 100%);
+        box-shadow: inset 0 0 1.8rem rgba(255, 62, 62, 0.22);
+
+        strong {
+            color: #fff3a2;
+        }
     }
 }
 
@@ -369,6 +541,51 @@
     }
 }
 
+@keyframes barsDrop {
+    0% {
+        transform: translateY(-120%);
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
+@keyframes holoFloat {
+    0%,
+    100% {
+        transform: translateX(-50%) translateY(0);
+    }
+    50% {
+        transform: translateX(-50%) translateY(-0.2rem);
+    }
+}
+
+@keyframes warningFlicker {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    45% {
+        opacity: 0.84;
+    }
+    50% {
+        opacity: 0.38;
+    }
+    55% {
+        opacity: 0.96;
+    }
+}
+
+@keyframes lockdownPulse {
+    0%,
+    100% {
+        opacity: 0.72;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
 @keyframes walletFlash {
     0%,
     100% {
@@ -380,6 +597,15 @@
 }
 
 @media (max-width: 56rem) {
+    .doomsdayBar {
+        grid-template-columns: 1fr;
+        justify-items: start;
+
+        small {
+            text-align: left;
+        }
+    }
+
     .dashboard,
     .contentGrid {
         grid-template-columns: 1fr;
@@ -389,5 +615,14 @@
         width: 5rem;
         height: 5rem;
         font-size: 2.5rem;
+    }
+
+    .lockdownCenterpiece {
+        min-width: 0;
+        width: calc(100% - 2rem);
+
+        strong {
+            font-size: 2rem;
+        }
     }
 }

@@ -16,6 +16,7 @@ const CRYPTO_WALLET_LOCKOUT_MS = 5 * 60 * 1000;
 const CRYPTO_WALLET_BALANCE_USD = 18369236.67;
 const CRYPTO_WALLET_USERNAME = "gerrit23";
 const CRYPTO_WALLET_PASSWORD = "L1nk1nP4rkR0x$";
+const CRYPTO_WALLET_MAX_DOOMSDAY_MINUTES = 24 * 60;
 const BLOCKED_PROXY_RESPONSE_HEADERS = new Set([
     "content-encoding",
     "content-length",
@@ -66,6 +67,7 @@ const normalizeUserId = (value) => typeof value === "string" ? value.trim() : ""
 
 const wsServer = new WebSocketServer({ noServer: true });
 const realtimeClientsByUser = new Map();
+let cryptoWalletDoomsdayTimer = null;
 
 const sendRealtimeEvent = (socket, type, payload) => {
     if (socket.readyState !== WebSocket.OPEN) return;
@@ -108,9 +110,19 @@ const attachRealtimeClient = (userId, socket) => {
     });
 };
 
+const clearCryptoWalletDoomsdayTimer = () => {
+    if (cryptoWalletDoomsdayTimer == null) return;
+    clearTimeout(cryptoWalletDoomsdayTimer);
+    cryptoWalletDoomsdayTimer = null;
+};
+
 const normalizeCryptoWalletState = (row) => {
     const lockedUntil = row?.locked_until || null;
+    const doomsdayEndsAt = row?.doomsday_ends_at || null;
     const failedAttempts = Number(row?.failed_attempts) || 0;
+    const now = Date.now();
+    const hasExpiredDoomsday = Boolean(doomsdayEndsAt && new Date(doomsdayEndsAt).getTime() <= now);
+    const isPermanentlyLocked = Boolean(row?.is_permanently_locked) || hasExpiredDoomsday;
     const isLocked = Boolean(lockedUntil && new Date(lockedUntil).getTime() > Date.now());
     const remainingAttempts = isLocked
         ? 0
@@ -118,10 +130,13 @@ const normalizeCryptoWalletState = (row) => {
 
     return {
         remainingAttempts,
-        isLocked,
+        isLocked: isLocked || isPermanentlyLocked,
         lockedUntil,
         failedAttempts: isLocked ? CRYPTO_WALLET_MAX_ATTEMPTS : failedAttempts,
         balanceUsd: CRYPTO_WALLET_BALANCE_USD,
+        doomsdayEndsAt,
+        isDoomsdayActive: Boolean(doomsdayEndsAt && new Date(doomsdayEndsAt).getTime() > now && !isPermanentlyLocked),
+        isPermanentlyLocked,
     };
 };
 
@@ -134,7 +149,7 @@ const getCryptoWalletState = async (db = pool) => {
     );
 
     let { rows } = await db.query(
-        `SELECT state_id, failed_attempts, locked_until, updated_at
+        `SELECT state_id, failed_attempts, locked_until, doomsday_ends_at, is_permanently_locked, updated_at
          FROM crypto_wallet_state
          WHERE state_id = $1`,
         [CRYPTO_WALLET_STATE_ID]
@@ -142,7 +157,7 @@ const getCryptoWalletState = async (db = pool) => {
 
     let row = rows[0];
     if (!row) {
-        row = { failed_attempts: 0, locked_until: null };
+        row = { failed_attempts: 0, locked_until: null, doomsday_ends_at: null, is_permanently_locked: false };
     }
 
     if (row.locked_until && new Date(row.locked_until).getTime() <= Date.now()) {
@@ -152,17 +167,59 @@ const getCryptoWalletState = async (db = pool) => {
                  locked_until = NULL,
                  updated_at = NOW()
              WHERE state_id = $1
-             RETURNING state_id, failed_attempts, locked_until, updated_at`,
+             RETURNING state_id, failed_attempts, locked_until, doomsday_ends_at, is_permanently_locked, updated_at`,
             [CRYPTO_WALLET_STATE_ID]
         );
         row = resetResult.rows[0];
     }
 
+    if (!row.is_permanently_locked && row.doomsday_ends_at && new Date(row.doomsday_ends_at).getTime() <= Date.now()) {
+        const expireResult = await db.query(
+            `UPDATE crypto_wallet_state
+             SET is_permanently_locked = TRUE,
+                 updated_at = NOW()
+             WHERE state_id = $1
+             RETURNING state_id, failed_attempts, locked_until, doomsday_ends_at, is_permanently_locked, updated_at`,
+            [CRYPTO_WALLET_STATE_ID]
+        );
+        row = expireResult.rows[0];
+    }
+
     return normalizeCryptoWalletState(row);
+};
+
+const scheduleCryptoWalletDoomsdayTimer = (state) => {
+    clearCryptoWalletDoomsdayTimer();
+
+    if (!state?.isDoomsdayActive || !state.doomsdayEndsAt || state.isPermanentlyLocked) return;
+
+    const remainingMs = new Date(state.doomsdayEndsAt).getTime() - Date.now();
+    if (remainingMs <= 0) return;
+
+    cryptoWalletDoomsdayTimer = setTimeout(async () => {
+        cryptoWalletDoomsdayTimer = null;
+
+        try {
+            await pool.query(
+                `UPDATE crypto_wallet_state
+                 SET is_permanently_locked = TRUE,
+                     updated_at = NOW()
+                 WHERE state_id = $1
+                   AND COALESCE(is_permanently_locked, FALSE) = FALSE
+                   AND doomsday_ends_at IS NOT NULL
+                   AND doomsday_ends_at <= NOW()`,
+                [CRYPTO_WALLET_STATE_ID]
+            );
+            await broadcastCryptoWalletState();
+        } catch (error) {
+            console.error("[debug-api] Failed to expire crypto wallet doomsday timer:", error.message);
+        }
+    }, remainingMs);
 };
 
 const broadcastCryptoWalletState = async () => {
     const state = await getCryptoWalletState();
+    scheduleCryptoWalletDoomsdayTimer(state);
     broadcastRealtimeEvent("crypto_wallet_state", { state });
     return state;
 };
@@ -276,8 +333,18 @@ Promise.all([
             state_id TEXT PRIMARY KEY,
             failed_attempts INTEGER NOT NULL DEFAULT 0,
             locked_until TIMESTAMPTZ,
+            doomsday_ends_at TIMESTAMPTZ,
+            is_permanently_locked BOOLEAN NOT NULL DEFAULT FALSE,
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
+    `),
+    pool.query(`
+        ALTER TABLE crypto_wallet_state
+        ADD COLUMN IF NOT EXISTS doomsday_ends_at TIMESTAMPTZ
+    `),
+    pool.query(`
+        ALTER TABLE crypto_wallet_state
+        ADD COLUMN IF NOT EXISTS is_permanently_locked BOOLEAN NOT NULL DEFAULT FALSE
     `),
     pool.query(
         `INSERT INTO crypto_wallet_state (state_id)
@@ -285,7 +352,11 @@ Promise.all([
          ON CONFLICT (state_id) DO NOTHING`,
         [CRYPTO_WALLET_STATE_ID]
     ),
-]).catch((err) => console.error("[debug-api] Failed to prepare user_sessions table:", err.message));
+])
+    .then(() => broadcastCryptoWalletState().catch((err) => {
+        console.error("[debug-api] Failed to initialize crypto wallet state:", err.message);
+    }))
+    .catch((err) => console.error("[debug-api] Failed to prepare user_sessions table:", err.message));
 
 const ttsProxyApp = express();
 ttsProxyApp.use("/api/tts", bonziTtsRouter);
@@ -496,9 +567,111 @@ const server = http.createServer(async (req, res) => {
     if (method === "GET" && url.pathname === "/api/crypto-wallet/state") {
         try {
             const state = await getCryptoWalletState();
+            scheduleCryptoWalletDoomsdayTimer(state);
             json(res, 200, state);
         } catch (err) {
             json(res, 500, { error: err.message });
+        }
+        return;
+    }
+
+    // POST /api/crypto-wallet/doomsday ? start/reset the shared vault doomsday timer
+    if (method === "POST" && url.pathname === "/api/crypto-wallet/doomsday") {
+        let body;
+        try {
+            body = await readBody(req);
+        } catch {
+            json(res, 400, { error: "Invalid JSON body" });
+            return;
+        }
+
+        const action = typeof body.action === "string" ? body.action.trim().toLowerCase() : "";
+        const minutes = Number(body.minutes);
+
+        try {
+            if (action === "reset") {
+                await pool.query(
+                    `UPDATE crypto_wallet_state
+                     SET failed_attempts = 0,
+                         locked_until = NULL,
+                         doomsday_ends_at = NULL,
+                         is_permanently_locked = FALSE,
+                         updated_at = NOW()
+                     WHERE state_id = $1`,
+                    [CRYPTO_WALLET_STATE_ID]
+                );
+
+                const state = await broadcastCryptoWalletState();
+                json(res, 200, { success: true, state });
+                return;
+            }
+
+            if (action === "start") {
+                if (!Number.isFinite(minutes) || minutes <= 0 || minutes > CRYPTO_WALLET_MAX_DOOMSDAY_MINUTES) {
+                    json(res, 400, {
+                        error: `minutes must be between 1 and ${CRYPTO_WALLET_MAX_DOOMSDAY_MINUTES}`,
+                    });
+                    return;
+                }
+
+                const currentState = await getCryptoWalletState();
+                if (currentState.isPermanentlyLocked) {
+                    json(res, 423, {
+                        error: "Coin Vault permanently locked",
+                        state: currentState,
+                    });
+                    return;
+                }
+
+                const doomsdayEndsAt = new Date(Date.now() + Math.round(minutes) * 60 * 1000).toISOString();
+                await pool.query(
+                    `UPDATE crypto_wallet_state
+                     SET doomsday_ends_at = $2,
+                         updated_at = NOW()
+                     WHERE state_id = $1`,
+                    [CRYPTO_WALLET_STATE_ID, doomsdayEndsAt]
+                );
+
+                const state = await broadcastCryptoWalletState();
+                json(res, 200, { success: true, state });
+                return;
+            }
+
+            json(res, 400, { error: "action must be start or reset" });
+        } catch (err) {
+            json(res, 500, { error: err.message });
+        }
+        return;
+    }
+
+    // POST /api/admin/nuke ? clear all persisted user data and force connected clients to reset
+    if (method === "POST" && url.pathname === "/api/admin/nuke") {
+        const client = await pool.connect();
+
+        try {
+            await client.query("BEGIN");
+            await client.query("TRUNCATE TABLE instant_messages RESTART IDENTITY");
+            await client.query("TRUNCATE TABLE user_sessions");
+            await client.query(
+                `DELETE FROM crypto_wallet_state
+                 WHERE state_id = $1`,
+                [CRYPTO_WALLET_STATE_ID]
+            );
+            await client.query(
+                `INSERT INTO crypto_wallet_state (state_id, failed_attempts, locked_until, doomsday_ends_at, is_permanently_locked, updated_at)
+                 VALUES ($1, 0, NULL, NULL, FALSE, NOW())`,
+                [CRYPTO_WALLET_STATE_ID]
+            );
+            await client.query("COMMIT");
+
+            await broadcastCryptoWalletState();
+            broadcastRealtimeEvent("system_reset", { reason: "nuke" });
+            json(res, 200, { success: true });
+        } catch (err) {
+            await client.query("ROLLBACK").catch(() => {});
+            json(res, 500, { error: err.message });
+        } finally {
+            client.release();
         }
         return;
     }
@@ -523,6 +696,14 @@ const server = http.createServer(async (req, res) => {
 
         try {
             const state = await getCryptoWalletState();
+            if (state.isPermanentlyLocked) {
+                json(res, 423, {
+                    error: "Coin Vault permanently locked",
+                    state,
+                });
+                return;
+            }
+
             if (state.isLocked) {
                 json(res, 423, {
                     error: "Wallet temporarily locked",
