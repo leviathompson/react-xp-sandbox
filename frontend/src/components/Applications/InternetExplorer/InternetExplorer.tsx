@@ -3,12 +3,13 @@ import type { HTMLAttributeReferrerPolicy } from "react";
 import { useContext } from "../../../context/context";
 import applicationsJSON from "../../../data/applications.json";
 import savedPasswords from "../../../data/savedPasswords.json";
+import Hotmail from "../Hotmail/Hotmail";
 import { generateUniqueId, sameBaseDomain, getCurrentWindow } from "../../../utils/general";
 import styles from "./InternetExplorer.module.scss";
 import type { Application } from "../../../context/types";
 
 const Applications = applicationsJSON as unknown as Record<string, Application>;
-const DEFAULT_HOME_PAGE = "https://www.msn.com";
+const DEFAULT_HOME_PAGE = "https://hotmail.com";
 const TOP_LEVEL_MENUS = ["File", "Edit", "View", "Favorites", "Tools", "Help"];
 
 type BrowserMenuItem = {
@@ -32,11 +33,31 @@ type SavedPassword = {
     createdAt: string;
 };
 
+const normalizeBrowserUrl = (inputValue: string) => {
+    if (inputValue === "about:blank") return "about:blank";
+    return !inputValue.startsWith("http") ? `https://${inputValue}` : inputValue;
+};
+
+const getInternalPage = (inputValue: string): "hotmail" | null => {
+    if (inputValue === "about:blank") return null;
+
+    try {
+        const parsedUrl = new URL(normalizeBrowserUrl(inputValue));
+        const hostname = parsedUrl.hostname.toLowerCase().replace(/^www\./, "");
+        if (hostname === "hotmail.com") return "hotmail";
+    } catch {
+        return null;
+    }
+
+    return null;
+};
+
 const passwordEntries = savedPasswords as SavedPassword[];
 
 const FAVORITES_MENU_ITEMS: BrowserMenuItem[] = [
     { label: "Add to favorites..." },
     { separator: true },
+    { label: "Hotmail", url: "https://hotmail.com" },
     { label: "Neopets", url: "https://www.neopets.org" },
     { label: "Homestar Runner", url: "https://homestarrunner.com" },
     { label: "Newgrounds", url: "https://www.newgrounds.com" },
@@ -84,6 +105,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
     const menuRef = useRef<HTMLDivElement | null>(null);
     const inputField = inputFieldRef.current;
     const currentUrl = useRef<string>(HOMEPAGE);
+    const [displayedUrl, setDisplayedUrl] = useState(HOMEPAGE);
 
     useEffect(() => {
         if (!currentWindow) return;
@@ -91,6 +113,12 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
         if (currentWindow.history) setIsBackDisabled(currentWindow.history.length === 0);
         if (currentWindow.forward) setIsForwardDisabled(currentWindow.forward.length === 0);
     }, [currentWindow, currentWindows]);
+
+    useEffect(() => {
+        const nextUrl = currentWindow?.currentUrl || HOMEPAGE;
+        currentUrl.current = nextUrl;
+        setDisplayedUrl(nextUrl);
+    }, [HOMEPAGE, currentWindow?.currentUrl]);
 
     useEffect(() => {
         const handlePointerDown = (event: PointerEvent) => {
@@ -117,6 +145,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
 
     const setWindowCurrentUrl = (nextUrl: string) => {
         currentUrl.current = nextUrl;
+        setDisplayedUrl(nextUrl);
         if (currentWindow) currentWindow.currentUrl = nextUrl;
     };
 
@@ -148,7 +177,8 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
     const getIframeSrc = (inputValue: string) => {
         if (inputValue === "about:blank") return { url: "about:blank", value: "about:blank" };
 
-        const value = !inputValue.startsWith("http") ? `https://${inputValue}` : inputValue;
+        const value = normalizeBrowserUrl(inputValue);
+        if (getInternalPage(value)) return { url: "about:blank", value };
         const wayBackUrl = "https://web.archive.org/web/20030612074004if_/";
         const url = sameBaseDomain(value) ? value : `/proxy.php?url=${encodeURIComponent(`${wayBackUrl}${value}`)}`;
         return { url, value };
@@ -303,6 +333,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
 
     const initialIframe = getIframeSrc(inputField?.value || HOMEPAGE);
     const initialIframeSecurity = getIframeSecurity(initialIframe.value);
+    const activeInternalPage = activeExplorerBar ? null : getInternalPage(displayedUrl);
 
     return (
         <div className={styles.internetExplorer}>
@@ -519,6 +550,8 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
                                 </section>
                             </div>
                         </section>
+                    ) : activeInternalPage === "hotmail" ? (
+                        <Hotmail embedded={true} />
                     ) : (
                         <iframe
                             ref={iframeRef}

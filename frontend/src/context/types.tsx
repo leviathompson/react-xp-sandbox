@@ -59,6 +59,8 @@ export interface Application {
     bottom?: number;
     left?: number;
     shortcut?: boolean;
+    autoFitHeight?: boolean;
+    clampHeightToViewport?: boolean;
 }
 
 export interface ContextMenuItem {

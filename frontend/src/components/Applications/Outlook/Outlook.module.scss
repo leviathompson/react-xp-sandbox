@@ -95,6 +95,7 @@
     flex-direction: column;
     border-right: 0.1rem solid #9caecc;
     background: linear-gradient(180deg, #f1f4fb 0%, #d8e0f2 100%);
+    overflow: auto;
 }
 
 .sidebarSection {
@@ -223,12 +224,17 @@
     overflow: auto;
 }
 
+.messagePreview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
 .messageRow {
     display: grid;
-    grid-template-columns: 3rem 1fr auto;
+    grid-template-columns: 2rem 1fr auto;
     align-items: center;
     gap: 0.6rem;
-    min-height: 4.6rem;
     border-bottom: 0.1rem solid #e2e9f6;
     padding: 0.5rem 0.8rem;
     text-align: left;
@@ -279,8 +285,6 @@
     span {
         display: block;
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
     }
 
     strong {
@@ -341,7 +345,6 @@
 .emptyReadingPane,
 .emptyState {
     flex: 1;
-    overflow: auto;
     padding: 1.2rem;
     font-size: 1.15rem;
     line-height: 1.5;
@@ -390,11 +393,11 @@
 
     .workspace {
         grid-template-columns: 15rem 1fr;
-        grid-template-rows: minmax(18rem, 1fr) minmax(16rem, 1fr);
     }
 
     .readingPane {
         grid-column: 1 / -1;
         border-top: 0.1rem solid #9caecc;
+        overflow: auto;
     }
 }

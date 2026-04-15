@@ -25,8 +25,12 @@ interface PaintProps {
 }
 
 const baseApplications = applicationsJSON as unknown as Record<string, Application>;
-const CANVAS_WIDTH = 640;
-const CANVAS_HEIGHT = 380;
+const DEFAULT_CANVAS_WIDTH = 640;
+const DEFAULT_CANVAS_HEIGHT = 380;
+const MIN_CANVAS_WIDTH = 160;
+const MIN_CANVAS_HEIGHT = 220;
+const CANVAS_VIEWPORT_HORIZONTAL_PADDING = 220;
+const CANVAS_VIEWPORT_VERTICAL_PADDING = 250;
 const brushSizes = [2, 4, 8, 12];
 const defaultColors = [
     "#000000", "#7f7f7f", "#7f0000", "#7f7f00", "#008000", "#007f7f", "#00007f", "#7f007f",
@@ -64,6 +68,11 @@ const hexToRgba = (hex: string) => {
     return [r, g, b, 255] as const;
 };
 
+const getDefaultCanvasSize = () => ({
+    width: clamp(window.innerWidth - CANVAS_VIEWPORT_HORIZONTAL_PADDING, MIN_CANVAS_WIDTH, DEFAULT_CANVAS_WIDTH),
+    height: clamp(window.innerHeight - CANVAS_VIEWPORT_VERTICAL_PADDING, MIN_CANVAS_HEIGHT, DEFAULT_CANVAS_HEIGHT),
+});
+
 const Paint = ({ appId, id, content }: PaintProps) => {
     const { currentWindows, shellFiles, customApplications, dispatch } = useContext();
     const applications = useMemo(
@@ -74,11 +83,18 @@ const Paint = ({ appId, id, content }: PaintProps) => {
     const currentContent = (content || application?.content || {}) as PaintDocumentContent;
     const isSavedDocument = !!customApplications[appId];
     const documentName = currentContent.documentName || (isSavedDocument ? application?.title : "untitled") || "untitled";
+    const hasPersistedCanvasSize = typeof currentContent.canvasWidth === "number" && typeof currentContent.canvasHeight === "number";
+    const [defaultCanvasSize, setDefaultCanvasSize] = useState(() => getDefaultCanvasSize());
+    const canvasWidth = currentContent.canvasWidth || defaultCanvasSize.width;
+    const canvasHeight = currentContent.canvasHeight || defaultCanvasSize.height;
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const canvasPaneRef = useRef<HTMLElement | null>(null);
+    const canvasFrameRef = useRef<HTMLDivElement | null>(null);
     const drawingRef = useRef(false);
     const startPointRef = useRef({ x: 0, y: 0 });
     const previewSnapshotRef = useRef<ImageData | null>(null);
     const loadVersionRef = useRef(0);
+    const didMeasureCanvasRef = useRef(false);
     const undoStackRef = useRef<ImageData[]>([]);
     const redoStackRef = useRef<ImageData[]>([]);
     const dialogHandlersRef = useRef(new Map<string, (selection?: {
@@ -102,7 +118,7 @@ const Paint = ({ appId, id, content }: PaintProps) => {
     const captureSnapshot = () => {
         const ctx = getContext();
         if (!ctx) return null;
-        return cloneImageData(ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT));
+        return cloneImageData(ctx.getImageData(0, 0, canvasWidth, canvasHeight));
     };
     const applySnapshot = (snapshot: ImageData) => {
         const ctx = getContext();
@@ -142,10 +158,73 @@ const Paint = ({ appId, id, content }: PaintProps) => {
         const ctx = getContext();
         if (!ctx) return;
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
     };
+
+    useEffect(() => {
+        if (hasPersistedCanvasSize || currentContent.imageSrc || didMeasureCanvasRef.current) return;
+
+        const canvasPane = canvasPaneRef.current;
+        if (!canvasPane) return;
+
+        let frameId = 0;
+
+        const measureCanvasSize = () => {
+            const nextCanvasPane = canvasPaneRef.current;
+            if (!nextCanvasPane) return;
+
+            const paneStyle = window.getComputedStyle(nextCanvasPane);
+            const paneHorizontalPadding = parseFloat(paneStyle.paddingLeft) + parseFloat(paneStyle.paddingRight);
+            const paneVerticalPadding = parseFloat(paneStyle.paddingTop) + parseFloat(paneStyle.paddingBottom);
+
+            const canvasFrame = canvasFrameRef.current;
+            const frameStyle = canvasFrame ? window.getComputedStyle(canvasFrame) : null;
+            const frameHorizontalPadding = frameStyle
+                ? parseFloat(frameStyle.paddingLeft) + parseFloat(frameStyle.paddingRight) + parseFloat(frameStyle.borderLeftWidth) + parseFloat(frameStyle.borderRightWidth)
+                : 0;
+            const frameVerticalPadding = frameStyle
+                ? parseFloat(frameStyle.paddingTop) + parseFloat(frameStyle.paddingBottom) + parseFloat(frameStyle.borderTopWidth) + parseFloat(frameStyle.borderBottomWidth)
+                : 0;
+
+            const measuredWidth = clamp(
+                Math.floor(nextCanvasPane.clientWidth - paneHorizontalPadding - frameHorizontalPadding),
+                MIN_CANVAS_WIDTH,
+                DEFAULT_CANVAS_WIDTH,
+            );
+            const measuredHeight = clamp(
+                Math.floor(nextCanvasPane.clientHeight - paneVerticalPadding - frameVerticalPadding),
+                MIN_CANVAS_HEIGHT,
+                DEFAULT_CANVAS_HEIGHT,
+            );
+            const currentCanvasWidth = canvasRef.current?.clientWidth || measuredWidth;
+            const currentCanvasHeight = canvasRef.current?.clientHeight || measuredHeight;
+            const cappedWidth = clamp(
+                Math.min(measuredWidth, Math.floor(currentCanvasWidth)),
+                MIN_CANVAS_WIDTH,
+                DEFAULT_CANVAS_WIDTH,
+            );
+            const cappedHeight = clamp(
+                Math.min(measuredHeight, Math.floor(currentCanvasHeight)),
+                MIN_CANVAS_HEIGHT,
+                DEFAULT_CANVAS_HEIGHT,
+            );
+
+            didMeasureCanvasRef.current = true;
+            setDefaultCanvasSize((currentSize) => (
+                currentSize.width === cappedWidth && currentSize.height === cappedHeight
+                    ? currentSize
+                    : { width: cappedWidth, height: cappedHeight }
+            ));
+        };
+
+        frameId = window.requestAnimationFrame(measureCanvasSize);
+
+        return () => {
+            window.cancelAnimationFrame(frameId);
+        };
+    }, [currentContent.imageSrc, hasPersistedCanvasSize]);
 
     useEffect(() => {
         const nextImageSrc = currentContent.imageSrc;
@@ -168,13 +247,13 @@ const Paint = ({ appId, id, content }: PaintProps) => {
             if (!ctx) return;
 
             clearCanvas();
-            ctx.drawImage(image, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            ctx.drawImage(image, 0, 0, canvasWidth, canvasHeight);
             resetHistory();
             setStatusText(`Loaded ${documentName}.`);
         };
         image.src = nextImageSrc;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [appId, currentContent.imageSrc, documentName]);
+    }, [appId, canvasHeight, canvasWidth, currentContent.imageSrc, documentName]);
 
     useEffect(() => addShellBrowserResultListener((detail) => {
         const handler = dialogHandlersRef.current.get(detail.dialogId);
@@ -222,7 +301,7 @@ const Paint = ({ appId, id, content }: PaintProps) => {
         const ctx = getContext();
         if (!ctx) return;
 
-        const imageData = ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
         const { data, width, height } = imageData;
         const startIndex = (y * width + x) * 4;
         const targetColor = [data[startIndex], data[startIndex + 1], data[startIndex + 2], data[startIndex + 3]] as const;
@@ -362,8 +441,8 @@ const Paint = ({ appId, id, content }: PaintProps) => {
             documentKind: "paint",
             documentName: title,
             imageSrc,
-            canvasWidth: CANVAS_WIDTH,
-            canvasHeight: CANVAS_HEIGHT,
+            canvasWidth,
+            canvasHeight,
         } satisfies PaintDocumentContent,
     });
 
@@ -581,12 +660,12 @@ const Paint = ({ appId, id, content }: PaintProps) => {
                     </div>
                 </aside>
 
-                <main className={styles.canvasPane}>
-                    <div className={styles.canvasFrame}>
+                <main ref={canvasPaneRef} className={styles.canvasPane}>
+                    <div ref={canvasFrameRef} className={styles.canvasFrame}>
                         <canvas
                             ref={canvasRef}
-                            width={CANVAS_WIDTH}
-                            height={CANVAS_HEIGHT}
+                            width={canvasWidth}
+                            height={canvasHeight}
                             onPointerDown={onCanvasPointerDown}
                         />
                     </div>

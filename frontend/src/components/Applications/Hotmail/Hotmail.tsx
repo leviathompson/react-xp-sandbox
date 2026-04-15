@@ -44,7 +44,11 @@ const getMessageSize = (message: Message) => {
     return `${Math.max(1, Math.round(bytes / 128))} KB`;
 };
 
-const Hotmail = () => {
+type HotmailProps = {
+    embedded?: boolean;
+};
+
+const Hotmail = ({ embedded = false }: HotmailProps) => {
     const [email, setEmail] = useState(HOTMAIL_EMAIL);
     const [password, setPassword] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
@@ -88,9 +92,9 @@ const Hotmail = () => {
 
     if (!isAuthenticated) {
         return (
-            <div className={styles.hotmail}>
+            <div className={styles.hotmail} data-authenticated="false">
                 <div className={styles.loginShell}>
-                    <WindowMenu menuItems={["File", "Edit", "View", "Help"]} />
+                    {!embedded && <WindowMenu menuItems={["File", "Edit", "View", "Help"]} />}
                     <div className={styles.loginPanel}>
                         <div className={styles.brandRow}>
                             <div className={styles.logoMark}>
@@ -124,9 +128,9 @@ const Hotmail = () => {
     }
 
     return (
-        <div className={styles.hotmail}>
+        <div className={styles.hotmail} data-authenticated="true">
             <div className={styles.topBar}>
-                <WindowMenu menuItems={["File", "Edit", "View", "Favorites", "Tools", "Help"]} />
+                {!embedded && <WindowMenu menuItems={["File", "Edit", "View", "Favorites", "Tools", "Help"]} />}
                 <div className={styles.brandStrip}>
                     <div className={styles.brandLockup}>
                         <div className={styles.logoMark}>

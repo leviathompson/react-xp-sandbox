@@ -34,8 +34,6 @@ type OutlookData = {
 };
 
 const data = outlookMail as OutlookData;
-const moduleButtons = ["Mail", "Calendar", "Contacts", "Tasks"];
-
 const TOOLBAR_ACTIONS = [
     { label: "New", icon: "/icon__mail--large.png" },
     { label: "Reply", icon: "/icon__back.png" },
@@ -188,14 +186,6 @@ const Outlook = () => {
                             ))}
                         </ul>
                     </section>
-
-                    <nav className={styles.moduleNav}>
-                        {moduleButtons.map((button) => (
-                            <button key={button} type="button" data-active={button === "Mail"}>
-                                {button}
-                            </button>
-                        ))}
-                    </nav>
                 </aside>
 
                 <section className={styles.messagePane}>
@@ -229,11 +219,13 @@ const Outlook = () => {
                                         {message.junk && <span title="Junk">J</span>}
                                         {message.draft && <span title="Draft">D</span>}
                                     </div>
-                                    <div className={styles.messageMeta}>
-                                        <strong>{sender}</strong>
-                                        <span>{message.subject}</span>
+                                    <div className={styles.messagePreview}>
+                                        <div className={styles.messageMeta}>
+                                            <strong>{sender}</strong>
+                                            <span>{message.subject}</span>
+                                        </div>
+                                        <time dateTime={message.receivedAt}>{formatMessageTime(message.receivedAt)}</time>
                                     </div>
-                                    <time dateTime={message.receivedAt}>{formatMessageTime(message.receivedAt)}</time>
                                 </button>
                             );
                         })}

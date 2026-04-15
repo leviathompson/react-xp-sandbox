@@ -10,12 +10,12 @@
         {
             "id": "hm-verify",
             "folderId": "inbox",
-            "fromName": "Hotmail Security",
-            "fromEmail": "no-reply@hotmail.com",
+            "fromName": "Crypto Wallet",
+            "fromEmail": "no-reply@crypto.com",
             "subject": "Your verification code",
-            "receivedAt": "2009-02-14T13:05:00Z",
+            "receivedAt": "2026-04-18T20:05:00Z",
             "unread": true,
-            "body": "A sign-in request was made for your archived Bitcoin wallet.\n\nVerification code: 9524\n\nIf this was not you, ignore this message."
+            "body": "A sign-in request was made for your Bitcoin wallet.\n\nVerification code: 9524\n\nIf this was not you, ignore this message."
         },
         {
             "id": "hm-forum",

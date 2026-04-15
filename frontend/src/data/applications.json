@@ -11,7 +11,8 @@
         "icon": "/icon__internet_explorer.png",
         "iconLarge": "/icon__internet_explorer--large.png",
         "component": "InternetExplorer",
-        "height": 500,
+        "autoFitHeight": false,
+        "height": 700,
         "width": 500
     },
     "internetOptions": {
@@ -37,10 +38,11 @@
     },
     "outlook": {
         "title": "Microsoft Outlook",
-        "windowTitle": "Inbox - Microsoft Outlook",
+        "windowTitle": "gerrit@outlook.com - Microsoft Outlook",
         "icon": "/icon__outlook--large.png",
         "iconLarge": "/icon__outlook--large.png",
         "component": "Outlook",
+        "autoFitHeight": true,
         "width": 820,
         "height": 560,
         "top": 48,
@@ -69,6 +71,7 @@
         "icon": "/icon__paint.webp",
         "iconLarge": "/icon__paint.webp",
         "component": "Paint",
+        "autoFitHeight": true,
         "width": 680,
         "height": 520,
         "top": 80,
@@ -93,6 +96,7 @@
         "title": "Windows Media Player",
         "iconLarge": "/icon__media_player--large.png",
         "component": "MediaPlayer",
+        "autoFitHeight": false,
         "height": 430,
         "width": 650
     },
@@ -143,6 +147,8 @@
         "icon": "/icon__switch_users--large.png",
         "iconLarge": "/icon__switch_users--large.png",
         "component": "UserAccounts",
+        "autoFitHeight": true,
+        "clampHeightToViewport": true,
         "width": 560,
         "height": 620,
         "top": 55,
@@ -239,6 +245,7 @@
         "iconLarge": "/file__over_9000.png",
         "assetSrc": "/file__over_9000.png",
         "component": "PictureViewer",
+        "autoFitHeight": false,
         "height": 430,
         "width": 560
     },
@@ -248,6 +255,7 @@
         "iconLarge": "/file__orly_owl.jpg",
         "assetSrc": "/file__orly_owl.jpg",
         "component": "PictureViewer",
+        "autoFitHeight": false,
         "height": 430,
         "width": 560
     },
@@ -257,6 +265,7 @@
         "iconLarge": "/file__rickroll.gif",
         "assetSrc": "/file__rickroll.gif",
         "component": "PictureViewer",
+        "autoFitHeight": false,
         "height": 430,
         "width": 560
     },
@@ -268,6 +277,7 @@
         "embedUrl": "https://www.youtube-nocookie.com/embed/eVTXPUF4Oz4?autoplay=1&mute=0&rel=0",
         "artist": "Linkin Park",
         "album": "Meteora",
+        "autoFitHeight": false,
         "height": 430,
         "width": 650
     },
@@ -407,6 +417,7 @@
         "title": "Solitaire",
         "iconLarge": "/icon__solitaire--large.png",
         "component": "Solitaire",
+        "autoFitHeight": false,
         "height": 400,
         "width": 500
     },
@@ -420,16 +431,5 @@
         "height": 520,
         "top": 70,
         "left": 90
-    },
-    "hotmail": {
-        "title": "Hotmail",
-        "windowTitle": "MSN Hotmail",
-        "icon": "/icon__mail--large.png",
-        "iconLarge": "/icon__mail--large.png",
-        "component": "Hotmail",
-        "width": 860,
-        "height": 560,
-        "top": 60,
-        "left": 80
     }
 }

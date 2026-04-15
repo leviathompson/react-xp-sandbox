@@ -3,7 +3,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    overflow: hidden;
+    overflow: auto;
     background: linear-gradient(180deg, #adb7c5 0%, #7d8999 100%);
     color: #dce6ef;
 
@@ -363,7 +363,6 @@
     grid-template-columns: minmax(22rem, 24rem) 1fr;
     gap: 1rem;
     flex: 1;
-    min-height: 0;
     padding: 1rem 1.2rem 1.2rem;
 }
 

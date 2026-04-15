@@ -81,7 +81,7 @@
     flex-direction: column;
     gap: 0.8rem;
     padding: 0.8rem;
-    min-height: 0;
+    overflow: auto;
 }
 
 .noticeCard {
@@ -152,7 +152,6 @@
     display: flex;
     flex: 1;
     flex-direction: column;
-    min-height: 0;
     border: 0.1rem solid #b8c8ea;
     background: #fff;
 }
@@ -172,6 +171,7 @@
     flex: 1;
     overflow-y: auto;
     padding: 0.4rem 0;
+    min-height: 1rem;
 }
 
 .sessionRow {

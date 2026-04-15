@@ -1,10 +1,17 @@
 .hotmail {
     display: flex;
-    flex: 1;
+    flex: 0 0 auto;
     flex-direction: column;
-    min-height: 0;
+    height: 100%;
+    width: 100%;
+    min-height: fit-content;
     background: linear-gradient(180deg, #cadcf5 0%, #91b2df 100%);
     color: #12345d;
+
+    &[data-authenticated="true"] {
+        height: 100%;
+        min-height: 0;
+    }
 }
 
 .loginShell,
@@ -171,6 +178,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    text-align: center;
     gap: 0.35rem;
     padding: 0.45rem 0.5rem 0.3rem;
     border: 0.1rem solid transparent;
@@ -511,6 +519,12 @@
         gap: 0.2rem;
     }
 
+    @media (max-width: 64rem) {
+        ul {
+            flex-direction: row;
+        }
+    }
+
     button {
         width: 100%;
         display: flex;
@@ -674,6 +688,10 @@
 }
 
 @media (max-width: 48rem) {
+    .hotmail {
+        min-height: 0;
+    }
+
     .brandStrip,
     .mailToolbar,
     .commandBar,
@@ -682,21 +700,164 @@
         align-items: stretch;
     }
 
-    .ribbon {
-        overflow-x: auto;
+    .loginPanel {
+        width: calc(100% - 1.6rem);
+        margin: 1rem auto;
+        padding: 1.2rem;
     }
 
-    .messageHeader,
-    .messageRow {
-        grid-template-columns: 1fr;
-        gap: 0.15rem;
+    .brandRow {
+        align-items: flex-start;
+        gap: 0.7rem;
+
+        h1 {
+            font-size: 2rem;
+        }
+    }
+
+    .utilityActions,
+    .commandActions,
+    .toolbarActions {
+        flex-wrap: wrap;
+    }
+
+    .ribbon {
+        overflow-x: auto;
+        padding-bottom: 0.65rem;
+        scrollbar-width: thin;
+    }
+
+    .ribbonButton {
+        flex: 0 0 5.8rem;
+        min-width: 5.8rem;
+    }
+
+    .commandBar {
+        gap: 0.35rem;
+        padding: 0.45rem 0.45rem 0.2rem;
+    }
+
+    .commandTitle {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .heroPanel {
+        flex-direction: column;
+        gap: 0.6rem;
+        margin: 0 0.45rem;
+        padding: 0.75rem;
+    }
+
+    .heroBrand h1 {
+        font-size: 1.85rem;
+    }
+
+    .heroPromo {
+        width: 100%;
+        padding: 0.7rem 0.8rem;
+
+        h2 {
+            font-size: 1.45rem;
+        }
+    }
+
+    .tabs {
+        overflow-x: auto;
+        padding: 0 0.45rem;
+        margin-top: 0.2rem;
+        scrollbar-width: thin;
+
+        button {
+            flex: 0 0 auto;
+            white-space: nowrap;
+            padding: 0.55rem 0.9rem;
+            font-size: 0.98rem;
+        }
+    }
+
+    .mailPanel {
+        margin: 0 0.45rem 0.45rem;
+        flex: 0 0 auto;
+    }
+
+    .mailToolbar {
+        gap: 0.45rem;
+        padding: 0.45rem 0.55rem;
+    }
+
+    .folderRail {
+        padding: 0.55rem;
+
+        h2 {
+            margin-bottom: 0.4rem;
+        }
+
+        ul {
+            display: flex;
+            gap: 0.35rem;
+            overflow-x: auto;
+            padding-bottom: 0.1rem;
+            scrollbar-width: thin;
+        }
+
+        li {
+            flex: 0 0 auto;
+        }
+
+        button {
+            width: auto;
+            min-width: max-content;
+            padding: 0.4rem 0.6rem;
+            border-color: #b6cae8;
+            background: linear-gradient(180deg, #ffffff 0%, #ebf3ff 100%);
+        }
+    }
+
+    .messagePanel {
+        min-height: 0;
     }
 
     .messageHeader {
         display: none;
     }
 
+    .messageList {
+        flex: 0 0 auto;
+        max-height: 18rem;
+    }
+
+    .messageRow {
+        grid-template-columns: 1fr;
+        gap: 0.15rem;
+        padding: 0.5rem 0.7rem;
+    }
+
     .previewPane {
-        min-height: 12rem;
+        min-height: 14rem;
+        flex: 1;
+    }
+
+    .previewHeader {
+        padding: 0.75rem 0.85rem;
+
+        h2 {
+            font-size: 1.2rem;
+        }
+
+        p {
+            font-size: 0.92rem;
+        }
+    }
+
+    .messageBody,
+    .emptyState {
+        padding: 0.8rem 0.85rem;
+        font-size: 0.98rem;
+    }
+
+    .workspace,
+    .mainPane {
+        overflow: auto;
     }
 }

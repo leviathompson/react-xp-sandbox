@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useContext } from "../../../context/context";
 import { avatarOptions } from "../../../data/avatars";
 import { fileToAvatarDataUrl, saveUserProfile } from "../../../utils/userProfile";
+import CollapseBox from "../../CollapseBox/CollapseBox";
+import explorerStyles from "../FileExplorer/FileExplorer.module.scss";
 import styles from "./UserAccounts.module.scss";
 
 type SaveState =
@@ -33,11 +35,6 @@ const UserAccounts = () => {
     }, [trimmedUsername]);
 
     const hasChanges = draftAvatarSrc !== avatarSrc;
-    const isCustomPicture = useMemo(
-        () => !avatarOptions.some((option) => option.src === draftAvatarSrc),
-        [draftAvatarSrc],
-    );
-
     const onPickBuiltInAvatar = (nextAvatarSrc: string) => {
         setDraftAvatarSrc(nextAvatarSrc);
         setSaveState({
@@ -126,32 +123,22 @@ const UserAccounts = () => {
             </header>
 
             <main className={styles.content}>
-                <aside className={styles.sidebar}>
-                    <section className={styles.sidebarPanel}>
-                        <h2>Current Picture</h2>
+                <aside className={`${explorerStyles.sidebar} ${styles.sidebar}`}>
+                    <CollapseBox title="Current Picture">
                         <div className={styles.currentPicture}>
                             <img src={draftAvatarSrc} alt={`${trimmedUsername || "User"} avatar preview`} />
                             <div>
                                 <strong>{trimmedUsername || "User"}</strong>
-                                <p>{isCustomPicture ? "Custom picture" : "Built-in picture"}</p>
                             </div>
                         </div>
-                    </section>
+                    </CollapseBox>
 
-                    <section className={styles.sidebarPanel}>
-                        <h2>Related Tasks</h2>
-                        <button type="button" className={styles.sidebarLink} onClick={onBrowseForPicture}>
-                            Change account picture
-                        </button>
-                    </section>
-
-                    <section className={styles.sidebarPanel}>
-                        <h2>Learn About</h2>
+                    <CollapseBox title="Learn About">
                         <p className={styles.sidebarInfo}>
                             <img src="/icon__info.png" width="16" height="16" alt="" />
                             <span>Your picture appears on the Welcome screen and in the Start menu.</span>
                         </p>
-                    </section>
+                    </CollapseBox>
                 </aside>
 
                 <section className={styles.mainPanel}>

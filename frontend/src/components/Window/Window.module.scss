@@ -1,7 +1,7 @@
 .window {
     padding: 1.2rem;
     transition: all 0.3s ease, padding 0.15s ease-in;
-    min-width: fit-content;
+    min-width: 0;
     z-index: 0;
     box-sizing: content-box;
 
@@ -64,7 +64,6 @@
 
         .windowContent {
             box-shadow: 0rem 0.05rem 0rem 0.1rem #2b5be0;
-            overflow: hidden;
 
             @include theme-color("green") {
                 box-shadow: 0rem 0.05rem 0rem 0.1rem #c4cd9b;
@@ -99,7 +98,7 @@
         padding: 0.35rem;
         border-radius: 0.9rem 0.9rem 0.1rem 0.1rem;
         overflow: hidden;
-        min-width: fit-content;
+        min-width: 0;
         box-shadow: inset 0 0 0.1rem 0.1rem #0004;
         transition: all 0.1s ease;
 
