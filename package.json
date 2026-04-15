@@ -3,11 +3,7 @@
   "private": true,
   "scripts": {
     "api": "node --env-file=.env backend/server.js",
-    "api:dev": "node --env-file=.env --watch backend/server.js",
-    "migrate:points": "npm run migrate:points:schema && npm run migrate:points:seed",
-    "migrate:points:schema": "psql \"$DATABASE_URL\" -f backend/sql/points_schema.sql",
-    "migrate:points:seed": "psql \"$DATABASE_URL\" -f backend/sql/seed_point_rules.sql",
-    "deploy:points": "npm run migrate:points && echo \"Deploy hooks can be added here\""
+    "api:dev": "node --env-file=.env --watch backend/server.js"
   },
   "devDependencies": {
     "sass-embedded": "^1.97.2"

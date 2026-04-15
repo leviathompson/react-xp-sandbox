@@ -14,16 +14,22 @@ type MessageCreatedEvent = {
     };
 };
 
-type PointsUpdatedEvent = {
-    type: "points_updated";
+type CryptoWalletState = {
+    remainingAttempts: number;
+    isLocked: boolean;
+    lockedUntil: string | null;
+    failedAttempts: number;
+    balanceUsd: number;
+};
+
+type CryptoWalletStateEvent = {
+    type: "crypto_wallet_state";
     payload: {
-        userId: string;
-        score: number;
-        updatedAt: string;
+        state: CryptoWalletState;
     };
 };
 
-export type MessengerRealtimeEvent = ReadyEvent | MessageCreatedEvent | PointsUpdatedEvent;
+export type MessengerRealtimeEvent = ReadyEvent | MessageCreatedEvent | CryptoWalletStateEvent;
 
 interface RealtimeSubscriber {
     onEvent: (event: MessengerRealtimeEvent) => void;
@@ -104,11 +110,6 @@ const ensureMessengerRealtimeConnection = () => {
     socket.onmessage = (event) => {
         try {
             const parsed = JSON.parse(event.data as string) as MessengerRealtimeEvent;
-
-            if (parsed.type === "points_updated") {
-                parsed.payload.score = Number(parsed.payload.score) || 0;
-            }
-
             dispatchRealtimeEvent(parsed);
         } catch {
             // Ignore malformed events from the server.

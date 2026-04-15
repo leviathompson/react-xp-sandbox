@@ -1,10 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import AnimatedScore from "../../AnimatedScore/AnimatedScore";
 import { useContext } from "../../../context/context";
-import { usePoints } from "../../../context/points";
 import { DEFAULT_AVATAR_SRC } from "../../../data/avatars";
 import { ACTIVE_SESSIONS_POLL_MS, fetchActiveSessions, openMessengerChatWindow } from "../../../utils/messenger";
-import { subscribeToMessengerRealtime } from "../../../utils/messengerRealtime";
 import type { ActiveSession } from "../../../utils/messenger";
 import { saveUserProfile } from "../../../utils/userProfile";
 import WindowMenu from "../../WindowMenu/WindowMenu";
@@ -54,7 +51,6 @@ const PERSONAL_MESSAGE_PLACEHOLDER = "<Type a personal message>";
 
 const Messenger = () => {
     const { username, avatarSrc, personalMessage, currentWindows, dispatch } = useContext();
-    const { awardPoints } = usePoints();
     const [sessions, setSessions] = useState<Awaited<ReturnType<typeof fetchActiveSessions>>["sessions"]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState("");
@@ -62,10 +58,6 @@ const Messenger = () => {
     const [isSavingPersonalMessage, setIsSavingPersonalMessage] = useState(false);
     const sessionRowRefs = useRef(new Map<string, HTMLButtonElement>());
     const previousRowPositionsRef = useRef(new Map<string, DOMRect>());
-
-    useEffect(() => {
-        awardPoints("open-messenger");
-    }, [awardPoints]);
 
     useEffect(() => {
         setDraftPersonalMessage(personalMessage);
@@ -98,27 +90,6 @@ const Messenger = () => {
         };
     }, []);
 
-    useEffect(() => {
-        if (!username.trim()) return;
-
-        return subscribeToMessengerRealtime(username, (event) => {
-            if (event.type !== "points_updated") return;
-
-            const { userId, score } = event.payload;
-            setSessions((currentSessions) => {
-                const targetIndex = currentSessions.findIndex((session) => session.user_id === userId);
-                if (targetIndex === -1) return currentSessions;
-                if (currentSessions[targetIndex].score === score) return currentSessions;
-
-                return currentSessions.map((session) => (
-                    session.user_id === userId
-                        ? { ...session, score }
-                        : session
-                ));
-            });
-        });
-    }, [username]);
-
     const visibleSessions = useMemo(
         () => sessions
             .map((session) => ({
@@ -127,15 +98,10 @@ const Messenger = () => {
                 presence: getPresence(session, username),
             }))
             .sort((a, b) => (
-                b.score - a.score
-                || new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+                new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
                 || a.user_id.localeCompare(b.user_id)
             )),
         [sessions, username],
-    );
-    const currentUserSession = useMemo(
-        () => visibleSessions.find((session) => session.user_id === username) || null,
-        [visibleSessions, username],
     );
 
     useLayoutEffect(() => {
@@ -226,11 +192,6 @@ const Messenger = () => {
                 </div>
 
                 <div className={styles.profileRow}>
-                    <AnimatedScore
-                        value={currentUserSession?.score || 0}
-                        className={styles.profileScore}
-                        title={`${currentUserSession?.score || 0} points`}
-                    />
                     <img src={avatarSrc || DEFAULT_AVATAR_SRC} alt="" />
                     <div>
                         <h2>{username || "User"}</h2>
@@ -296,11 +257,6 @@ const Messenger = () => {
                                 }}
                             >
                                 <span className={styles.presenceIcon} data-presence={session.presence} />
-                                <AnimatedScore
-                                    value={session.score}
-                                    className={styles.score}
-                                    title={`${session.score} points`}
-                                />
                                 <img src={session.avatarSrc} alt="" />
                                 <div className={styles.sessionMeta}>
                                     <div className={styles.nameRow}>

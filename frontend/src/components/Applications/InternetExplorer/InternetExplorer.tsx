@@ -1,32 +1,41 @@
-import { useRef, useState, useEffect } from "react";
+﻿import { useRef, useState, useEffect } from "react";
 import type { HTMLAttributeReferrerPolicy } from "react";
 import { useContext } from "../../../context/context";
-import { usePoints } from "../../../context/points";
 import applicationsJSON from "../../../data/applications.json";
-import { generateUniqueId } from "../../../utils/general";
-import { sameBaseDomain } from "../../../utils/general";
-import { getCurrentWindow } from "../../../utils/general";
+import savedPasswords from "../../../data/savedPasswords.json";
+import { generateUniqueId, sameBaseDomain, getCurrentWindow } from "../../../utils/general";
 import styles from "./InternetExplorer.module.scss";
 import type { Application } from "../../../context/types";
-
 
 const Applications = applicationsJSON as unknown as Record<string, Application>;
 const DEFAULT_HOME_PAGE = "https://www.msn.com";
 const TOP_LEVEL_MENUS = ["File", "Edit", "View", "Favorites", "Tools", "Help"];
+
 type BrowserMenuItem = {
     label?: string;
     hasSubMenu?: boolean;
-    action?: "openInternetOptions";
+    action?: "openInternetOptions" | "openSavedPasswords";
     url?: string;
     separator?: boolean;
 };
+
 type IframeSecurity = {
     sandbox?: string;
     referrerPolicy?: HTMLAttributeReferrerPolicy;
 };
 
+type SavedPassword = {
+    id: string;
+    username: string;
+    site: string;
+    password: string;
+    createdAt: string;
+};
+
+const passwordEntries = savedPasswords as SavedPassword[];
+
 const FAVORITES_MENU_ITEMS: BrowserMenuItem[] = [
-    { label: "Add to favorites..."},
+    { label: "Add to favorites..." },
     { separator: true },
     { label: "Neopets", url: "https://www.neopets.org" },
     { label: "Homestar Runner", url: "https://homestarrunner.com" },
@@ -50,17 +59,24 @@ const TOOLS_MENU_ITEMS: BrowserMenuItem[] = [
     { label: "RoboForm Toolbar" },
     { label: "Save Forms" },
     { label: "Fill Forms" },
+    { label: "Saved Passwords...", action: "openSavedPasswords" },
     { separator: true },
     { label: "Internet Options...", action: "openInternetOptions" },
 ] as const;
 
+const formatPasswordDate = (iso: string) => new Date(iso).toLocaleString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+});
+
 const InternetExplorer = ({ appId }: Record<string, string>) => {
     const { currentWindows, dispatch } = useContext();
-    const { awardPoints } = usePoints();
     const [isBackDisabled, setIsBackDisabled] = useState(true);
     const [isForwardDisabled, setIsForwardDisabled] = useState(true);
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
-    const [activeExplorerBar, setActiveExplorerBar] = useState<"favorites" | null>(null);
+    const [activeExplorerBar, setActiveExplorerBar] = useState<"favorites" | "savedPasswords" | null>(null);
+    const [selectedPasswordId, setSelectedPasswordId] = useState<string | null>(passwordEntries[0]?.id || null);
     const { currentWindow, updatedCurrentWindows } = getCurrentWindow(currentWindows);
     const HOMEPAGE = currentWindow?.homePage || currentWindow?.landingUrl || DEFAULT_HOME_PAGE;
 
@@ -68,7 +84,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
     const menuRef = useRef<HTMLDivElement | null>(null);
     const inputField = inputFieldRef.current;
     const currentUrl = useRef<string>(HOMEPAGE);
-    
+
     useEffect(() => {
         if (!currentWindow) return;
 
@@ -84,7 +100,6 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
 
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key !== "Escape") return;
-
             setActiveMenu(null);
         };
 
@@ -98,6 +113,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
     }, []);
 
     const appData = Applications[appId];
+    const selectedPassword = passwordEntries.find((entry) => entry.id === selectedPasswordId) || passwordEntries[0] || null;
 
     const setWindowCurrentUrl = (nextUrl: string) => {
         currentUrl.current = nextUrl;
@@ -110,7 +126,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
         currentWindow.forward.push(inputField.value);
         inputField.value = currentWindow.history.pop() || "";
         setWindowCurrentUrl(inputField.value);
-        
+
         updateIframe();
         dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
     };
@@ -121,7 +137,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
         currentWindow.history.push(inputField.value);
         inputField.value = currentWindow.forward.pop() || "";
         setWindowCurrentUrl(inputField.value);
-        
+
         updateIframe();
         dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
     };
@@ -132,10 +148,10 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
     const getIframeSrc = (inputValue: string) => {
         if (inputValue === "about:blank") return { url: "about:blank", value: "about:blank" };
 
-        const value = (!inputValue.startsWith("http")) ? `https://${inputValue}` : inputValue;
+        const value = !inputValue.startsWith("http") ? `https://${inputValue}` : inputValue;
         const wayBackUrl = "https://web.archive.org/web/20030612074004if_/";
         const url = sameBaseDomain(value) ? value : `/proxy.php?url=${encodeURIComponent(`${wayBackUrl}${value}`)}`;
-        return {url, value};
+        return { url, value };
     };
 
     const getIframeSecurity = (targetValue: string): IframeSecurity => {
@@ -162,23 +178,17 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
     const updateIframe = (nextValue?: string) => {
         if (!inputField && !nextValue) return;
         const inputValue = nextValue ?? inputField?.value ?? HOMEPAGE;
-        const {url, value} = getIframeSrc(inputValue);
+        const { url, value } = getIframeSrc(inputValue);
         const { sandbox, referrerPolicy } = getIframeSecurity(value);
 
         if (iframe) {
-            if (sandbox) {
-                iframe.setAttribute("sandbox", sandbox);
-            } else {
-                iframe.removeAttribute("sandbox");
-            }
+            if (sandbox) iframe.setAttribute("sandbox", sandbox);
+            else iframe.removeAttribute("sandbox");
 
-            if (referrerPolicy) {
-                iframe.setAttribute("referrerPolicy", referrerPolicy);
-            } else {
-                iframe.removeAttribute("referrerPolicy");
-            }
+            if (referrerPolicy) iframe.setAttribute("referrerPolicy", referrerPolicy);
+            else iframe.removeAttribute("referrerPolicy");
         }
-        
+
         if (inputField && nextValue !== undefined) inputField.value = nextValue;
         if (iframe) iframe.setAttribute("src", url);
     };
@@ -187,22 +197,18 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
         if (currentUrl.current === inputField?.value) return;
         if (currentWindow && currentWindow.history && currentUrl) {
             if (currentUrl.current !== currentWindow.history.at(-1)) currentWindow.history.push(currentUrl.current);
-
             if (currentWindow.forward) currentWindow.forward = [];
+
             const newUrl = inputField?.value ?? "";
-            if (newUrl) {
-                setWindowCurrentUrl(newUrl);
-                if (newUrl.toLowerCase().includes("neopets")) awardPoints("visit-neopets");
-            }
+            if (newUrl) setWindowCurrentUrl(newUrl);
+
             dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
             updateIframe();
         }
     };
 
     const keyDownHandler = (event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === "Enter") {
-            submitURLHandler();
-        }
+        if (event.key === "Enter") submitURLHandler();
     };
 
     const stopClickHandler = () => {
@@ -230,7 +236,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
         if (currentWindow.forward) currentWindow.forward = [];
 
         setWindowCurrentUrl(nextUrl);
-        if (nextUrl.toLowerCase().includes("neopets")) awardPoints("visit-neopets");
+        setActiveExplorerBar(null);
 
         dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
         updateIframe(nextUrl);
@@ -241,10 +247,21 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
         setActiveMenu((currentMenu) => currentMenu === menuItem ? null : menuItem);
     };
 
+    const openSavedPasswords = () => {
+        setActiveMenu(null);
+        setActiveExplorerBar("savedPasswords");
+        setSelectedPasswordId((currentId) => currentId || passwordEntries[0]?.id || null);
+    };
+
     const handleMenuItemAction = ({ action, url }: Pick<BrowserMenuItem, "action" | "url">) => {
         setActiveMenu(null);
         if (url) {
             navigateToUrl(url);
+            return;
+        }
+
+        if (action === "openSavedPasswords") {
+            openSavedPasswords();
             return;
         }
 
@@ -317,7 +334,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
                     {activeMenu === "Favorites" && (
                         <div className={styles.favoritesMenu} role="menu" aria-label="Favorites">
                             {FAVORITES_MENU_ITEMS.map((item, index) => {
-                                if ("separator" in item) {
+                                if (item.separator) {
                                     return <div key={`favorites-separator-${index}`} className={styles.menuSeparator} />;
                                 }
 
@@ -340,7 +357,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
                     {activeMenu === "Tools" && (
                         <div className={styles.toolsMenu} role="menu" aria-label="Tools">
                             {TOOLS_MENU_ITEMS.map((item, index) => {
-                                if ("separator" in item) {
+                                if (item.separator) {
                                     return <div key={`separator-${index}`} className={styles.menuSeparator} />;
                                 }
 
@@ -450,16 +467,70 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
                     </aside>
                 )}
                 <div className={styles.browserFrame}>
-                    <iframe
-                        ref={iframeRef}
-                        src={initialIframe.url}
-                        sandbox={initialIframeSecurity.sandbox}
-                        referrerPolicy={initialIframeSecurity.referrerPolicy}
-                        width="100%"
-                        height="100%"
-                    />
+                    {activeExplorerBar === "savedPasswords" ? (
+                        <section className={styles.savedPasswords}>
+                            <div className={styles.savedPasswordsHeader}>
+                                <div>
+                                    <h2>Saved Passwords</h2>
+                                    <p>Stored Internet Explorer form logins for Gerrit.</p>
+                                </div>
+                                <button type="button" onClick={() => setActiveExplorerBar(null)}>Close</button>
+                            </div>
+                            <div className={styles.savedPasswordsBody}>
+                                <aside className={styles.savedPasswordsList}>
+                                    {passwordEntries.map((entry) => (
+                                        <button
+                                            key={entry.id}
+                                            type="button"
+                                            className={styles.savedPasswordRow}
+                                            data-active={selectedPassword?.id === entry.id}
+                                            onClick={() => setSelectedPasswordId(entry.id)}
+                                        >
+                                            <strong>{`${entry.username} (${entry.site})`}</strong>
+                                            <span>{new Date(entry.createdAt).getFullYear()}</span>
+                                        </button>
+                                    ))}
+                                </aside>
+                                <section className={styles.savedPasswordDetails}>
+                                    {selectedPassword ? (
+                                        <>
+                                            <h3>{selectedPassword.site}</h3>
+                                            <dl>
+                                                <div>
+                                                    <dt>Username</dt>
+                                                    <dd>{selectedPassword.username}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt>Password</dt>
+                                                    <dd>{selectedPassword.password}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt>Created</dt>
+                                                    <dd>{formatPasswordDate(selectedPassword.createdAt)}</dd>
+                                                </div>
+                                            </dl>
+                                            <p className={styles.savedPasswordNote}>
+                                                No saved password exists for gerrit@hotmail.com.
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <div className={styles.savedPasswordEmpty}>No saved passwords found.</div>
+                                    )}
+                                </section>
+                            </div>
+                        </section>
+                    ) : (
+                        <iframe
+                            ref={iframeRef}
+                            src={initialIframe.url}
+                            sandbox={initialIframeSecurity.sandbox}
+                            referrerPolicy={initialIframeSecurity.referrerPolicy}
+                            width="100%"
+                            height="100%"
+                        />
+                    )}
                 </div>
-            </main >
+            </main>
             <div className={`${styles.statusBar} flex justify-between px-2 py-0.5`}>
                 <div className="flex items-center gap-1">
                     <img src="icon__internet_explorer.png" height="12" width="12" />

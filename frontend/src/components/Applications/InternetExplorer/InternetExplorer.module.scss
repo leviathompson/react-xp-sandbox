@@ -1,11 +1,13 @@
 .internetExplorer {
-    height: 100%;
     display: flex;
+    flex: 1;
     flex-direction: column;
+    min-height: 0;
     position: relative;
 }
 
 .menusContainer {
+    flex-shrink: 0;
     z-index: 1;
 }
 
@@ -258,7 +260,6 @@
 
 .mainContent {
     overflow-y: auto;
-    height: 100%;
     flex: 1;
     min-height: 0;
 
@@ -341,8 +342,14 @@
 }
 
 .browserFrame {
+    display: flex;
     flex: 1;
+    min-height: 0;
     min-width: 0;
+
+    iframe {
+        flex: 1;
+    }
 }
 
 .statusBar {
@@ -351,6 +358,7 @@
     border-top: 0.2rem solid #ebe9da;
     box-shadow: inset 0.2rem 0 0.3rem #0007;
     position: relative;
+    flex-shrink: 0;
 
     @include theme-color("silver") {
         background-color: #f1f0f3;
@@ -365,3 +373,144 @@
 
     }
 }
+
+.savedPasswords {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    background: linear-gradient(180deg, #f5f8ff 0%, #e1eaf8 100%);
+    color: #183c70;
+}
+
+.savedPasswordsHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    border-bottom: 0.1rem solid #b7c9e5;
+    background: linear-gradient(180deg, #ffffff 0%, #e9f1ff 100%);
+
+    h2 {
+        font-size: 1.7rem;
+        font-weight: 700;
+        color: #214c89;
+    }
+
+    p {
+        color: #61789e;
+        font-size: 1.02rem;
+    }
+
+    button {
+        border: 0.1rem solid #8ca7d0;
+        background: linear-gradient(180deg, #ffffff 0%, #dce8fb 100%);
+        padding: 0.45rem 0.9rem;
+        color: #214c89;
+        font-size: 1.02rem;
+        font-weight: 700;
+    }
+}
+
+.savedPasswordsBody {
+    display: grid;
+    grid-template-columns: 26rem 1fr;
+    flex: 1;
+    min-height: 0;
+}
+
+.savedPasswordsList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.8rem;
+    border-right: 0.1rem solid #b7c9e5;
+    background: linear-gradient(180deg, #eef4ff 0%, #dae7fa 100%);
+    overflow: auto;
+}
+
+.savedPasswordRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 0.1rem solid transparent;
+    padding: 0.7rem 0.8rem;
+    text-align: left;
+
+    strong {
+        color: #18437c;
+        font-size: 1.08rem;
+        font-weight: 700;
+    }
+
+    span {
+        color: #6782a7;
+        font-size: 1rem;
+    }
+
+    &:hover {
+        border-color: #b4c7e6;
+        background: rgba(255, 255, 255, 0.6);
+    }
+
+    &[data-active="true"] {
+        border-color: #f3a526;
+        background: linear-gradient(180deg, #fff1cf 0%, #ffd988 100%);
+    }
+}
+
+.savedPasswordDetails {
+    padding: 1.4rem;
+    background: #ffffff;
+    overflow: auto;
+
+    h3 {
+        margin-bottom: 1rem;
+        color: #214c89;
+        font-size: 1.8rem;
+        font-weight: 700;
+    }
+
+    dl {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    div {
+        display: grid;
+        grid-template-columns: 8rem 1fr;
+        gap: 1rem;
+        border-bottom: 0.1rem solid #e4ebf7;
+        padding-bottom: 0.8rem;
+    }
+
+    dt {
+        color: #60789e;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    dd {
+        color: #153760;
+        font-size: 1.1rem;
+        font-family: "Courier New", monospace;
+    }
+}
+
+.savedPasswordNote,
+.savedPasswordEmpty {
+    margin-top: 1.2rem;
+    color: #6f84a3;
+    font-size: 1.02rem;
+    line-height: 1.45;
+}
+
+.savedPasswordEmpty {
+    display: grid;
+    place-items: center;
+    height: 100%;
+}
+

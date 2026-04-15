@@ -1,0 +1,393 @@
+﻿.wallet {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background: linear-gradient(180deg, #adb7c5 0%, #7d8999 100%);
+    color: #dce6ef;
+
+    &[data-celebrating="true"] {
+        animation: walletFlash 0.22s steps(2, end) 6;
+    }
+}
+
+.confettiLayer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.confettiPiece {
+    position: absolute;
+    top: -2rem;
+    border-radius: 0.1rem;
+    opacity: 0;
+    box-shadow: 0 0 0.35rem rgba(255, 255, 255, 0.28);
+    animation-name: confettiFall;
+    animation-timing-function: ease-in;
+    animation-fill-mode: forwards;
+}
+
+.menuBar {
+    background: linear-gradient(180deg, #dfe4eb 0%, #c1c8d2 100%);
+    border-bottom: 0.1rem solid #6a7480;
+}
+
+.headerPanel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.2rem 1.4rem;
+    border-bottom: 0.1rem solid #6f7884;
+    background: linear-gradient(180deg, rgba(33, 38, 45, 0.92), rgba(60, 67, 78, 0.92));
+    box-shadow: inset 0 0.1rem 0 rgba(255, 255, 255, 0.08);
+
+    h1 {
+        color: #f2b84a;
+        font-size: 2.2rem;
+        font-weight: 700;
+        line-height: 1.1;
+    }
+}
+
+.kicker {
+    color: #83e17a;
+    font-family: "Courier New", monospace;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12rem;
+}
+
+.subtle {
+    margin-top: 0.35rem;
+    color: #b6c5d4;
+    font-size: 1.05rem;
+}
+
+.coinBadge {
+    display: grid;
+    place-items: center;
+    width: 6rem;
+    height: 6rem;
+    border: 0.2rem solid #f2c158;
+    border-radius: 999rem;
+    background: radial-gradient(circle at 35% 35%, #fff0b8 0%, #f0bb4b 32%, #9f6a12 100%);
+    color: #5d3a00;
+    font-family: Georgia, serif;
+    font-size: 3rem;
+    font-weight: 700;
+    box-shadow: inset 0 0.2rem 0 rgba(255, 255, 255, 0.45), 0 0.4rem 0.8rem rgba(0, 0, 0, 0.35);
+}
+
+.dashboard {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 1rem;
+    padding: 1rem 1.2rem 0;
+}
+
+.balanceCard,
+.statusCard,
+.authPanel,
+.transactionsPanel {
+    border: 0.1rem solid #5d6977;
+    background: linear-gradient(180deg, rgba(34, 38, 46, 0.96), rgba(18, 22, 28, 0.96));
+    box-shadow: inset 0 0.1rem 0 rgba(255, 255, 255, 0.08), 0 0.1rem 0 rgba(0, 0, 0, 0.3);
+}
+
+.balanceCard {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 1rem 1.2rem;
+
+    span,
+    small {
+        color: #92a5b8;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08rem;
+    }
+
+    strong {
+        color: #8cf28b;
+        font-family: "Courier New", monospace;
+        font-size: 2.8rem;
+        line-height: 1.1;
+        text-shadow: 0 0 0.6rem rgba(51, 255, 102, 0.18);
+    }
+}
+
+.btcValue {
+    color: #f4cb67;
+    font-family: "Courier New", monospace;
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: 0.05rem;
+}
+
+.balanceValue {
+    transition: transform 0.16s ease, text-shadow 0.16s ease;
+
+    .wallet[data-celebrating="true"] & {
+        transform: scale(1.03);
+        text-shadow: 0 0 1.2rem rgba(140, 242, 139, 0.42);
+    }
+}
+
+.statusCard {
+    padding: 1rem 1.2rem;
+}
+
+.statusRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    color: #d6e1ec;
+    font-size: 1.1rem;
+
+    &:not(:first-child) {
+        margin-top: 0.9rem;
+        padding-top: 0.9rem;
+        border-top: 0.1rem solid rgba(255, 255, 255, 0.08);
+    }
+
+    strong {
+        font-family: "Courier New", monospace;
+        font-size: 1.15rem;
+    }
+}
+
+.online {
+    color: #85e37d;
+}
+
+.attemptLights {
+    display: flex;
+    gap: 0.45rem;
+}
+
+.attemptLight {
+    width: 1.1rem;
+    height: 1.1rem;
+    border: 0.1rem solid #49535e;
+    border-radius: 999rem;
+    background: radial-gradient(circle, #23303d 0%, #0e1218 100%);
+    box-shadow: inset 0 0.1rem 0 rgba(255, 255, 255, 0.06);
+
+    &[data-active="true"] {
+        background: radial-gradient(circle, #a6ff9a 0%, #3fa83a 62%, #1d5b1d 100%);
+        box-shadow: 0 0 0.6rem rgba(110, 255, 102, 0.35);
+    }
+}
+
+.contentGrid {
+    display: grid;
+    grid-template-columns: minmax(22rem, 24rem) 1fr;
+    gap: 1rem;
+    flex: 1;
+    min-height: 0;
+    padding: 1rem 1.2rem 1.2rem;
+}
+
+.authPanel,
+.transactionsPanel {
+    padding: 1.2rem;
+}
+
+.authPanel {
+    &[data-error="true"] {
+        animation: walletShake 0.38s linear;
+        border-color: #b55050;
+        box-shadow: inset 0 0.1rem 0 rgba(255, 255, 255, 0.08), 0 0 1rem rgba(200, 40, 40, 0.18);
+    }
+}
+
+.authPanel h2,
+.transactionsHeader h2 {
+    color: #f0bb55;
+    font-size: 1.45rem;
+    font-weight: 700;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    margin-top: 1rem;
+
+    label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        color: #b8c7d6;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05rem;
+    }
+
+    input {
+        border: 0.1rem solid #657283;
+        background: #0f1318;
+        padding: 0.7rem 0.8rem;
+        color: #8cf28b;
+        font-family: "Courier New", monospace;
+        font-size: 1.2rem;
+
+        &:focus {
+            outline: none;
+            border-color: #8bb7ff;
+            box-shadow: 0 0 0 0.1rem rgba(68, 126, 255, 0.2);
+        }
+    }
+
+    button {
+        margin-top: 0.2rem;
+        border: 0.1rem solid #867045;
+        background: linear-gradient(180deg, #f9d47f 0%, #c8932d 100%);
+        padding: 0.75rem 1rem;
+        color: #392400;
+        font-size: 1.15rem;
+        font-weight: 700;
+
+        &:disabled {
+            filter: grayscale(0.35);
+            opacity: 0.7;
+        }
+    }
+}
+
+.helperText {
+    color: #c3d3e4;
+    font-size: 1.06rem;
+    line-height: 1.4;
+}
+
+.statusMessage {
+    margin-top: 1rem;
+    min-height: 4.2rem;
+    border: 0.1rem solid #4f5c69;
+    background: rgba(8, 12, 16, 0.55);
+    padding: 0.8rem;
+    color: #d9e5f1;
+    font-size: 1.08rem;
+    line-height: 1.4;
+}
+
+.warning {
+    margin-top: 0.8rem;
+    color: #9fb1c5;
+    font-size: 1rem;
+    line-height: 1.35;
+}
+
+.transactionsPanel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.transactionsHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+
+    span {
+        color: #95a6bb;
+        font-size: 1rem;
+        text-transform: uppercase;
+    }
+}
+
+.transactionsList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    overflow: auto;
+}
+
+.transactionRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 0.1rem solid #495564;
+    background: linear-gradient(180deg, rgba(28, 34, 42, 0.92), rgba(15, 19, 25, 0.92));
+    padding: 0.85rem 0.95rem;
+
+    strong {
+        display: block;
+        color: #e4ebf4;
+        font-size: 1.15rem;
+        font-weight: 700;
+    }
+
+    small {
+        color: #8ea4bb;
+        font-size: 0.95rem;
+    }
+
+    span {
+        color: #87ee86;
+        font-family: "Courier New", monospace;
+        font-size: 1.15rem;
+        white-space: nowrap;
+    }
+
+    &[data-locked="true"] span {
+        color: #6f7c8d;
+    }
+}
+
+@keyframes walletShake {
+    0% { transform: translateX(0); }
+    20% { transform: translateX(-0.6rem); }
+    40% { transform: translateX(0.6rem); }
+    60% { transform: translateX(-0.45rem); }
+    80% { transform: translateX(0.45rem); }
+    100% { transform: translateX(0); }
+}
+
+@keyframes confettiFall {
+    0% {
+        opacity: 0;
+        transform: translate3d(0, -1rem, 0) rotate(0deg);
+    }
+    10% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.9;
+        transform: translate3d(-3rem, 36rem, 0) rotate(620deg);
+    }
+}
+
+@keyframes walletFlash {
+    0%,
+    100% {
+        filter: saturate(1);
+    }
+    50% {
+        filter: saturate(1.28) brightness(1.08);
+    }
+}
+
+@media (max-width: 56rem) {
+    .dashboard,
+    .contentGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .coinBadge {
+        width: 5rem;
+        height: 5rem;
+        font-size: 2.5rem;
+    }
+}

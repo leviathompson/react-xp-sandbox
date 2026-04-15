@@ -1,6 +1,5 @@
 import { useRef, useState, useEffect } from "react";
 import { useContext } from "../../../context/context";
-import { usePoints } from "../../../context/points";
 import applicationsJSON from "../../../data/applications.json";
 import { generateUniqueId, getCurrentWindow } from "../../../utils/general";
 import { getThumbnailIconSrc } from "../../../utils/applicationIcon";
@@ -15,16 +14,11 @@ const DOUBLE_TAP_DELAY_MS = 350;
 
 const FileExplorer = ({ appId }: Record<string, string>) => {
     const { currentWindows, username, shellFiles, customApplications, dispatch, openContextMenu } = useContext();
-    const { awardPoints } = usePoints();
     const Applications = { ...BaseApplications, ...customApplications };
 
     const resolveTitle = (id: string) =>
         Applications[id]?.userFolder ? username : Applications[id]?.title;
 
-    useEffect(() => {
-        if (appId === "minecraftFolder") awardPoints("locate-minecraft-folder");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [appId]);
     const [selectedItem, setSelectedItem] = useState<string | null>(null);
     const [isBackDisabled, setIsBackDisabled] = useState(true);
     const [isForwardDisabled, setIsForwardDisabled] = useState(true);
@@ -49,7 +43,6 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
         left: 95,
     });
     const triggerSystem32Crash = () => {
-        awardPoints("delete-system32");
         dispatch({ type: "SET_CURRENT_WINDOWS", payload: [] });
         dispatch({ type: "SET_WINDOWS_INITIATION_STATE", payload: "bsod" });
     };
@@ -95,10 +88,6 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
         const application = Applications[appId];
         if (!application) return;
 
-        if (appId === "win11") {
-            awardPoints("find-windows11");
-        }
-
         if (application.link) {
             window.open(application.link, "_blank", "noopener,noreferrer");
             return;
@@ -133,7 +122,7 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
         if (!itemApplication) return;
 
         const isCustomItem = !!customApplications[itemId];
-        const { title, component, disabled } = itemApplication;
+        const { title, disabled } = itemApplication;
 
         openContextMenu({
             x: event.clientX,
@@ -145,9 +134,6 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                 onOpen: () => fileDBClickHandler(null, itemId),
                 onExplore: () => fileDBClickHandler(null, itemId),
                 onCreateShortcut: () => {
-                    if (itemId === "computer") {
-                        awardPoints("create-my-computer-shortcut");
-                    }
                     dispatch({
                         type: "CREATE_SHELL_ITEM",
                         payload: createShortcutShellItemPayload(itemId, itemApplication, Applications, getDesktopShortcutPosition()),
@@ -188,12 +174,6 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                             },
                         },
                     });
-
-                    if (component === "FileExplorer") {
-                        awardPoints("rename-folder", {
-                            metadata: { appId: itemId, title: trimmedTitle },
-                        });
-                    }
                 },
             }),
         });
@@ -201,9 +181,6 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
 
     const fileClickHandler = (_: unknown, appId: string | null = null) => {
         if (!appId) return;
-        if (appId === "win11") {
-            awardPoints("find-windows11");
-        }
         setSelectedItem(appId);
 
         const secondClick = (e: PointerEvent) => onSecondClick(e, appId);
@@ -318,9 +295,6 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
         if (draggedItem.appId === SYSTEM32_APP_ID && targetContainerId === "recycleBin") {
             triggerSystem32Crash();
             return;
-        }
-        if (draggedItem.appId === "computer" && targetContainerId === "recycleBin") {
-            awardPoints("trash-my-computer");
         }
 
         dispatch({

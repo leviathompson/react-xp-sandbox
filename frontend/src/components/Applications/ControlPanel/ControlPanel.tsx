@@ -1,6 +1,4 @@
-import { useEffect } from "react";
 import { useContext } from "../../../context/context";
-import { usePoints } from "../../../context/points";
 import { openApplication } from "../../../utils/general";
 import CollapseBox from "../../CollapseBox/CollapseBox";
 import WindowMenu from "../../WindowMenu/WindowMenu";
@@ -68,11 +66,6 @@ const seeAlsoLinks = [
 
 const ControlPanel = () => {
   const { currentWindows, dispatch } = useContext();
-  const { awardPoints } = usePoints();
-
-  useEffect(() => {
-    awardPoints("open-control-panel");
-  }, [awardPoints]);
 
   const onCategoryClick = (appId?: string) => {
     if (!appId) return;

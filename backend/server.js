@@ -10,6 +10,12 @@ const MAX_AVATAR_SRC_LENGTH = 250000;
 const MAX_PERSONAL_MESSAGE_LENGTH = 120;
 const MAX_ATTACHMENT_SRC_LENGTH = 500000;
 const MAX_WALLPAPER_LENGTH = 120;
+const CRYPTO_WALLET_STATE_ID = "global";
+const CRYPTO_WALLET_MAX_ATTEMPTS = 3;
+const CRYPTO_WALLET_LOCKOUT_MS = 5 * 60 * 1000;
+const CRYPTO_WALLET_BALANCE_USD = 18369236.67;
+const CRYPTO_WALLET_USERNAME = "gerrit23";
+const CRYPTO_WALLET_PASSWORD = "L1nk1nP4rkR0x$";
 const BLOCKED_PROXY_RESPONSE_HEADERS = new Set([
     "content-encoding",
     "content-length",
@@ -77,7 +83,9 @@ const sendRealtimeEventToUser = (userId, type, payload) => {
 };
 
 const broadcastRealtimeEvent = (type, payload) => {
-    wsServer.clients.forEach((socket) => sendRealtimeEvent(socket, type, payload));
+    realtimeClientsByUser.forEach((sockets) => {
+        sockets.forEach((socket) => sendRealtimeEvent(socket, type, payload));
+    });
 };
 
 const attachRealtimeClient = (userId, socket) => {
@@ -98,6 +106,65 @@ const attachRealtimeClient = (userId, socket) => {
             realtimeClientsByUser.delete(normalizedUserId);
         }
     });
+};
+
+const normalizeCryptoWalletState = (row) => {
+    const lockedUntil = row?.locked_until || null;
+    const failedAttempts = Number(row?.failed_attempts) || 0;
+    const isLocked = Boolean(lockedUntil && new Date(lockedUntil).getTime() > Date.now());
+    const remainingAttempts = isLocked
+        ? 0
+        : Math.max(CRYPTO_WALLET_MAX_ATTEMPTS - failedAttempts, 0);
+
+    return {
+        remainingAttempts,
+        isLocked,
+        lockedUntil,
+        failedAttempts: isLocked ? CRYPTO_WALLET_MAX_ATTEMPTS : failedAttempts,
+        balanceUsd: CRYPTO_WALLET_BALANCE_USD,
+    };
+};
+
+const getCryptoWalletState = async (db = pool) => {
+    await db.query(
+        `INSERT INTO crypto_wallet_state (state_id)
+         VALUES ($1)
+         ON CONFLICT (state_id) DO NOTHING`,
+        [CRYPTO_WALLET_STATE_ID]
+    );
+
+    let { rows } = await db.query(
+        `SELECT state_id, failed_attempts, locked_until, updated_at
+         FROM crypto_wallet_state
+         WHERE state_id = $1`,
+        [CRYPTO_WALLET_STATE_ID]
+    );
+
+    let row = rows[0];
+    if (!row) {
+        row = { failed_attempts: 0, locked_until: null };
+    }
+
+    if (row.locked_until && new Date(row.locked_until).getTime() <= Date.now()) {
+        const resetResult = await db.query(
+            `UPDATE crypto_wallet_state
+             SET failed_attempts = 0,
+                 locked_until = NULL,
+                 updated_at = NOW()
+             WHERE state_id = $1
+             RETURNING state_id, failed_attempts, locked_until, updated_at`,
+            [CRYPTO_WALLET_STATE_ID]
+        );
+        row = resetResult.rows[0];
+    }
+
+    return normalizeCryptoWalletState(row);
+};
+
+const broadcastCryptoWalletState = async () => {
+    const state = await getCryptoWalletState();
+    broadcastRealtimeEvent("crypto_wallet_state", { state });
+    return state;
 };
 
 const proxyWaybackRequest = async (req, res, url) => {
@@ -204,6 +271,20 @@ Promise.all([
         ALTER TABLE instant_messages
         ADD COLUMN IF NOT EXISTS attachment_name TEXT
     `),
+    pool.query(`
+        CREATE TABLE IF NOT EXISTS crypto_wallet_state (
+            state_id TEXT PRIMARY KEY,
+            failed_attempts INTEGER NOT NULL DEFAULT 0,
+            locked_until TIMESTAMPTZ,
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    `),
+    pool.query(
+        `INSERT INTO crypto_wallet_state (state_id)
+         VALUES ($1)
+         ON CONFLICT (state_id) DO NOTHING`,
+        [CRYPTO_WALLET_STATE_ID]
+    ),
 ]).catch((err) => console.error("[debug-api] Failed to prepare user_sessions table:", err.message));
 
 const ttsProxyApp = express();
@@ -240,104 +321,6 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/api/tts" || url.pathname.startsWith("/api/tts/")) {
         ttsProxyApp(req, res);
-        return;
-    }
-
-    // GET /api/debug/rules — all seeded point rules
-    if (method === "GET" && url.pathname === "/api/debug/rules") {
-        try {
-            const { rows } = await pool.query(
-                "SELECT id, label, description, category, points, metadata FROM point_rules ORDER BY category, label"
-            );
-            json(res, 200, { rules: rows });
-        } catch (err) {
-            json(res, 500, { error: err.message });
-        }
-        return;
-    }
-
-    // GET /api/debug/points?userId=<id> — totals + recent events for a user
-    if (method === "GET" && url.pathname === "/api/debug/points") {
-        const userId = url.searchParams.get("userId");
-        if (!userId) {
-            json(res, 400, { error: "userId query param required" });
-            return;
-        }
-
-        try {
-            const [totalsResult, eventsResult] = await Promise.all([
-                pool.query(
-                    "SELECT lifetime_points, last_award_at, updated_at FROM user_point_totals WHERE user_id = $1",
-                    [userId]
-                ),
-                pool.query(
-                    `SELECT pe.rule_id, pr.label, pe.points, pe.awarded_at, pe.metadata
-                     FROM point_events pe
-                     LEFT JOIN point_rules pr ON pr.id = pe.rule_id
-                     WHERE pe.user_id = $1
-                     ORDER BY pe.awarded_at DESC
-                     LIMIT 20`,
-                    [userId]
-                ),
-            ]);
-
-            const totals = totalsResult.rows[0] ?? null;
-            json(res, 200, {
-                userId,
-                totals,
-                recentEvents: eventsResult.rows,
-            });
-        } catch (err) {
-            json(res, 500, { error: err.message });
-        }
-        return;
-    }
-
-    // POST /api/points/events — record a client-awarded point event
-    if (method === "POST" && url.pathname === "/api/points/events") {
-        let body;
-        try {
-            body = await readBody(req);
-        } catch {
-            json(res, 400, { error: "Invalid JSON body" });
-            return;
-        }
-
-        const { userId, clientId, ruleId, points, awardedAt, metadata } = body;
-        if (!userId || !clientId || !ruleId || points == null) {
-            json(res, 400, { error: "Missing required fields: userId, clientId, ruleId, points" });
-            return;
-        }
-
-        try {
-            const insertResult = await pool.query(
-                `INSERT INTO point_events (user_id, client_id, rule_id, points, awarded_at, metadata)
-                 VALUES ($1, $2::uuid, $3, $4, $5, $6)
-                 ON CONFLICT (user_id, client_id) DO NOTHING
-                 RETURNING user_id`,
-                [userId, clientId, ruleId, points, awardedAt ?? new Date().toISOString(), metadata ?? {}]
-            );
-
-            if (insertResult.rows.length > 0) {
-                const totalsResult = await pool.query(
-                    "SELECT lifetime_points, updated_at FROM user_point_totals WHERE user_id = $1",
-                    [userId]
-                );
-                const totals = totalsResult.rows[0];
-
-                if (totals) {
-                    broadcastRealtimeEvent("points_updated", {
-                        userId,
-                        score: Number(totals.lifetime_points) || 0,
-                        updatedAt: totals.updated_at,
-                    });
-                }
-            }
-
-            json(res, 200, { ok: true });
-        } catch (err) {
-            json(res, 500, { error: err.message });
-        }
         return;
     }
 
@@ -468,10 +451,8 @@ const server = http.createServer(async (req, res) => {
                     us.avatar_src,
                     us.personal_message,
                     us.first_login_at,
-                    us.updated_at,
-                    COALESCE(upt.lifetime_points, 0) AS score
+                    us.updated_at
                  FROM user_sessions us
-                 LEFT JOIN user_point_totals upt ON upt.user_id = us.user_id
                  ORDER BY us.updated_at DESC, us.first_login_at DESC
                  LIMIT $1`,
                 [limit]
@@ -505,6 +486,89 @@ const server = http.createServer(async (req, res) => {
                 [userId, peerId, limit]
             );
             json(res, 200, { messages: rows });
+        } catch (err) {
+            json(res, 500, { error: err.message });
+        }
+        return;
+    }
+
+    // GET /api/crypto-wallet/state ? fetch the shared wallet lockout state
+    if (method === "GET" && url.pathname === "/api/crypto-wallet/state") {
+        try {
+            const state = await getCryptoWalletState();
+            json(res, 200, state);
+        } catch (err) {
+            json(res, 500, { error: err.message });
+        }
+        return;
+    }
+
+    // POST /api/crypto-wallet/unlock ? attempt wallet access
+    if (method === "POST" && url.pathname === "/api/crypto-wallet/unlock") {
+        let body;
+        try {
+            body = await readBody(req);
+        } catch {
+            json(res, 400, { error: "Invalid JSON body" });
+            return;
+        }
+
+        const username = typeof body.username === "string" ? body.username.trim() : "";
+        const password = typeof body.password === "string" ? body.password : "";
+
+        if (!username || !password) {
+            json(res, 400, { error: "username and password are required" });
+            return;
+        }
+
+        try {
+            const state = await getCryptoWalletState();
+            if (state.isLocked) {
+                json(res, 423, {
+                    error: "Wallet temporarily locked",
+                    state,
+                });
+                return;
+            }
+
+            if (username === CRYPTO_WALLET_USERNAME && password === CRYPTO_WALLET_PASSWORD) {
+                await pool.query(
+                    `UPDATE crypto_wallet_state
+                     SET failed_attempts = 0,
+                         locked_until = NULL,
+                         updated_at = NOW()
+                     WHERE state_id = $1`,
+                    [CRYPTO_WALLET_STATE_ID]
+                );
+
+                const nextState = await broadcastCryptoWalletState();
+                json(res, 200, {
+                    success: true,
+                    balanceUsd: CRYPTO_WALLET_BALANCE_USD,
+                    state: nextState,
+                });
+                return;
+            }
+
+            const nextFailedAttempts = state.failedAttempts + 1;
+            const nextLockedUntil = nextFailedAttempts >= CRYPTO_WALLET_MAX_ATTEMPTS
+                ? new Date(Date.now() + CRYPTO_WALLET_LOCKOUT_MS).toISOString()
+                : null;
+
+            await pool.query(
+                `UPDATE crypto_wallet_state
+                 SET failed_attempts = $2,
+                     locked_until = $3,
+                     updated_at = NOW()
+                 WHERE state_id = $1`,
+                [CRYPTO_WALLET_STATE_ID, Math.min(nextFailedAttempts, CRYPTO_WALLET_MAX_ATTEMPTS), nextLockedUntil]
+            );
+
+            const nextState = await broadcastCryptoWalletState();
+            json(res, nextState.isLocked ? 423 : 401, {
+                error: nextState.isLocked ? "Wallet temporarily locked" : "Invalid wallet credentials",
+                state: nextState,
+            });
         } catch (err) {
             json(res, 500, { error: err.message });
         }

@@ -9,7 +9,6 @@ export interface ActiveSession {
     personal_message: string | null;
     first_login_at: string;
     updated_at: string;
-    score: number;
 }
 
 export const ACTIVE_SESSIONS_POLL_MS = 4000;
@@ -95,14 +94,7 @@ export const fetchActiveSessions = async (limit = 100) => {
         throw new Error("Unable to load active sessions.");
     }
 
-    const data = await response.json() as { sessions: Array<ActiveSession & { score: number | string }> };
-
-    return {
-        sessions: (data.sessions || []).map((session) => ({
-            ...session,
-            score: Number(session.score) || 0,
-        })),
-    };
+    return response.json() as Promise<{ sessions: ActiveSession[] }>;
 };
 
 export const fetchDirectMessages = async (userId: string, peerId: string, limit = 200) => {

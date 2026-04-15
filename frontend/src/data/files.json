@@ -50,6 +50,20 @@
             }
         ],
         [
+            "cryptoWallet",
+            {
+                "top": 430,
+                "left": 90
+            }
+        ],
+        [
+            "hotmail",
+            {
+                "top": 90,
+                "left": 90
+            }
+        ],
+        [
             "recycleBin",
             {
                 "bottom": 5,

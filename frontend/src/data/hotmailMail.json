@@ -1,0 +1,57 @@
+﻿{
+    "accountEmail": "gerrit@hotmail.com",
+    "folders": [
+        { "id": "inbox", "label": "Inbox" },
+        { "id": "drafts", "label": "Drafts" },
+        { "id": "junk", "label": "Junk Mail" },
+        { "id": "sent", "label": "Sent" }
+    ],
+    "messages": [
+        {
+            "id": "hm-verify",
+            "folderId": "inbox",
+            "fromName": "Hotmail Security",
+            "fromEmail": "no-reply@hotmail.com",
+            "subject": "Your verification code",
+            "receivedAt": "2009-02-14T13:05:00Z",
+            "unread": true,
+            "body": "A sign-in request was made for your archived Bitcoin wallet.\n\nVerification code: 9524\n\nIf this was not you, ignore this message."
+        },
+        {
+            "id": "hm-forum",
+            "folderId": "inbox",
+            "fromName": "NeoGAF Digest",
+            "fromEmail": "digest@neogaf.example",
+            "subject": "Top threads this week",
+            "receivedAt": "2009-02-13T09:40:00Z",
+            "body": "Xbox rumors, netbook arguments, and someone insisting Flash is the future."
+        },
+        {
+            "id": "hm-draft",
+            "folderId": "drafts",
+            "fromName": "Draft",
+            "fromEmail": "gerrit@hotmail.com",
+            "subject": "Draft: wallet recovery notes",
+            "receivedAt": "2009-02-12T20:10:00Z",
+            "body": "Remember:\n- old username\n- old password\n- check Hotmail for the PIN"
+        },
+        {
+            "id": "hm-junk",
+            "folderId": "junk",
+            "fromName": "Free Mining Rig",
+            "fromEmail": "totally-legit@spam.example",
+            "subject": "Double your coins instantly",
+            "receivedAt": "2009-02-11T05:20:00Z",
+            "body": "Send one coin to prove trust and receive two back immediately. Obviously."
+        },
+        {
+            "id": "hm-sent",
+            "folderId": "sent",
+            "fromName": "Sent",
+            "fromEmail": "gerrit@hotmail.com",
+            "subject": "RE: wallet backup",
+            "receivedAt": "2009-02-10T18:00:00Z",
+            "body": "Backed up wallet.dat to a USB stick. Do not lose it."
+        }
+    ]
+}

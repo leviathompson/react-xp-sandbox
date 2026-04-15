@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import AnimatedScore from "../../AnimatedScore/AnimatedScore";
 import { useContext } from "../../../context/context";
 import { DEFAULT_AVATAR_SRC } from "../../../data/avatars";
 import { generateUniqueId, openApplication, updateCurrentActiveWindow } from "../../../utils/general";
-import { ACTIVE_SESSIONS_POLL_MS, DIRECT_MESSAGES_POLL_MS, fetchActiveSessions, fetchDirectMessages, sendDirectMessage } from "../../../utils/messenger";
+import { DIRECT_MESSAGES_POLL_MS, fetchDirectMessages, sendDirectMessage } from "../../../utils/messenger";
 import { subscribeToMessengerRealtime } from "../../../utils/messengerRealtime";
 import { addShellBrowserResultListener, openShellBrowserWindow } from "../../../utils/shellBrowser";
 import styles from "./MessengerChat.module.scss";
 import type { Application } from "../../../context/types";
-import type { ActiveSession } from "../../../utils/messenger";
 
 interface MessengerChatContent {
     peerId: string;
@@ -46,7 +44,6 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
     const [errorMessage, setErrorMessage] = useState("");
     const [isSending, setIsSending] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [sessionScores, setSessionScores] = useState<Record<string, number>>({});
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const dialogHandlersRef = useRef(new Map<string, (selection?: {
         containerId: string;
@@ -106,59 +103,7 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
                 });
                 return;
             }
-
-            if (event.type !== "points_updated") return;
-
-            const { userId, score } = event.payload;
-            if (userId !== username && userId !== peerId) return;
-
-            setSessionScores((currentScores) => {
-                if (currentScores[userId] === score) return currentScores;
-                return {
-                    ...currentScores,
-                    [userId]: score,
-                };
-            });
         });
-    }, [peerId, username]);
-
-    useEffect(() => {
-        if (!username || !peerId) return;
-
-        let isCancelled = false;
-
-        const loadScores = async () => {
-            try {
-                const response = await fetchActiveSessions(100);
-                if (isCancelled) return;
-
-                const nextScores = (response.sessions || []).reduce<Record<string, number>>((scores, session: ActiveSession) => {
-                    scores[session.user_id] = session.score;
-                    return scores;
-                }, {});
-
-                setSessionScores((currentScores) => {
-                    if (
-                        currentScores[username] === nextScores[username]
-                        && currentScores[peerId] === nextScores[peerId]
-                    ) {
-                        return currentScores;
-                    }
-
-                    return nextScores;
-                });
-            } catch {
-                if (isCancelled) return;
-            }
-        };
-
-        void loadScores();
-        const interval = window.setInterval(loadScores, ACTIVE_SESSIONS_POLL_MS);
-
-        return () => {
-            isCancelled = true;
-            window.clearInterval(interval);
-        };
     }, [peerId, username]);
 
     useEffect(() => {
@@ -183,9 +128,6 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
 
         return `Last message ${formatTimestamp(lastMessage.created_at)} from ${lastMessage.sender_id}.`;
     }, [messages, peerId]);
-
-    const peerScore = sessionScores[peerId] || 0;
-    const ownScore = sessionScores[username] || 0;
 
     const onSend = async () => {
         const trimmedMessage = draftMessage.trim();
@@ -382,12 +324,10 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
 
                 <aside className={styles.rightPane}>
                     <div className={styles.avatarCard}>
-                        <AnimatedScore value={peerScore} className={styles.score} title={`${peerScore} points`} />
                         <img src={peerAvatarSrc || DEFAULT_AVATAR_SRC} alt="" />
                         <span>{peerId}</span>
                     </div>
                     <div className={styles.avatarCard}>
-                        <AnimatedScore value={ownScore} className={styles.score} title={`${ownScore} points`} />
                         <img src={avatarSrc || DEFAULT_AVATAR_SRC} alt="" />
                         <span>{username || "You"}</span>
                     </div>

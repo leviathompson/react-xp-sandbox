@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useContext } from "../../../context/context";
-import { usePoints } from "../../../context/points";
 import Button from "../../Button/Button";
 import styles from "./InternetOptions.module.scss";
 
@@ -21,7 +20,6 @@ const normalizeHomePage = (value: string) => {
 
 const InternetOptions = ({ id, parentWindowId }: InternetOptionsProps) => {
     const { currentWindows, dispatch } = useContext();
-    const { awardPoints } = usePoints();
     const [selectedTab, setSelectedTab] = useState<InternetOptionsTab>("General");
 
     const parentWindow = currentWindows.find((window) => window.id === parentWindowId);
@@ -73,7 +71,6 @@ const InternetOptions = ({ id, parentWindowId }: InternetOptionsProps) => {
         targetWindow.history = [];
         targetWindow.forward = [];
         dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
-        awardPoints("delete-browser-history");
     };
 
     const renderGeneralTab = () => (

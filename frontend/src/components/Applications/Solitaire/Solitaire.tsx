@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { usePoints } from "../../../context/points";
 import WindowMenu from "../../WindowMenu/WindowMenu";
 import Card from "./Card/Card";
 import styles from "./Solitaire.module.scss";
@@ -59,12 +58,6 @@ const initialBoard: CardType[][] = Array.from({ length: 7 }, (_, i) => {
 
 const Solitaire = () => {
     const [boardState, setBoardState] = useState<BoardState>({} as BoardState);
-    const { awardPoints } = usePoints();
-
-    useEffect(() => {
-        awardPoints("open-solitaire");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
     useEffect(() => {
         const initalBoardState = {

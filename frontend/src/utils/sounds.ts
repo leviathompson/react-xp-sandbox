@@ -44,86 +44,18 @@ const playSound = (soundName: sounds, isSoundEnabled: boolean, isloop: boolean =
 
 export default playSound;
 
-// ---------------------------------------------------------------------------
-// 8-bit award sound — synthesised via Web Audio API, no audio files needed
-// ---------------------------------------------------------------------------
-
-type AwardTier = "low" | "mid" | "high" | "epic";
-
-const TIER_NOTES: Record<AwardTier, number[]> = {
-    //        C5      E5      G5      C6      E6
-    low:  [523.25, 659.25],
-    mid:  [523.25, 659.25, 783.99],
-    high: [523.25, 659.25, 783.99, 1046.5],
-    epic: [523.25, 659.25, 783.99, 1046.5, 1318.5],
-};
-
-const getTier = (points: number): AwardTier => {
-    if (points >= 20) return "epic";
-    if (points >= 12) return "high";
-    if (points >= 8)  return "mid";
-    return "low";
-};
-
-export const playAwardSound = (points: number) => {
+const getAudioContext = () => {
     const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
+    if (!AudioCtx) return null;
 
     const ctx = new AudioCtx();
-    if (ctx.state === "suspended") ctx.resume();
-
-    const tier  = getTier(points);
-    const notes = TIER_NOTES[tier];
-    const noteDuration = 0.075;
-    const noteGap      = 0.015;
-    const masterGain   = ctx.createGain();
-    masterGain.gain.setValueAtTime(0.18, ctx.currentTime);
-    masterGain.connect(ctx.destination);
-
-    notes.forEach((freq, i) => {
-        const osc  = ctx.createOscillator();
-        const gain = ctx.createGain();
-        const start = ctx.currentTime + i * (noteDuration + noteGap);
-        const end   = start + noteDuration;
-
-        osc.type = "square";
-        osc.frequency.setValueAtTime(freq, start);
-
-        gain.gain.setValueAtTime(1,     start);
-        gain.gain.setValueAtTime(1,     end - 0.01);
-        gain.gain.linearRampToValueAtTime(0, end);
-
-        osc.connect(gain);
-        gain.connect(masterGain);
-        osc.start(start);
-        osc.stop(end);
-    });
-
-    // Closing sustain note on the tonic an octave up — makes it feel "resolved"
-    const resolveOsc  = ctx.createOscillator();
-    const resolveGain = ctx.createGain();
-    const resolveStart = ctx.currentTime + notes.length * (noteDuration + noteGap);
-
-    resolveOsc.type = "square";
-    resolveOsc.frequency.setValueAtTime(notes[0] * 2, resolveStart);
-    resolveGain.gain.setValueAtTime(0.9,  resolveStart);
-    resolveGain.gain.exponentialRampToValueAtTime(0.001, resolveStart + 0.35);
-
-    resolveOsc.connect(resolveGain);
-    resolveGain.connect(masterGain);
-    resolveOsc.start(resolveStart);
-    resolveOsc.stop(resolveStart + 0.35);
-
-    // Close the context after everything has played
-    const totalDuration = resolveStart + 0.4 - ctx.currentTime;
-    setTimeout(() => ctx.close(), totalDuration * 1000 + 100);
+    if (ctx.state === "suspended") void ctx.resume();
+    return ctx;
 };
+
 export const playMessengerPopSound = () => {
-    const AudioCtx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
-
-    const ctx = new AudioCtx();
-    if (ctx.state === "suspended") ctx.resume();
+    const ctx = getAudioContext();
+    if (!ctx) return;
 
     const masterGain = ctx.createGain();
     masterGain.gain.setValueAtTime(0.16, ctx.currentTime);
@@ -153,4 +85,83 @@ export const playMessengerPopSound = () => {
     osc.stop(ctx.currentTime + 0.18);
 
     setTimeout(() => ctx.close(), 320);
+};
+
+export const playWalletBuzzerSound = () => {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.2, ctx.currentTime);
+    masterGain.connect(ctx.destination);
+
+    const pulseOffsets = [0, 0.13];
+    pulseOffsets.forEach((offset) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(180, ctx.currentTime + offset);
+        osc.frequency.linearRampToValueAtTime(110, ctx.currentTime + offset + 0.12);
+
+        gain.gain.setValueAtTime(0.001, ctx.currentTime + offset);
+        gain.gain.exponentialRampToValueAtTime(0.75, ctx.currentTime + offset + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.12);
+
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start(ctx.currentTime + offset);
+        osc.stop(ctx.currentTime + offset + 0.13);
+    });
+
+    setTimeout(() => ctx.close(), 500);
+};
+
+export const playWalletCelebrationSound = () => {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.16, ctx.currentTime);
+    masterGain.connect(ctx.destination);
+
+    const coinOffsets = [0, 0.08, 0.18, 0.3, 0.42, 0.56];
+    coinOffsets.forEach((offset, index) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(880 + index * 55, ctx.currentTime + offset);
+        osc.frequency.exponentialRampToValueAtTime(540 + index * 35, ctx.currentTime + offset + 0.16);
+
+        gain.gain.setValueAtTime(0.001, ctx.currentTime + offset);
+        gain.gain.exponentialRampToValueAtTime(0.55, ctx.currentTime + offset + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.16);
+
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start(ctx.currentTime + offset);
+        osc.stop(ctx.currentTime + offset + 0.18);
+    });
+
+    const chord = [523.25, 659.25, 783.99];
+    chord.forEach((frequency, index) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const start = ctx.currentTime + 0.72 + index * 0.03;
+
+        osc.type = "square";
+        osc.frequency.setValueAtTime(frequency, start);
+
+        gain.gain.setValueAtTime(0.001, start);
+        gain.gain.exponentialRampToValueAtTime(0.18, start + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.45);
+
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start(start);
+        osc.stop(start + 0.48);
+    });
+
+    setTimeout(() => ctx.close(), 1600);
 };

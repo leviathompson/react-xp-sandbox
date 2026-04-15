@@ -316,7 +316,7 @@
         background: #fff;
     }
 
-    span:not(.score) {
+    span {
         color: #35508f;
         font-size: 1.1rem;
         font-weight: 700;
@@ -325,14 +325,6 @@
     }
 }
 
-.score {
-    color: #ffb700;
-    font-family: "Press Start 2P", monospace;
-    font-size: 1.5rem;
-    line-height: 1.2;
-    text-align: center;
-    text-shadow: 0.1rem 0.1rem 0 #7a4e00;
-}
 
 @media (max-width: 48rem) {
     .content {

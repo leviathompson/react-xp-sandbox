@@ -1,6 +1,5 @@
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { useContext } from "../../../context/context";
-import { usePoints } from "../../../context/points";
 import applicationsJSON from "../../../data/applications.json";
 import WindowMenu from "../../WindowMenu/WindowMenu";
 import styles from "./MediaPlayer.module.scss";
@@ -14,7 +13,6 @@ const baseApplications = applicationsJSON as unknown as Record<string, Applicati
 
 const MediaPlayer = ({ appId }: MediaPlayerProps) => {
     const { customApplications } = useContext();
-    const { awardPoints } = usePoints();
     const applications = useMemo(
         () => ({ ...baseApplications, ...customApplications }),
         [customApplications],
@@ -26,12 +24,6 @@ const MediaPlayer = ({ appId }: MediaPlayerProps) => {
     const album = application?.album || "Media Library";
     const embedUrl = application?.embedUrl;
     const artwork = application?.iconLarge || application?.icon;
-
-    useEffect(() => {
-        if (appId === "inTheEnd") {
-            awardPoints("open-in-the-end");
-        }
-    }, [appId, awardPoints]);
 
     return (
         <div className={styles.mediaPlayer}>

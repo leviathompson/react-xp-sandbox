@@ -1,0 +1,702 @@
+.hotmail {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    background: linear-gradient(180deg, #cadcf5 0%, #91b2df 100%);
+    color: #12345d;
+}
+
+.loginShell,
+.topBar {
+    flex-shrink: 0;
+}
+
+.loginShell {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    background: linear-gradient(180deg, #f9fbff 0%, #d8e9ff 100%);
+}
+
+.loginPanel {
+    width: min(36rem, calc(100% - 3rem));
+    margin: 2.6rem auto;
+    border: 0.1rem solid #7a9cca;
+    background: linear-gradient(180deg, #ffffff 0%, #edf5ff 100%);
+    padding: 1.8rem;
+    box-shadow: 0 0.5rem 1.2rem rgba(35, 73, 121, 0.2);
+}
+
+.brandRow {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    h1 {
+        color: #0d4a92;
+        font-size: 2.5rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    p {
+        color: #55769f;
+        font-size: 1.05rem;
+        margin-top: 0.25rem;
+    }
+}
+
+.logoMark,
+.sidebarLogo,
+.heroMsn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.logoText {
+    color: #0a4088;
+    font-size: 2.4rem;
+    font-style: italic;
+    font-weight: 700;
+    letter-spacing: -0.08rem;
+    text-transform: lowercase;
+}
+
+.butterfly {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.loginForm {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.8rem;
+
+    label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        color: #32537f;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    input {
+        border: 0.1rem solid #8ea8cc;
+        background: #fff;
+        padding: 0.75rem 0.8rem;
+        font-size: 1.1rem;
+        color: #173c72;
+    }
+
+    button {
+        align-self: flex-start;
+        border: 0.1rem solid #4e7fc0;
+        background: linear-gradient(180deg, #7db8ff 0%, #3d80df 100%);
+        padding: 0.7rem 1.2rem;
+        color: #fff;
+        font-size: 1.05rem;
+        font-weight: 700;
+    }
+}
+
+.loginHint,
+.loginError {
+    margin-top: 1rem;
+    font-size: 1rem;
+}
+
+.loginHint {
+    color: #52729c;
+}
+
+.loginError {
+    color: #a02323;
+    font-weight: 700;
+}
+
+.topBar {
+    border-bottom: 0.1rem solid #7a99c0;
+    background:
+        radial-gradient(circle at top right, #ffffff 0%, #e2ecfa 28%, transparent 44%),
+        linear-gradient(180deg, #fafcfe 0%, #d2e3fb 62%, #c5d8f3 100%);
+    box-shadow: inset 0 -0.1rem 0 #8aa6ca;
+}
+
+.brandStrip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0.9rem 0.35rem;
+}
+
+.brandLockup {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.mailboxTitle {
+    color: #193f72;
+    font-size: 1.45rem;
+    font-weight: 400;
+}
+
+.utilityActions {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+
+    button {
+        color: #2c4460;
+        font-size: 1rem;
+        white-space: nowrap;
+    }
+}
+
+.ribbon {
+    display: flex;
+    align-items: stretch;
+    gap: 0.2rem;
+    padding: 0.3rem 0.6rem 0.5rem;
+    border-top: 0.1rem solid #fff;
+}
+
+.ribbonButton {
+    min-width: 7rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.5rem 0.3rem;
+    border: 0.1rem solid transparent;
+    border-radius: 0.45rem;
+    color: #133863;
+
+    span {
+        font-size: 2rem;
+        line-height: 1;
+    }
+
+    strong {
+        font-size: 0.95rem;
+        font-weight: 400;
+    }
+
+    &:hover {
+        border-color: #8aa6ca;
+        background: #ffffff8c;
+    }
+}
+
+.workspace {
+    display: grid;
+    grid-template-columns: 12rem 1fr;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 0;
+    padding: 0.7rem 0.7rem 0.8rem;
+    border-right: 0.1rem solid #6f8fbb;
+    background:
+        radial-gradient(circle at top left, #d9a07a 0%, #955a58 18%, transparent 24%),
+        linear-gradient(180deg, #6f8fca 0%, #4d6ea8 32%, #5d6daf 100%);
+    color: #fff;
+}
+
+.sidebarHero {
+    min-height: 6.2rem;
+    padding: 0.9rem 0.75rem;
+    border: 0.1rem solid #92add5;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.05) 100%);
+    box-shadow: inset 0 0 0.8rem rgba(255, 255, 255, 0.18);
+
+    span {
+        display: block;
+        margin-top: 1.7rem;
+        font-size: 1.3rem;
+        font-weight: 700;
+    }
+}
+
+.sidebarMsn {
+    font-size: 2rem;
+    font-style: italic;
+    font-weight: 700;
+    opacity: 0.75;
+}
+
+.sidebarNav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+
+    button {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.55rem 0.45rem;
+        border-bottom: 0.1rem solid rgba(255, 255, 255, 0.16);
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 700;
+        text-align: left;
+    }
+}
+
+.sidebarArrow {
+    font-size: 1.3rem;
+    line-height: 1;
+}
+
+.searchCard {
+    border-top: 0.1rem solid rgba(255, 255, 255, 0.4);
+    padding-top: 0.6rem;
+
+    h2 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 0.35rem;
+    }
+}
+
+.searchBox {
+    display: flex;
+    gap: 0.3rem;
+
+    input {
+        width: 100%;
+        min-width: 0;
+        border: 0.1rem solid #36527e;
+        background: #fff;
+        padding: 0.35rem 0.45rem;
+        color: #18385e;
+        font-size: 0.95rem;
+    }
+
+    button {
+        border: 0.1rem solid #2f4f7b;
+        background: linear-gradient(180deg, #fff5d5 0%, #edc565 100%);
+        padding: 0.2rem 0.5rem;
+        color: #23415f;
+        font-weight: 700;
+    }
+}
+
+.sidebarLogo {
+    justify-content: center;
+    margin-top: auto;
+    padding: 1.2rem 0 0.5rem;
+
+    .logoText {
+        color: #fff;
+        font-size: 3.6rem;
+        text-shadow: 0.1rem 0.1rem 0.3rem rgba(0, 0, 0, 0.25);
+    }
+}
+
+.mediaControls {
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.45rem;
+    border: 0.1rem solid rgba(255, 255, 255, 0.4);
+    border-radius: 1rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(180, 202, 235, 0.28) 100%);
+
+    button {
+        width: 2rem;
+        height: 2rem;
+        border: 0.1rem solid #7b98c3;
+        border-radius: 50%;
+        background: linear-gradient(180deg, #ffffff 0%, #d3e1f5 100%);
+        color: #23466e;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+}
+
+.mainPane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: linear-gradient(180deg, #d7e6fa 0%, #7da7dd 22%, #6b9ad5 100%);
+}
+
+.commandBar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.55rem 0.2rem;
+}
+
+.commandTitle {
+    min-width: 0;
+    flex: 1;
+    border: 0.1rem solid #3b5f92;
+    background: #fff;
+    padding: 0.25rem 0.45rem;
+    color: #163860;
+    font-size: 1rem;
+}
+
+.commandActions {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+
+    button {
+        border: 0.1rem solid rgba(255, 255, 255, 0.35);
+        border-bottom-color: #2b568f;
+        background: linear-gradient(180deg, #2f69aa 0%, #1f5291 100%);
+        padding: 0.28rem 0.6rem;
+        color: #fff;
+        font-size: 0.95rem;
+    }
+}
+
+.heroPanel {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 0 0.55rem;
+    padding: 0.9rem 1rem 0.7rem;
+    border: 0.1rem solid #b7cceb;
+    background: linear-gradient(180deg, #ffffff 0%, #d4e5fb 100%);
+}
+
+.heroBrand {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.3rem;
+
+    h1 {
+        color: #111;
+        font-size: 2.3rem;
+        font-weight: 700;
+    }
+}
+
+.heroPromo {
+    min-width: 0;
+    flex: 1;
+    align-self: center;
+    border: 0.1rem solid #95b3db;
+    background: linear-gradient(180deg, #8ec1f0 0%, #dbeefe 100%);
+    padding: 0.7rem 1rem;
+
+    h2 {
+        color: #1b5f9c;
+        font-size: 1.95rem;
+        font-weight: 700;
+        line-height: 1.05;
+    }
+
+    p {
+        color: #17457b;
+        font-size: 1rem;
+        margin-top: 0.25rem;
+    }
+}
+
+.tabs {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.2rem;
+    padding: 0 0.55rem;
+    margin-top: 0.3rem;
+
+    button {
+        border: 0.1rem solid #2c5f98;
+        border-bottom: none;
+        border-radius: 1rem 1rem 0 0;
+        background: linear-gradient(180deg, #edf5ff 0%, #c2daf7 100%);
+        padding: 0.7rem 1.3rem;
+        color: #173d6d;
+        font-size: 1.05rem;
+        font-weight: 700;
+
+        &[data-active="true"] {
+            background: linear-gradient(180deg, #ffffff 0%, #dceaff 100%);
+            transform: translateY(0.1rem);
+        }
+    }
+}
+
+.mailPanel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    margin: 0 0.55rem 0.55rem;
+    border: 0.1rem solid #2b5e98;
+    background: #fff;
+}
+
+.mailToolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.55rem 0.7rem;
+    border-bottom: 0.1rem solid #b4c8e7;
+    background: linear-gradient(180deg, #e8f2ff 0%, #d1e2fb 100%);
+}
+
+.folderPicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border: 0.1rem solid #b8ccea;
+    background: linear-gradient(180deg, #ffffff 0%, #edf4ff 100%);
+    padding: 0.35rem 0.55rem;
+    color: #21416a;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.folderCount {
+    color: #5979a4;
+}
+
+.toolbarActions {
+    display: flex;
+    gap: 0.3rem;
+
+    button {
+        border: 0.1rem solid #aabfdf;
+        background: linear-gradient(180deg, #ffffff 0%, #ebf3ff 100%);
+        padding: 0.35rem 0.6rem;
+        color: #24466f;
+        font-size: 0.95rem;
+    }
+}
+
+.contentArea {
+    display: grid;
+    grid-template-columns: 13rem 1fr;
+    flex: 1;
+    min-height: 0;
+}
+
+.folderRail {
+    border-right: 0.1rem solid #b7cae7;
+    background: linear-gradient(180deg, #eff5ff 0%, #d8e6fb 100%);
+    padding: 0.8rem;
+    overflow: auto;
+
+    h2 {
+        color: #214b82;
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    ul {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+
+    button {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        border: 0.1rem solid transparent;
+        padding: 0.45rem 0.55rem;
+        color: #183f73;
+        font-size: 1rem;
+        text-align: left;
+
+        strong {
+            color: #5e7fa9;
+            font-weight: 700;
+        }
+
+        &[data-active="true"] {
+            border-color: #ee9f22;
+            background: linear-gradient(180deg, #fff1c6 0%, #ffd782 100%);
+        }
+    }
+}
+
+.messagePanel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.messageHeader,
+.messageRow {
+    display: grid;
+    grid-template-columns: 25% 1fr 8.7rem 5.2rem;
+    gap: 0.8rem;
+    align-items: center;
+}
+
+.messageHeader {
+    flex-shrink: 0;
+    padding: 0.35rem 0.9rem;
+    border-bottom: 0.1rem solid #a8c0e1;
+    background: linear-gradient(180deg, #86b4ea 0%, #5f95d0 100%);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-shadow: 0.1rem 0.1rem 0 #37689a;
+}
+
+.messageList {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: auto;
+    background: #fff;
+}
+
+.messageRow {
+    flex-shrink: 0;
+    border-bottom: 0.1rem solid #e1eaf6;
+    padding: 0.4rem 0.9rem;
+    color: #132f53;
+    text-align: left;
+
+    &[data-active="true"] {
+        background: linear-gradient(180deg, #f3f8ff 0%, #dbe9fb 100%);
+    }
+
+    &[data-unread="true"] {
+        font-weight: 700;
+    }
+}
+
+.fromCell,
+.subjectCell,
+.sizeCell,
+.messageRow time {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fromCell {
+    font-weight: 700;
+}
+
+.previewPane {
+    min-height: 14rem;
+    border-top: 0.1rem solid #b8cae4;
+    background: linear-gradient(180deg, #f6fbff 0%, #ffffff 100%);
+    display: flex;
+    flex-direction: column;
+}
+
+.previewHeader {
+    padding: 0.9rem 1.1rem;
+    border-bottom: 0.1rem solid #d7e4f5;
+
+    h2 {
+        color: #1d467d;
+        font-size: 1.45rem;
+        font-weight: 700;
+        margin-bottom: 0.35rem;
+    }
+
+    p {
+        color: #627b9e;
+        font-size: 0.98rem;
+        line-height: 1.35;
+    }
+}
+
+.messageBody,
+.emptyState {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 1rem 1.15rem;
+    color: #213d63;
+    font-size: 1.05rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+}
+
+.emptyState {
+    display: grid;
+    place-items: center;
+    color: #6f86a8;
+}
+
+.statusFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.35rem 0.75rem;
+    border-top: 0.1rem solid #b5c9e5;
+    background: linear-gradient(180deg, #e9f2ff 0%, #d6e5fb 100%);
+    color: #20446f;
+    font-size: 0.95rem;
+}
+
+@media (max-width: 64rem) {
+    .workspace {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        display: none;
+    }
+
+    .contentArea {
+        grid-template-columns: 1fr;
+    }
+
+    .folderRail {
+        border-right: none;
+        border-bottom: 0.1rem solid #b7cae7;
+    }
+}
+
+@media (max-width: 48rem) {
+    .brandStrip,
+    .mailToolbar,
+    .commandBar,
+    .statusFooter {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ribbon {
+        overflow-x: auto;
+    }
+
+    .messageHeader,
+    .messageRow {
+        grid-template-columns: 1fr;
+        gap: 0.15rem;
+    }
+
+    .messageHeader {
+        display: none;
+    }
+
+    .previewPane {
+        min-height: 12rem;
+    }
+}

@@ -37,9 +37,14 @@
     },
     "outlook": {
         "title": "Microsoft Outlook",
+        "windowTitle": "Inbox - Microsoft Outlook",
+        "icon": "/icon__outlook--large.png",
         "iconLarge": "/icon__outlook--large.png",
-        "content": "placeholder",
-        "disabled": true
+        "component": "Outlook",
+        "width": 820,
+        "height": 560,
+        "top": 48,
+        "left": 60
     },
     "recycleBin": {
         "title": "Recycle Bin",
@@ -383,7 +388,7 @@
         "title": "ReadMe.txt",
         "iconLarge": "/icon__notepad--large.png",
         "component": "Notepad",
-        "content": "Open solitaire\nCreate a new folder on the desktop\nRename a folder to something funny\nCreate a shortcut to My Computer\nDelete your browser history (not your real browsing history)\nDrag My Computer into the Recycle Bin\nOpen \"In The End.mp3\"\nRestart your computer\nVisit neopets\nLocate the .minecraft folder\nOpen Bonzi Buddy\nOpen Control Panel\nOpen MSN Messenger\nChange your account picture\nFind windows_11.exe\nDelete system32\nClick 100 times\nClick 1000 times\nClick 10000 times\n",
+        "content": "ReadMe\n\nThis branch removes the arcade-style points system so the desktop can support more narrative interactions.\n\nWhat changed:\n- no score displays in MSN Messenger\n- no award toasts or debug panel\n- no hidden point challenges tied to app actions\n\nCore desktop behavior remains the same.\n",
         "height": 290,
         "width": 330,
         "top": 25,
@@ -404,5 +409,27 @@
         "component": "Solitaire",
         "height": 400,
         "width": 500
+    },
+    "cryptoWallet": {
+        "title": "Crypto Wallet.exe",
+        "windowTitle": "Crypto Wallet 0.1 beta",
+        "icon": "/icon__run--large.png",
+        "iconLarge": "/icon__run--large.png",
+        "component": "CryptoWallet",
+        "width": 760,
+        "height": 520,
+        "top": 70,
+        "left": 90
+    },
+    "hotmail": {
+        "title": "Hotmail",
+        "windowTitle": "MSN Hotmail",
+        "icon": "/icon__mail--large.png",
+        "iconLarge": "/icon__mail--large.png",
+        "component": "Hotmail",
+        "width": 860,
+        "height": 560,
+        "top": 60,
+        "left": 80
     }
 }

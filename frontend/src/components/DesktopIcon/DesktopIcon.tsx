@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useContext } from "../../context/context";
-import { usePoints } from "../../context/points";
 import applicationsJSON from "../../data/applications.json";
 import { speakBonziGreeting } from "../../utils/bonziBuddy";
 import { getThumbnailIconSrc } from "../../utils/applicationIcon";
@@ -23,7 +22,6 @@ const DOUBLE_TAP_MOVE_THRESHOLD_PX = 8;
 
 const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undefined, left = undefined, id, selectedId, setSelectedId }: DesktopIconProps) => {
     const { currentWindows, customApplications, dispatch, openContextMenu } = useContext();
-    const { awardPoints } = usePoints();
     const [position, setPosition] = useState<AbsoluteObject>({ top, right, bottom, left });
     const [isDragOver, setIsDragOver] = useState(false);
     const positionRef = useRef<AbsoluteObject>({ top, right, bottom, left });
@@ -32,11 +30,10 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
     const isActive = id === selectedId;
     const mergedApplications = { ...applications, ...customApplications };
     const appData = { ...(applications[appId] || {}), ...(customApplications[appId] || {}) };
-    const { title, link, redirect, disabled, shortcut, component } = { ...appData };
+    const { title, link, redirect, disabled, shortcut } = { ...appData };
     const isCustomItem = !!customApplications[appId];
     const dropContainerId = getDropContainerId(appId, appData, mergedApplications);
     const triggerSystem32Crash = () => {
-        awardPoints("delete-system32");
         dispatch({ type: "SET_CURRENT_WINDOWS", payload: [] });
         dispatch({ type: "SET_WINDOWS_INITIATION_STATE", payload: "bsod" });
     };
@@ -116,9 +113,6 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
                         triggerSystem32Crash();
                         return;
                     }
-                    if (appId === "computer" && targetContainerId === "recycleBin") {
-                        awardPoints("trash-my-computer");
-                    }
                     dispatch({
                         type: "MOVE_SHELL_ITEM",
                         payload: {
@@ -196,9 +190,6 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
                 onOpen: activateIcon,
                 onExplore: activateIcon,
                 onCreateShortcut: () => {
-                    if (appId === "computer") {
-                        awardPoints("create-my-computer-shortcut");
-                    }
                     dispatch({
                         type: "CREATE_SHELL_ITEM",
                         payload: createShortcutShellItemPayload(appId, appData, mergedApplications, shortcutSourcePosition),
@@ -240,11 +231,6 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
                         },
                     });
 
-                    if (component === "FileExplorer") {
-                        awardPoints("rename-folder", {
-                            metadata: { appId, title: trimmedTitle },
-                        });
-                    }
                 },
             }),
         });
@@ -274,9 +260,6 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
         if (draggedItem.appId === SYSTEM32_APP_ID && dropContainerId === "recycleBin") {
             triggerSystem32Crash();
             return;
-        }
-        if (draggedItem.appId === "computer" && dropContainerId === "recycleBin") {
-            awardPoints("trash-my-computer");
         }
         dispatch({
             type: "MOVE_SHELL_ITEM",

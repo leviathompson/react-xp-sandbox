@@ -1,0 +1,194 @@
+{
+    "accountName": "Personal Folders",
+    "folders": [
+        { "id": "inbox", "label": "Inbox", "category": "favorite", "icon": "/icon__mail--large.png" },
+        { "id": "unread", "label": "Unread Mail", "category": "favorite", "icon": "/icon__mail--large.png", "virtual": true },
+        { "id": "followUp", "label": "For Follow Up", "category": "favorite", "icon": "/icon__mail--large.png", "virtual": true },
+        { "id": "deleted", "label": "Deleted Items", "category": "mail", "icon": "/icon__new_folder--large.png" },
+        { "id": "drafts", "label": "Drafts", "category": "mail", "icon": "/icon__new_folder--large.png" },
+        { "id": "junk", "label": "Junk E-mail", "category": "mail", "icon": "/icon__new_folder--large.png" },
+        { "id": "outbox", "label": "Outbox", "category": "mail", "icon": "/icon__new_folder--large.png" },
+        { "id": "sent", "label": "Sent Items", "category": "mail", "icon": "/icon__new_folder--large.png" }
+    ],
+    "messages": [
+        {
+            "id": "msg-clue-6",
+            "folderId": "inbox",
+            "fromName": "Bitcoin Guy",
+            "fromEmail": "yanis@crypto.com",
+            "subject": "Re: Re: Re: Re: Re: Re: Bitcoin Wallet Account Setup",
+            "receivedAt": "2009-05-22T16:09:00Z",
+            "unread": false,
+            "flagged": false,
+            "body": "Sir,\n\nPlease do not share your password with me. Your format is correct, but please choose a different password and do not share it with anyone.\n\nRegards,\nYanis, Crypto.com"
+        },
+        {
+            "id": "msg-clue-4",
+            "folderId": "inbox",
+            "fromName": "Bitcoin Guy",
+            "fromEmail": "yanis@crypto.com",
+            "subject": "Re: Re: Re: Re: Bitcoin Wallet Account Setup",
+            "receivedAt": "2009-05-16T01:10:00Z",
+            "unread": false,
+            "flagged": false,
+            "body": "Hi again,\n\nVery good sir. Also, be sure to set a strong password. We recommend at least 12 characters with a mix of letters, numbers, and symbols.\n\nRegards,\nYanis, Crypto.com"
+        },
+        {
+            "id": "msg-clue-2",
+            "folderId": "inbox",
+            "fromName": "Bitcoin Guy",
+            "fromEmail": "yanis@crypto.com",
+            "subject": "Re: Re: Bitcoin Wallet Account Setup",
+            "receivedAt": "2009-05-12T09:15:00Z",
+            "unread": false,
+            "flagged": false,
+            "body": "Hi there,\n\nIf your preferred username has already been taken, perhaps try a different variation by adding a number to the end.\n\nRegards,\nYanis, Crypto.com"
+        },
+        {
+            "id": "msg-lan-party",
+            "folderId": "inbox",
+            "fromName": "David",
+            "fromEmail": "david@lanparty.local",
+            "subject": "Friday LAN party details",
+            "receivedAt": "2004-05-11T20:34:00Z",
+            "unread": false,
+            "body": "Bring your tower, Ethernet cable, and a copy of Halo. Pizza is covered. Doors open at 6 PM."
+        },
+        {
+            "id": "msg-school",
+            "folderId": "inbox",
+            "fromName": "Sandra Kline",
+            "fromEmail": "sandra.kline@gmail.com",
+            "subject": "I left some cookies out for you",
+            "receivedAt": "2008-05-10T14:05:00Z",
+            "unread": false,
+            "body": "Hi sweetie,\n\nI baked some chocolate chip cookies and left them on the counter for you. Don't forget to eat something before you stay up playing poker all night!\n\nLove,\nSandra"
+        },
+        {
+            "id": "msg-followup",
+            "folderId": "inbox",
+            "fromName": "May Hedgewood",
+            "fromEmail": "m.hedgewood55@outlook.com",
+            "subject": "Call me when you get a chance",
+            "receivedAt": "2004-05-08T16:42:00Z",
+            "unread": true,
+            "flagged": true,
+            "body": "Nothing urgent. I found that recipe card you were asking about and can read it to you over the phone."
+        },
+        {
+            "id": "msg-draft-story",
+            "folderId": "drafts",
+            "toName": "Editor",
+            "toEmail": "editor@newsletter.demo",
+            "subject": "Draft: Branch direction notes",
+            "receivedAt": "2004-05-12T07:55:00Z",
+            "draft": true,
+            "body": "Notes for the next branch:\n- remove gameified systems\n- focus on narrative prompts\n- keep shell interactions grounded in the world"
+        },
+        {
+            "id": "msg-draft-invite",
+            "folderId": "drafts",
+            "toName": "Levi",
+            "toEmail": "levi@desktop.local",
+            "subject": "Draft: Outlook feature review",
+            "receivedAt": "2004-05-11T18:10:00Z",
+            "draft": true,
+            "body": "Need to review the fake mail data before shipping. Check Inbox, Drafts, and Junk E-mail for coverage."
+        },
+        {
+            "id": "msg-junk-prince",
+            "folderId": "junk",
+            "fromName": "Royal Accounts Office",
+            "fromEmail": "urgent-transfer@totally-real.biz",
+            "subject": "Kindly assist with account transfer",
+            "receivedAt": "2004-05-09T03:14:00Z",
+            "junk": true,
+            "body": "Dear Friend,\n\nI have chosen you for a confidential banking transaction. Please reply with full details and your favourite dinosaur.\n\nWarm regards."
+        },
+        {
+            "id": "msg-junk-ringtone",
+            "folderId": "junk",
+            "fromName": "Free Ringtones",
+            "fromEmail": "polyphonic@ringer.example",
+            "subject": "Claim 50 free ringtones today",
+            "receivedAt": "2004-05-07T12:21:00Z",
+            "junk": true,
+            "body": "Congratulations. Your desktop has been selected for exclusive access to 50 loud and suspiciously compressed ringtones."
+        },
+        {
+            "id": "msg-clue-7",
+            "folderId": "sent",
+            "fromName": "Gerrit Fedgebar",
+            "fromEmail": "gerrit@outlook.com",
+            "toName": "Bitcoin Guy",
+            "toEmail": "yanis@crypto.com",
+            "subject": "Re: Re: Re: Re: Re: Re: Re: Bitcoin Wallet Account Setup",
+            "receivedAt": "2009-05-23T17:10:00Z",
+            "body": "ok mister yanis. I will use a different passowrd. my favorite band isnt enven green day."
+        },
+        {
+            "id": "msg-clue-5",
+            "folderId": "sent",
+            "fromName": "Gerrit Fedgebar",
+            "fromEmail": "gerrit@outlook.com",
+            "toName": "Bitcoin Guy",
+            "toEmail": "yanis@crypto.com",
+            "subject": "Re: Re: Re: Re: Re: Bitcoin Wallet Account Setup",
+            "receivedAt": "2009-05-18T16:22:00Z",
+            "body": "how about Gr33nD4yR0x$. i like that band a lot and it would be easy for me to remember."
+        },
+        {
+            "id": "msg-clue-3",
+            "folderId": "sent",
+            "fromName": "Gerrit Fedgebar",
+            "fromEmail": "gerrit@outlook.com",
+            "toName": "Bitcoin Guy",
+            "toEmail": "yanis@crypto.com",
+            "subject": "Re: Re: Re: Bitcoin Wallet Account Setup",
+            "receivedAt": "2009-05-13T20:06:00Z",
+            "body": "ok i will try the name gerrit23 wich is my favorite mumber. thanks bitcoin guy"
+        },
+        {
+            "id": "msg-clue-1",
+            "folderId": "sent",
+            "fromName": "Gerrit Fedgebar",
+            "fromEmail": "gerrit@outlook.com",
+            "toName": "Bitcoin Guy",
+            "toEmail": "yanis@crypto.com",
+            "subject": "Re: Bitcoin Wallet Account Setup",
+            "receivedAt": "2009-05-06T22:44:00Z",
+            "body": "some one took my name already. pleas help me to set up a bitcoin wallet account with the name gerrit. I want to buy some bit coins and need a wallet to store them in. thanks"
+        },
+        {
+            "id": "msg-clue-8",
+            "folderId": "sent",
+            "fromName": "Gerrit Fedgebar",
+            "fromEmail": "gerrit@outlook.com",
+            "toName": "Sandra Kline",
+            "toEmail": "sandra.kline@gmail.com",
+            "subject": "going to MEXICO for 1 month",
+            "receivedAt": "2005-09-18T22:08:00Z",
+            "body": "hi sandra, could you please check my hotmail email while i am gone in mexio? i am waiting for my results to come i n and i dont want to miss them in case i have GOUT. \n\nthe email is gerrit@hotmail.com and the password is password123. \n\nthanks."
+        },
+        {
+            "id": "msg-clue-9",
+            "folderId": "sent",
+            "fromName": "Gerrit Fedgebar",
+            "fromEmail": "gerrit@outlook.com",
+            "toName": "Video Date",
+            "toEmail": "submissions@videodate.corn",
+            "subject": "electric 62 years old looking for young love",
+            "receivedAt": "2005-10-26T20:08:00Z",
+            "body": "hi, i am looking for love. i am 62 years old but i am very electric and youthful. i am looking for a young lady who is breathing and has a heart that beats. \n\nfavorite number: 23\n\nfavorite band: linkin park\n\nfavorite recoed: hybrid theory\n\nemail me back if you are interested. \n\nthanks.\n\np.s. i have gout but its not contagious."
+        },
+        {
+            "id": "msg-deleted-newsletter",
+            "folderId": "deleted",
+            "fromName": "Mall Deals Weekly",
+            "fromEmail": "deals@shopping.example",
+            "subject": "This week only: beige computer desks",
+            "receivedAt": "2004-05-05T15:50:00Z",
+            "body": "You deleted this one already. That was the right call."
+        }
+    ]
+}
