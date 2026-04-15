@@ -52,7 +52,7 @@
         [
             "cryptoWallet",
             {
-                "top": 430,
+                "top": 260,
                 "left": 90
             }
         ],
@@ -60,6 +60,13 @@
             "hotmail",
             {
                 "top": 90,
+                "left": 90
+            }
+        ],
+        [
+            "outlook",
+            {
+                "top": 175,
                 "left": 90
             }
         ],

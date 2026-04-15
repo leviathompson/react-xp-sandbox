@@ -83,7 +83,7 @@
             "subject": "Draft: Branch direction notes",
             "receivedAt": "2004-05-12T07:55:00Z",
             "draft": true,
-            "body": "Notes for the next branch:\n- remove gameified systems\n- focus on narrative prompts\n- keep shell interactions grounded in the world"
+            "body": "notes for the next branch:\n- remove gameified systems\n- focus on narrative prompts\n- keep shell interactions grounded in the world"
         },
         {
             "id": "msg-draft-invite",
@@ -93,7 +93,7 @@
             "subject": "Draft: Outlook feature review",
             "receivedAt": "2004-05-11T18:10:00Z",
             "draft": true,
-            "body": "Need to review the fake mail data before shipping. Check Inbox, Drafts, and Junk E-mail for coverage."
+            "body": "need to review the fake mail data before shipping. check inbox, drafts, and junk mail for coverage."
         },
         {
             "id": "msg-junk-prince",
