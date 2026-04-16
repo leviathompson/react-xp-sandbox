@@ -173,3 +173,35 @@
         }
     }
 }
+.trayIcons {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+.trayItem {
+    display: flex;
+    align-items: center;
+}
+
+.trayButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.7rem;
+    border: 0.1rem solid transparent;
+    border-radius: 0.25rem;
+    background: transparent;
+    padding: 0;
+
+    &:hover {
+        border-color: #7fd9ff;
+        background: rgba(255, 255, 255, 0.14);
+    }
+
+    &:active {
+        border-color: #08458e;
+        background: rgba(4, 43, 90, 0.3);
+    }
+}

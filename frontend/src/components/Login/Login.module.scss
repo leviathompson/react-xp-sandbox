@@ -217,6 +217,25 @@
             }
         }
     }
+
+    .usernameInput {
+        border: 0.15rem solid #2f4fb5;
+        background: rgba(255, 255, 255, 0.9);
+        color: #0b1b5c;
+        font-size: 1rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+        &:focus {
+            outline: none;
+            border-color: #fae14b;
+            box-shadow: 0 0 0.5rem rgba(250, 225, 75, 0.4);
+        }
+
+        &:disabled {
+            background: rgba(255, 255, 255, 0.5);
+            cursor: not-allowed;
+        }
+    }
 }
 
 .consoleMsg {

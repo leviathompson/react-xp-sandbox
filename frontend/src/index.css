@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 @import "tailwindcss";
 
 @layer base {
@@ -11,6 +12,7 @@
   line-height: 1.5;
   font-weight: 400;
   font-size: 10px;
+  --mobile-desktop-icon-scale: 1.5;
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
@@ -36,7 +38,7 @@ button {
 }
 
 .crt-effect {
-  filter: blur(0.02rem);
+  backdrop-filter: blur(0.02rem);
 }
 
 @media (max-width: 767px) and (pointer: coarse) {

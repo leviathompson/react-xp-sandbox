@@ -6,6 +6,8 @@ import './index.css';
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
-        <Provider><App /></Provider>
+        <Provider>
+            <App />
+        </Provider>
     </StrictMode>,
 );

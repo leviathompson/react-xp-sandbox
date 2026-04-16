@@ -1,0 +1,317 @@
+.messenger {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: linear-gradient(180deg, #edf2ff 0%, #dce7fb 100%);
+    color: #2f2f2f;
+}
+
+.identityCard {
+    padding: 0.6rem 0.8rem 0.8rem;
+    border-bottom: 0.1rem solid #b7c9ee;
+    background: linear-gradient(180deg, #fdfefe 0%, #e7eefc 100%);
+}
+
+.brandRow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+    color: #0a2b7a;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.profileRow {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+
+    img {
+        width: 4.6rem;
+        height: 4.6rem;
+        object-fit: cover;
+        border-radius: 0.7rem;
+        border: 0.1rem solid #bccbee;
+        background: #fff;
+    }
+
+    h2 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1b1b1b;
+        line-height: 1.1;
+    }
+
+    p {
+        font-size: 1.1rem;
+        color: #7a8aa8;
+    }
+}
+
+
+.statusInput {
+    width: 100%;
+    border: 0.1rem solid #c6d4f4;
+    border-radius: 0.4rem;
+    background: linear-gradient(180deg, #fbfcff 0%, #edf2fc 100%);
+    padding: 0.55rem 0.8rem;
+    color: #52617e;
+    font-size: 1.2rem;
+
+    &::placeholder {
+        color: #8e99ab;
+    }
+
+    &:focus {
+        outline: none;
+        border-color: #7297e0;
+        box-shadow: 0 0 0 0.1rem rgba(114, 151, 224, 0.18);
+    }
+
+    &:disabled {
+        color: #8e99ab;
+    }
+}
+
+.content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.8rem;
+    padding: 0.8rem;
+    overflow: auto;
+}
+
+.noticeCard {
+    display: flex;
+    gap: 0.6rem;
+    align-items: start;
+    border: 0.1rem solid #d4bf68;
+    background: linear-gradient(180deg, #fffce9 0%, #fff6c8 100%);
+    padding: 0.6rem;
+    box-shadow: inset 0 0 0 0.1rem #fff7d5;
+
+    p {
+        color: #415587;
+        font-size: 1.15rem;
+        line-height: 1.2;
+        text-decoration: underline;
+    }
+}
+
+.infoBubble {
+    display: inline-grid;
+    place-items: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 999rem;
+    background: linear-gradient(180deg, #2d5bd6 0%, #183ea6 100%);
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.addContactButton {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #4f4f4f;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.addContactIcon {
+    display: inline-grid;
+    place-items: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 999rem;
+    background: linear-gradient(180deg, #5dc851 0%, #2b9830 100%);
+    color: transparent;
+    font-size: 1.2rem;
+    font-weight: 700;
+    position: relative;
+
+    &::before {
+        content: "+";
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-size: 1.3rem;
+        line-height: 1;
+        transform: translateY(-0.05rem);
+    }
+}
+
+.listShell {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    border: 0.1rem solid #b8c8ea;
+    background: #fff;
+}
+
+.listHeader {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 0.1rem solid #d8e1f4;
+    background: linear-gradient(180deg, #f7faff 0%, #ebf1fb 100%);
+    color: #536991;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.sessionList {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.4rem 0;
+    min-height: 1rem;
+}
+
+.sessionRow {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 0.45rem 0.8rem;
+    text-align: left;
+    will-change: transform;
+
+    &:hover {
+        background: #f3f7ff;
+    }
+
+    &[data-self="true"] {
+        background: linear-gradient(180deg, #eef5ff 0%, #dbe9ff 100%);
+        box-shadow: inset 0.25rem 0 0 #5b8ef1;
+        cursor: default;
+    }
+
+    img {
+        width: 2.8rem;
+        height: 2.8rem;
+        object-fit: cover;
+        border-radius: 0.5rem;
+        border: 0.1rem solid #d6e0f6;
+        background: #f5f8ff;
+        flex-shrink: 0;
+    }
+}
+
+
+.presenceIcon {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 999rem;
+    flex-shrink: 0;
+    border: 0.1rem solid rgba(0, 0, 0, 0.15);
+
+    &[data-presence="online"] {
+        background: #2eb44f;
+    }
+
+    &[data-presence="away"] {
+        background: #f6be2e;
+    }
+
+    &[data-presence="busy"] {
+        background: #d9534f;
+    }
+
+    &[data-presence="offline"] {
+        background: #aeb4c3;
+    }
+}
+
+.sessionMeta {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.nameRow {
+    display: flex;
+    min-width: 0;
+    gap: 0.4rem;
+    align-items: baseline;
+
+    strong {
+        flex-shrink: 0;
+        color: #222;
+        font-size: 1.25rem;
+        font-weight: 600;
+        line-height: 1.1;
+    }
+}
+
+.selfTag {
+    display: inline-flex;
+    align-items: center;
+    height: 1.7rem;
+    padding: 0 0.45rem;
+    border: 0.1rem solid #9fb7e8;
+    border-radius: 999rem;
+    background: linear-gradient(180deg, #ffffff 0%, #e5efff 100%);
+    color: #2d57b4;
+    font-size: 0.95rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.statusText,
+.lastSeen {
+    color: #7c8190;
+    font-size: 1.1rem;
+}
+
+.lastSeen {
+    display: block;
+    margin-top: 0.15rem;
+}
+
+.personalMessage {
+    min-width: 0;
+    overflow: hidden;
+    color: #5f6f8e;
+    font-size: 1.1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.emptyState {
+    padding: 1.4rem 1rem;
+    color: #61718f;
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.footerBrand {
+    display: flex;
+    align-items: end;
+    gap: 0.6rem;
+    border: 0.1rem solid #ced9ef;
+    background: linear-gradient(180deg, #ffffff 0%, #eff4fc 100%);
+    padding: 0.8rem;
+
+    strong {
+        display: block;
+        color: #1a1a1a;
+        font-size: 1.6rem;
+        line-height: 1;
+    }
+
+    span {
+        color: #a5abb7;
+        font-size: 1.35rem;
+        line-height: 1;
+    }
+}

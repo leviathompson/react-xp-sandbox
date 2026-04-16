@@ -1,4 +1,10 @@
 {
+  "name": "react-xp-sandbox",
+  "private": true,
+  "scripts": {
+    "api": "node --env-file=.env backend/server.js",
+    "api:dev": "node --env-file=.env --watch backend/server.js"
+  },
   "devDependencies": {
     "sass-embedded": "^1.97.2"
   },

@@ -8,24 +8,59 @@
             }
         ],
         [
+            "computer",
+            {
+                "top": 440,
+                "left": 5
+            }
+        ],
+        [
             "internetExplorer",
             {
-                "top": 70,
+                "top": 90,
                 "left": 5
             }
         ],
         [
-            "gitHub",
+            "winMessenger",
             {
-                "top": 145,
+                "top": 175,
                 "left": 5
             }
         ],
         [
-            "kofi",
+            "paint",
             {
-                "top": 210,
+                "top": 260,
                 "left": 5
+            }
+        ],
+        [
+            "solitaire",
+            {
+                "top": 345,
+                "left": 5
+            }
+        ],
+        [
+            "bonziBuddy",
+            {
+                "top": 5,
+                "left": 100
+            }
+        ],
+        [
+            "cryptoWallet",
+            {
+                "top": 90,
+                "left": 100
+            }
+        ],
+        [
+            "outlook",
+            {
+                "top": 175,
+                "left": 100
             }
         ],
         [
@@ -38,7 +73,7 @@
         [
             "readme",
             {
-                "bottom": 70,
+                "bottom": 90,
                 "right": 5
             }
         ]
@@ -62,5 +97,38 @@
         "userDocuments",
         "sharedDocuments",
         "localDisk"
-    ]
+    ],
+    "localDisk": [
+        "windowsFolder",
+        "userHomeFolder"
+    ],
+    "windowsFolder": [
+        "system32"
+    ],
+    "system32": [],
+    "userHomeFolder": [
+        "appDataFolder"
+    ],
+    "appDataFolder": [
+        "roamingFolder"
+    ],
+    "roamingFolder": [
+        "minecraftFolder"
+    ],
+    "minecraftFolder": [
+        "minecraftAssets",
+        "minecraftConfig",
+        "minecraftBin",
+        "minecraftData",
+        "minecraftLogs",
+        "minecraftSaves",
+        "minecraftScreenshots"
+    ],
+    "minecraftAssets": [],
+    "minecraftConfig": [],
+    "minecraftBin": [],
+    "minecraftData": [],
+    "minecraftLogs": [],
+    "minecraftSaves": [],
+    "minecraftScreenshots": []
 }

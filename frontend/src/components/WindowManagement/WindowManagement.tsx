@@ -7,14 +7,17 @@ import type { Application } from "../../context/types";
 const applications = applicationsJSON as unknown as Record<string, Application>;
 
 const WindowManagement = () => {
-    const { currentWindows } = useContext();
+    const { currentWindows, customApplications } = useContext();
+    const mergedApplications = { ...applications, ...customApplications };
 
     return (
         currentWindows.map((currentWindow) => {
             const appId = currentWindow.appId;
+            const windowApplication = mergedApplications[currentWindow.appId];
+            if (!windowApplication) return null;
 
-            const {component, content} = applications[currentWindow.appId];
-            return <Window key={currentWindow.id} {...currentWindow}><WindowContent key={appId} componentId={component} appId={appId} content={content} /></Window>;
+            const { component, content } = windowApplication;
+            return <Window key={currentWindow.id} {...currentWindow}><WindowContent key={appId} componentId={component} content={content} {...currentWindow} /></Window>;
         })
     );
 };

@@ -11,14 +11,40 @@
         "icon": "/icon__internet_explorer.png",
         "iconLarge": "/icon__internet_explorer--large.png",
         "component": "InternetExplorer",
-        "height": 500,
+        "height": 700,
         "width": 500
+    },
+    "internetOptions": {
+        "title": "Internet Options",
+        "icon": "/icon__internet_explorer.png",
+        "iconLarge": "/icon__internet_explorer--large.png",
+        "component": "InternetOptions",
+        "height": 405,
+        "width": 420,
+        "top": 95,
+        "left": 135,
+        "showOnTaskbar": false
+    },
+    "taskManager": {
+        "title": "Windows Task Manager",
+        "icon": "/icon__computer.png",
+        "iconLarge": "/icon__computer--large.png",
+        "component": "TaskManager",
+        "height": 280,
+        "width": 380,
+        "top": 110,
+        "left": 145
     },
     "outlook": {
         "title": "Microsoft Outlook",
+        "windowTitle": "gerrit@outlook.com - Microsoft Outlook",
+        "icon": "/icon__outlook--large.png",
         "iconLarge": "/icon__outlook--large.png",
-        "content": "placeholder",
-        "disabled": true
+        "component": "Outlook",
+        "width": 820,
+        "height": 760,
+        "top": 48,
+        "left": 60
     },
     "recycleBin": {
         "title": "Recycle Bin",
@@ -28,16 +54,47 @@
         "height": 390
     },
     "winMessenger": {
-        "title": "Windows Messenger",
+        "title": "MSN Messenger",
+        "icon": "/icon__messenger--large.png",
         "iconLarge": "/icon__messenger--large.png",
-        "content": "placeholder",
-        "disabled": true
+        "component": "Messenger",
+        "width": 270,
+        "height": 600,
+        "top": 40,
+        "left": 120
+    },
+    "paint": {
+        "title": "Paint",
+        "windowTitle": "untitled - Paint",
+        "icon": "/icon__paint.webp",
+        "iconLarge": "/icon__paint.webp",
+        "component": "Paint",
+        "width": 680,
+        "height": 520,
+        "top": 80,
+        "left": 110,
+        "content": {
+            "documentKind": "paint",
+            "documentName": "untitled"
+        }
+    },
+    "bonziBuddy": {
+        "title": "Bonzi Buddy",
+        "icon": "/icon__BonziBUDDY.webp",
+        "iconLarge": "/icon__BonziBUDDY.webp",
+        "component": "BonziBuddy",
+        "width": 320,
+        "height": 470,
+        "top": 105,
+        "left": 135,
+        "resizable": false
     },
     "winMediaPlayer": {
         "title": "Windows Media Player",
         "iconLarge": "/icon__media_player--large.png",
-        "content": "placeholder",
-        "disabled": true
+        "component": "MediaPlayer",
+        "height": 430,
+        "width": 650
     },
     "msn": {
         "title": "MSN",
@@ -73,9 +130,24 @@
     },
     "controlPanel": {
         "title": "Control Panel",
+        "icon": "/icon__control_panel--large.png",
         "iconLarge": "/icon__control_panel--large.png",
-        "content": "placeholder",
-        "disabled": true
+        "component": "ControlPanel",
+        "width": 690,
+        "height": 660,
+        "top": 35,
+        "left": 50
+    },
+    "userAccounts": {
+        "title": "User Accounts",
+        "icon": "/icon__switch_users--large.png",
+        "iconLarge": "/icon__switch_users--large.png",
+        "component": "UserAccounts",
+        "clampHeightToViewport": true,
+        "width": 560,
+        "height": 620,
+        "top": 55,
+        "left": 90
     },
     "programDefaults": {
         "title": "Set Program Access and Defaults",
@@ -164,23 +236,41 @@
     },
     "over9000": {
         "title": "Over_9000.gif",
+        "icon": "/icon__pictures.png",
         "iconLarge": "/file__over_9000.png",
-        "disabled": true
+        "assetSrc": "/file__over_9000.png",
+        "component": "PictureViewer",
+        "height": 430,
+        "width": 560
     },
     "orly": {
         "title": "ORLY.jpg",
+        "icon": "/icon__pictures.png",
         "iconLarge": "/file__orly_owl.jpg",
-        "disabled": true
+        "assetSrc": "/file__orly_owl.jpg",
+        "component": "PictureViewer",
+        "height": 430,
+        "width": 560
     },
     "rickroll": {
         "title": "rickroll.gif",
+        "icon": "/icon__pictures.png",
         "iconLarge": "/file__rickroll.gif",
-        "disabled": true
+        "assetSrc": "/file__rickroll.gif",
+        "component": "PictureViewer",
+        "height": 430,
+        "width": 560
     },
     "inTheEnd": {
         "title": "In the End.mp3",
+        "icon": "/icon__media_player--large.png",
         "iconLarge": "/file__linkin_park.jpeg",
-        "disabled": true
+        "component": "MediaPlayer",
+        "embedUrl": "https://www.youtube-nocookie.com/embed/eVTXPUF4Oz4?autoplay=1&mute=0&rel=0",
+        "artist": "Linkin Park",
+        "album": "Meteora",
+        "height": 430,
+        "width": 650
     },
     "win11": {
         "title": "windows_11.exe",
@@ -200,7 +290,87 @@
     "localDisk": {
         "title": "Local Disk (:C)",
         "iconLarge": "/icon__hdd--large.png",
-        "disabled": true
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "windowsFolder": {
+        "title": "WINDOWS",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "system32": {
+        "title": "system32",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "userHomeFolder": {
+        "title": "User",
+        "iconLarge": "/icon__documents--large.png",
+        "component": "FileExplorer",
+        "height": 390,
+        "userFolder": true
+    },
+    "appDataFolder": {
+        "title": "AppData",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "roamingFolder": {
+        "title": "Roaming",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftFolder": {
+        "title": ".minecraft",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftAssets": {
+        "title": "assets",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftConfig": {
+        "title": "config",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftBin": {
+        "title": "bin",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftData": {
+        "title": "data",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftLogs": {
+        "title": "logs",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftSaves": {
+        "title": "saves",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
+    },
+    "minecraftScreenshots": {
+        "title": "screenshots",
+        "iconLarge": "/icon__file_explorer--large.png",
+        "component": "FileExplorer",
+        "height": 390
     },
     "desktop": {
         "title": "Desktop",
@@ -212,15 +382,15 @@
         "title": "Notepad",
         "iconLarge": "/icon__notepad--large.png",
         "component": "Notepad",
-        "height": 400,
-        "width": 500
+        "height": 370,
+        "width": 330
     },
     "readme": {
         "title": "ReadMe.txt",
         "iconLarge": "/icon__notepad--large.png",
         "component": "Notepad",
-        "content": "Welcome to my React XP project.\n\nI wanted to recreate Windows XP using React and Typescript.\nIt's still a work in progress. Many features are not yet implemented, but I plan to continue adding new features as I can.\n\nSo far, I've added the initial boot sequence, logout/shutdown functionality, File Explorer, Internet Explorer (with Wayback Machine), Notepad, the Run window, as well as core functionalities like movable desktop icons and windows.\n\nI'm currently working on the Display Properties window, which can currently be accessed from the Start Menu. So far, I've implemented support for wallpapers, resolution changes, themes, and the ability to disable scanlines.",
-        "height": 290,
+        "content": "Boohoo! Your uncle Gerrit bit the dust. \n\nI understand you didn't even know him, but you've been asked to help execute his last will and testament. \n\nSurrounded by family you've never met, you come to learn that Gerrit was an early adopter of cryptocurrency, valuing his estate at over 18 million dollars. \n\nIf you can gain access to his Bitcoin wallet, the reward will be split equally among each and every one of you - the heirs to his estate. \n\nDue to a high-tech security feature, you only have ten minutes to claim your inheritance. You must work together to search Gerrit's computer and crack the password to his bitcoin wallet before the data is scrambled and the coin vault doors are sealed forever. \n\nGood luck.",
+        "height": 370,
         "width": 330,
         "top": 25,
         "right": 25
@@ -233,6 +403,23 @@
         "component": "Settings",
         "height": 400,
         "width": 325
-
+    },
+    "solitaire": {
+        "title": "Solitaire",
+        "iconLarge": "/icon__solitaire--large.png",
+        "component": "Solitaire",
+        "height": 400,
+        "width": 500
+    },
+    "cryptoWallet": {
+        "title": "Crypto Wallet.exe",
+        "windowTitle": "Crypto Wallet 0.1 beta",
+        "icon": "/icon__bitcoin.png",
+        "iconLarge": "/icon__bitcoin.png",
+        "component": "CryptoWallet",
+        "width": 760,
+        "height": 732,
+        "top": 70,
+        "left": 90
     }
 }

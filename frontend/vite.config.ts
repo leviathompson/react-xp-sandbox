@@ -7,15 +7,35 @@ import { defineConfig } from 'vite';
 export default defineConfig({
     server: {
         host: true,
+        proxy: {
+            "/api": {
+                target: "http://localhost:3001",
+                changeOrigin: true,
+            },
+            "/proxy.php": {
+                target: "http://localhost:3001",
+                changeOrigin: true,
+            },
+            "/ws": {
+                target: "ws://localhost:3001",
+                changeOrigin: true,
+                ws: true,
+            },
+        },
+    },
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, './src'),
+        },
     },
     plugins: [
         react(),
-        tailwindcss()
+        tailwindcss(),
     ],
     css: {
         preprocessorOptions: {
             scss: {
-                additionalData: `@use "${path.resolve(__dirname, 'src/styles/mixins').replace(/\\/g, '/')}" as *;\n`,
+                additionalData: '@use "@/styles/mixins" as *;\n',
             },
         },
     },

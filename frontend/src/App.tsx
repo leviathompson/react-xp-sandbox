@@ -1,5 +1,7 @@
 import { Activity, useEffect } from "react";
 import Desktop from "./components/Desktop/Desktop";
+import Bsod from "./components/Bsod/Bsod";
+import ContextMenu from "./components/ContextMenu/ContextMenu";
 import Login from "./components/Login/Login";
 import TaskBar from "./components/TaskBar/TaskBar";
 import Wallpaper from "./components/Wallpaper/Wallpaper";
@@ -23,10 +25,14 @@ function App() {
         return () => clearTimeout(delay);
     }, [isInitialBoot, initiationStage, windowsInitiationState, dispatch]);
 
+    if (windowsInitiationState === "bsod") {
+        return <Bsod />;
+    }
+
     return (
         <>
             <Activity mode={(["shutDown", "bios", "welcome", "transition", "login", "loggingIn"].includes(windowsInitiationState)) ? "visible" : "hidden"}>
-                <Login user="User" />
+                <Login />
             </Activity>
             <Wallpaper />
             <Activity mode={(initiationStage > 0) ? "visible" : "hidden"}>
@@ -38,6 +44,7 @@ function App() {
             <Activity mode={(initiationStage > 2) ? "visible" : "hidden"}>
                 <WindowManagement />
             </Activity>
+            <ContextMenu />
         </>
     );
 }

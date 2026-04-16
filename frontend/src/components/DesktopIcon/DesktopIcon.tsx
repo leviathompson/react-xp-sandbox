@@ -1,8 +1,12 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useContext } from "../../context/context";
 import applicationsJSON from "../../data/applications.json";
+import { speakBonziGreeting } from "../../utils/bonziBuddy";
+import { getThumbnailIconSrc } from "../../utils/applicationIcon";
 import { throttle } from "../../utils/general";
 import { openApplication } from "../../utils/general";
+import { SYSTEM32_APP_ID, buildShellContextMenu, createShortcutShellItemPayload, getDropContainerId } from "../../utils/shell";
+import { playRecycleSound } from "../../utils/sounds";
 import styles from "./DesktopIcon.module.scss";
 import type { AbsoluteObject, Application } from "../../context/types";
 
@@ -14,38 +18,137 @@ type DesktopIconProps = AbsoluteObject & {
 };
 
 const applications = applicationsJSON as unknown as Record<string, Application>;
+const DOUBLE_TAP_DELAY_MS = 350;
+const DOUBLE_TAP_MOVE_THRESHOLD_PX = 8;
 
 const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undefined, left = undefined, id, selectedId, setSelectedId }: DesktopIconProps) => {
-    const { currentWindows, dispatch } = useContext();
+    const { currentWindows, customApplications, dispatch, openContextMenu } = useContext();
     const [position, setPosition] = useState<AbsoluteObject>({ top, right, bottom, left });
+    const [isDragOver, setIsDragOver] = useState(false);
+    const positionRef = useRef<AbsoluteObject>({ top, right, bottom, left });
     const desktopIconRef = useRef<HTMLButtonElement | null>(null);
     const desktopIcon = desktopIconRef.current;
     const isActive = id === selectedId;
-    const appData = applications[appId];
-    const { title, icon, iconLarge, link } = { ...appData };
+    const mergedApplications = { ...applications, ...customApplications };
+    const appData = { ...(applications[appId] || {}), ...(customApplications[appId] || {}) };
+    const { title, link, redirect, disabled, shortcut } = { ...appData };
+    const isCustomItem = !!customApplications[appId];
+    const dropContainerId = getDropContainerId(appId, appData, mergedApplications);
+    const triggerSystem32Crash = () => {
+        dispatch({ type: "SET_CURRENT_WINDOWS", payload: [] });
+        dispatch({ type: "SET_WINDOWS_INITIATION_STATE", payload: "bsod" });
+    };
+
+    const lastTouchTapRef = useRef(0);
+    const skipNextDoubleClickRef = useRef(false);
+
+    useEffect(() => {
+        setPosition({ top, right, bottom, left });
+        positionRef.current = { top, right, bottom, left };
+    }, [bottom, left, right, top]);
+
+    const activateIcon = () => {
+        if (disabled) return;
+        if (link) return window.open(link, "_blank", "noopener,noreferrer");
+        if (appId === "bonziBuddy") {
+            void speakBonziGreeting();
+        }
+
+        openApplication(redirect || appId, currentWindows, dispatch);
+        setSelectedId("");
+    };
 
     const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
+        if (event.button !== 0) return;
+
         const desktopIconRect = desktopIcon?.getBoundingClientRect();
         if (!desktopIconRect) return;
 
         const xOffset = event.clientX - desktopIconRect.left;
         const yOffset = event.clientY - desktopIconRect.top;
+        const initialPointerX = event.clientX;
+        const initialPointerY = event.clientY;
+        let hasPointerMovedBeyondTapThreshold = false;
+
         setSelectedId(id);
 
         const onPointerMove = (event: PointerEvent) => {
+            if (event.pointerType === "touch" && !hasPointerMovedBeyondTapThreshold) {
+                const deltaX = Math.abs(event.clientX - initialPointerX);
+                const deltaY = Math.abs(event.clientY - initialPointerY);
+                if (deltaX > DOUBLE_TAP_MOVE_THRESHOLD_PX || deltaY > DOUBLE_TAP_MOVE_THRESHOLD_PX) {
+                    hasPointerMovedBeyondTapThreshold = true;
+                } else {
+                    return;
+                }
+            } else if (event.pointerType !== "touch") {
+                hasPointerMovedBeyondTapThreshold = true;
+            }
+
             setPosition({
                 top: event.clientY - yOffset,
                 left: event.clientX - xOffset,
             });
+            positionRef.current = {
+                top: event.clientY - yOffset,
+                left: event.clientX - xOffset,
+            };
             document.body.style.userSelect = "none";
             setSelectedId(id);
         };
         const throttledPointerMove = throttle(onPointerMove, 50);
 
-        const onPointerUp = () => {
+        const onPointerUp = (upEvent: PointerEvent) => {
             window.removeEventListener("pointermove", throttledPointerMove);
             window.removeEventListener("pointerup", onPointerUp);
             document.body.style.userSelect = "";
+
+            if (hasPointerMovedBeyondTapThreshold) {
+                const dropTarget = document
+                    .elementsFromPoint(upEvent.clientX, upEvent.clientY)
+                    .find((element) => element instanceof HTMLElement && !!element.dataset.dropContainerId && element.dataset.appId !== appId) as HTMLElement | undefined;
+
+                const targetContainerId = dropTarget?.dataset.dropContainerId;
+                if (targetContainerId) {
+                    if (appId === SYSTEM32_APP_ID && targetContainerId === "recycleBin") {
+                        triggerSystem32Crash();
+                        return;
+                    }
+                    dispatch({
+                        type: "MOVE_SHELL_ITEM",
+                        payload: {
+                            appId,
+                            sourceContainerId: "desktop",
+                            targetContainerId,
+                        },
+                    });
+                    return;
+                }
+
+                dispatch({
+                    type: "UPDATE_SHELL_ITEM_POSITION",
+                    payload: {
+                        appId,
+                        containerId: "desktop",
+                        position: {
+                            top: positionRef.current.top,
+                            left: positionRef.current.left,
+                        },
+                    },
+                });
+                return;
+            }
+
+            if (upEvent.pointerType === "touch") {
+                const now = performance.now();
+                if (now - lastTouchTapRef.current < DOUBLE_TAP_DELAY_MS) {
+                    skipNextDoubleClickRef.current = true;
+                    activateIcon();
+                    lastTouchTapRef.current = 0;
+                } else {
+                    lastTouchTapRef.current = now;
+                }
+            }
         };
         window.addEventListener("pointermove", throttledPointerMove);
         window.addEventListener("pointerup", onPointerUp);
@@ -55,7 +158,7 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
         setSelectedId(id);
 
         const onSecondClick = (event: PointerEvent) => {
-            const target = (event.target as HTMLElement);
+            const target = event.target as HTMLElement;
             if (event.target && target.closest("[data-selected") === desktopIcon) return;
             setSelectedId("");
             window.removeEventListener("pointerdown", onSecondClick);
@@ -65,17 +168,141 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
     };
 
     const onDoubleClickHandler = () => {
-        if (link) return window.open(link, "_blank", "noopener,noreferrer");
+        if (skipNextDoubleClickRef.current) {
+            skipNextDoubleClickRef.current = false;
+            return;
+        }
 
-        openApplication(appId, currentWindows, dispatch);
-        setSelectedId("");
+        activateIcon();
     };
 
-    const imageMask = (isActive) ? `url("${iconLarge || icon}")` : "";
+    const onContextMenuHandler = (event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        setSelectedId(id);
+        const shortcutSourcePosition = desktopIcon ? { top: desktopIcon.offsetTop, left: desktopIcon.offsetLeft } : position;
+
+        openContextMenu({
+            x: event.clientX,
+            y: event.clientY,
+            items: buildShellContextMenu("desktopFolderItem", {
+                canDelete: isCustomItem || appId === SYSTEM32_APP_ID,
+                canRename: isCustomItem,
+                canOpen: !disabled,
+                onOpen: activateIcon,
+                onExplore: activateIcon,
+                onCreateShortcut: () => {
+                    dispatch({
+                        type: "CREATE_SHELL_ITEM",
+                        payload: createShortcutShellItemPayload(appId, appData, mergedApplications, shortcutSourcePosition),
+                    });
+                },
+                onDelete: () => {
+                    if (appId === SYSTEM32_APP_ID) {
+                        triggerSystem32Crash();
+                        return;
+                    }
+
+                    playRecycleSound();
+                    dispatch({
+                        type: "SET_CURRENT_WINDOWS",
+                        payload: currentWindows.filter((currentWindow) => currentWindow.appId !== appId),
+                    });
+                    dispatch({
+                        type: "DELETE_SHELL_ITEM",
+                        payload: {
+                            containerId: "desktop",
+                            appId,
+                        },
+                    });
+                    setSelectedId("");
+                },
+                onRename: () => {
+                    const nextTitle = window.prompt("Rename", title);
+                    if (!nextTitle) return;
+
+                    const trimmedTitle = nextTitle.trim();
+                    if (!trimmedTitle || trimmedTitle === title) return;
+
+                    dispatch({
+                        type: "UPDATE_SHELL_ITEM",
+                        payload: {
+                            appId,
+                            application: {
+                                title: trimmedTitle,
+                            },
+                        },
+                    });
+
+                },
+            }),
+        });
+    };
+
+    const onDragOverHandler = (event: React.DragEvent<HTMLButtonElement>) => {
+        if (!dropContainerId) return;
+
+        if (!Array.from(event.dataTransfer.types).includes("text/x-shell-item")) return;
+
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        setIsDragOver(true);
+    };
+
+    const onDropHandler = (event: React.DragEvent<HTMLButtonElement>) => {
+        setIsDragOver(false);
+        if (!dropContainerId) return;
+
+        const payload = event.dataTransfer.getData("text/x-shell-item");
+        if (!payload) return;
+
+        const draggedItem = JSON.parse(payload) as { appId: string; sourceContainerId: string };
+        if (draggedItem.appId === appId || draggedItem.appId === dropContainerId) return;
+
+        event.preventDefault();
+        if (draggedItem.appId === SYSTEM32_APP_ID && dropContainerId === "recycleBin") {
+            triggerSystem32Crash();
+            return;
+        }
+        dispatch({
+            type: "MOVE_SHELL_ITEM",
+            payload: {
+                appId: draggedItem.appId,
+                sourceContainerId: draggedItem.sourceContainerId,
+                targetContainerId: dropContainerId,
+            },
+        });
+    };
+
+    const onDragLeaveHandler = (event: React.DragEvent<HTMLButtonElement>) => {
+        if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) {
+            setIsDragOver(false);
+        }
+    };
+
+    const thumbnailIconSrc = getThumbnailIconSrc(appData);
+    const imageMask = isActive ? `url("${thumbnailIconSrc}")` : "";
 
     return (
-        <button ref={desktopIconRef} className={styles.desktopIcon} data-selected={isActive} data-link={!!link} onClick={onClickHandler} onPointerDown={onPointerDown} onDoubleClick={onDoubleClickHandler} style={{ top: position.top, right: position.right, bottom: position.bottom, left: position.left }}>
-            <span style={{ maskImage: imageMask }}><img src={iconLarge || icon} width="50" draggable={false} /></span>
+        <button
+            ref={desktopIconRef}
+            className={`${styles.desktopIcon} ${disabled ? "cursor-not-allowed" : ""}`}
+            data-label="desktop-icon"
+            data-app-id={appId}
+            data-drop-container-id={dropContainerId || undefined}
+            data-drag-over={isDragOver}
+            data-selected={isActive}
+            data-link={!!link}
+            data-shortcut={shortcut}
+            onClick={onClickHandler}
+            onContextMenu={onContextMenuHandler}
+            onDragLeave={onDragLeaveHandler}
+            onDragOver={onDragOverHandler}
+            onDrop={onDropHandler}
+            onPointerDown={onPointerDown}
+            onDoubleClick={onDoubleClickHandler}
+            style={{ top: position.top, right: position.right, bottom: position.bottom, left: position.left, touchAction: "none" }}
+        >
+            <span style={{ maskImage: imageMask }}><img src={thumbnailIconSrc} width="50" draggable={false} /></span>
             <div className="relative w-full flex justify-center"><h4 className="text-center">{title}</h4></div>
         </button>
     );

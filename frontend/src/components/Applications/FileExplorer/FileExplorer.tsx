@@ -1,18 +1,25 @@
 import { useRef, useState, useEffect } from "react";
 import { useContext } from "../../../context/context";
 import applicationsJSON from "../../../data/applications.json";
-import filesJSON from "../../../data/files.json";
-import { getCurrentWindow } from "../../../utils/general";
+import { generateUniqueId, getCurrentWindow } from "../../../utils/general";
+import { getThumbnailIconSrc } from "../../../utils/applicationIcon";
+import { SYSTEM32_APP_ID, buildShellContextMenu, createShellItemPayload, createShortcutShellItemPayload, getDropContainerId, getShellEntryId } from "../../../utils/shell";
+import { playRecycleSound } from "../../../utils/sounds";
 import CollapseBox from "../../CollapseBox/CollapseBox";
 import WindowMenu from "../../WindowMenu/WindowMenu";
 import styles from "./FileExplorer.module.scss";
-import type { Application } from "../../../context/types";
+import type { Application, currentWindow } from "../../../context/types";
 
-const Applications = applicationsJSON as unknown as Record<string, Application>;
-const Files = filesJSON as unknown as Record<string, string[] | File[]>;
+const BaseApplications = applicationsJSON as unknown as Record<string, Application>;
+const DOUBLE_TAP_DELAY_MS = 350;
 
 const FileExplorer = ({ appId }: Record<string, string>) => {
-    const { currentWindows, dispatch } = useContext();
+    const { currentWindows, username, shellFiles, customApplications, dispatch, openContextMenu } = useContext();
+    const Applications = { ...BaseApplications, ...customApplications };
+
+    const resolveTitle = (id: string) =>
+        Applications[id]?.userFolder ? username : Applications[id]?.title;
+
     const [selectedItem, setSelectedItem] = useState<string | null>(null);
     const [isBackDisabled, setIsBackDisabled] = useState(true);
     const [isForwardDisabled, setIsForwardDisabled] = useState(true);
@@ -26,10 +33,20 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
     }, [currentWindows]);
 
     const inputFieldRef = useRef<HTMLInputElement | null>(null);
+    const lastTouchTapRef = useRef<{ id: string | null; time: number }>({ id: null, time: 0 });
     const appData = Applications[appId];
 
     const bgAccent = (["pictures", "music"].includes(appId) ? appId : null);
-    const documents = Files[appId];
+    const documents = shellFiles[appId] || [];
+    const [dragOverTargetId, setDragOverTargetId] = useState<string | null>(null);
+    const getDesktopShortcutPosition = () => ({
+        top: 5 + ((shellFiles.desktop?.length || 0) % 7) * 85,
+        left: 95,
+    });
+    const triggerSystem32Crash = () => {
+        dispatch({ type: "SET_CURRENT_WINDOWS", payload: [] });
+        dispatch({ type: "SET_WINDOWS_INITIATION_STATE", payload: "bsod" });
+    };
 
     const updateWindow = (appId: string | null = null) => {
         if (appId && Applications[appId].link) return window.open(Applications[appId].link, "_blank", "noopener,noreferrer");
@@ -69,7 +86,99 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
     const fileDBClickHandler = (_: unknown, appId: string | null = null) => {
         if (!appId || Applications[appId].disabled) return;
 
-        updateWindow(Applications[appId].redirect || appId);
+        const application = Applications[appId];
+        if (!application) return;
+
+        if (application.link) {
+            window.open(application.link, "_blank", "noopener,noreferrer");
+            return;
+        }
+
+        if (application.component === "FileExplorer" || application.redirect) {
+            updateWindow(application.redirect || appId);
+            return;
+        }
+
+        const newWindow: currentWindow = {
+            id: generateUniqueId(),
+            appId,
+            active: true,
+            history: [],
+            forward: [],
+        };
+
+        const updatedCurrentWindows: currentWindow[] = currentWindows.map((window) => ({
+            ...window,
+            active: false,
+        }));
+        updatedCurrentWindows.push(newWindow);
+        dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
+    };
+
+    const onItemContextMenu = (event: React.MouseEvent<HTMLButtonElement>, itemId: string) => {
+        event.preventDefault();
+        setSelectedItem(itemId);
+
+        const itemApplication = Applications[itemId];
+        if (!itemApplication) return;
+
+        const isCustomItem = !!customApplications[itemId];
+        const { title, disabled } = itemApplication;
+
+        openContextMenu({
+            x: event.clientX,
+            y: event.clientY,
+            items: buildShellContextMenu("desktopFolderItem", {
+                canDelete: isCustomItem || itemId === SYSTEM32_APP_ID,
+                canRename: isCustomItem,
+                canOpen: !disabled,
+                onOpen: () => fileDBClickHandler(null, itemId),
+                onExplore: () => fileDBClickHandler(null, itemId),
+                onCreateShortcut: () => {
+                    dispatch({
+                        type: "CREATE_SHELL_ITEM",
+                        payload: createShortcutShellItemPayload(itemId, itemApplication, Applications, getDesktopShortcutPosition()),
+                    });
+                },
+                onDelete: () => {
+                    if (itemId === SYSTEM32_APP_ID) {
+                        triggerSystem32Crash();
+                        return;
+                    }
+
+                    playRecycleSound();
+                    dispatch({
+                        type: "SET_CURRENT_WINDOWS",
+                        payload: currentWindows.filter((currentWindow) => currentWindow.appId !== itemId),
+                    });
+                    dispatch({
+                        type: "DELETE_SHELL_ITEM",
+                        payload: {
+                            containerId: appId,
+                            appId: itemId,
+                        },
+                    });
+                    setSelectedItem(null);
+                },
+                onRename: () => {
+                    const nextTitle = window.prompt("Rename", title);
+                    if (!nextTitle) return;
+
+                    const trimmedTitle = nextTitle.trim();
+                    if (!trimmedTitle || trimmedTitle === title) return;
+
+                    dispatch({
+                        type: "UPDATE_SHELL_ITEM",
+                        payload: {
+                            appId: itemId,
+                            application: {
+                                title: trimmedTitle,
+                            },
+                        },
+                    });
+                },
+            }),
+        });
     };
 
     const fileClickHandler = (_: unknown, appId: string | null = null) => {
@@ -78,9 +187,8 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
 
         const secondClick = (e: PointerEvent) => onSecondClick(e, appId);
         const onSecondClick = (event: PointerEvent, appId: string) => {
-            const target = (event.target as HTMLElement);
-
-            const targetId = (target.closest("[data-selected]") as HTMLElement)?.dataset.id;
+            const target = event.target instanceof HTMLElement ? event.target : null;
+            const targetId = target ? (target.closest("[data-selected]") as HTMLElement | null)?.dataset.id : undefined;
             if (targetId === appId) return;
 
             setSelectedItem((targetId) ? targetId : null);
@@ -88,6 +196,21 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
             document.removeEventListener("click", secondClick);
         };
         document.addEventListener("click", secondClick);
+    };
+
+    const handleFileTouchPointerUp = (event: React.PointerEvent<HTMLButtonElement>, appId: string | null = null) => {
+        if (!appId || Applications[appId].disabled || event.pointerType !== "touch") return;
+
+        const now = performance.now();
+        const { id, time } = lastTouchTapRef.current;
+        const isDoubleTap = id === appId && (now - time) < DOUBLE_TAP_DELAY_MS;
+
+        if (isDoubleTap) {
+            lastTouchTapRef.current = { id: null, time: 0 };
+            fileDBClickHandler(null, appId);
+        } else {
+            lastTouchTapRef.current = { id: appId, time: now };
+        }
     };
 
     const backClickHandler = () => {
@@ -114,6 +237,82 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
 
         currentWindow.appId = previousWindowId;
         dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
+    };
+
+    const onBackgroundContextMenu = (event: React.MouseEvent<HTMLElement>) => {
+        if ((event.target as HTMLElement).closest("[data-label=file-explorer-item]")) return;
+
+        event.preventDefault();
+
+        openContextMenu({
+            x: event.clientX,
+            y: event.clientY,
+            items: buildShellContextMenu("fileExplorerBackground", {
+                onCreateItem: (kind) => {
+                    dispatch({
+                        type: "CREATE_SHELL_ITEM",
+                        payload: createShellItemPayload(kind, appId, Applications),
+                    });
+                },
+            }),
+        });
+    };
+
+    const onItemDragStart = (event: React.DragEvent<HTMLButtonElement>, itemId: string) => {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", itemId);
+        event.dataTransfer.setData("text/x-shell-item", JSON.stringify({
+            appId: itemId,
+            sourceContainerId: appId,
+        }));
+        setSelectedItem(itemId);
+    };
+
+    const onItemDragEnd = () => {
+        setDragOverTargetId(null);
+    };
+
+    const onItemDragOver = (event: React.DragEvent<HTMLButtonElement>, itemId: string) => {
+        const targetContainerId = getDropContainerId(itemId, Applications[itemId], Applications);
+        if (!targetContainerId) return;
+
+        if (!Array.from(event.dataTransfer.types).includes("text/x-shell-item")) return;
+
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        setDragOverTargetId(itemId);
+    };
+
+    const onItemDrop = (event: React.DragEvent<HTMLButtonElement>, itemId: string) => {
+        const targetContainerId = getDropContainerId(itemId, Applications[itemId], Applications);
+        if (!targetContainerId) return;
+
+        const payload = event.dataTransfer.getData("text/x-shell-item");
+        if (!payload) return;
+
+        const draggedItem = JSON.parse(payload) as { appId: string; sourceContainerId: string };
+        setDragOverTargetId(null);
+
+        if (draggedItem.appId === itemId || draggedItem.appId === targetContainerId) return;
+        if (draggedItem.appId === SYSTEM32_APP_ID && targetContainerId === "recycleBin") {
+            triggerSystem32Crash();
+            return;
+        }
+
+        dispatch({
+            type: "MOVE_SHELL_ITEM",
+            payload: {
+                appId: draggedItem.appId,
+                sourceContainerId: draggedItem.sourceContainerId,
+                targetContainerId,
+            },
+        });
+    };
+
+    const onItemDragLeave = (event: React.DragEvent<HTMLButtonElement>, itemId: string) => {
+        if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) {
+            if (dragOverTargetId === itemId) setDragOverTargetId(null);
+        }
     };
 
     return (
@@ -163,7 +362,7 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
 
                         <div className={`${styles.navBar} flex mx-1 h-full`}>
                             <img src={appData.icon || appData.iconLarge} className="mx-1" width="14" height="14" />
-                            <input ref={inputFieldRef} className={`${styles.navBar} h-full`} type="text" defaultValue={appData.title} onKeyDown={keyDownHandler} />
+                            <input ref={inputFieldRef} className={`${styles.navBar} h-full`} type="text" defaultValue={resolveTitle(appId)} onKeyDown={keyDownHandler} />
                             <button className={styles.dropDown}>Submit</button>
                         </div>
                         <button className={`${styles.goButton} flex items-center`} onClick={() => updateWindow()}>
@@ -215,29 +414,48 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                     </CollapseBox>
                     <CollapseBox title="Details">
                         <div className="p-3">
-                            <h3 className="font-bold">{appData.title}</h3>
+                            <h3 className="font-bold">{resolveTitle(appId)}</h3>
                             <p>System Folder</p>
                         </div>
                     </CollapseBox>
                 </aside>
-                <section className={`${styles.contents} relative w-full`}>
+                <section className={`${styles.contents} relative w-full`} onContextMenu={onBackgroundContextMenu}>
                     <div className="absolute inset-0 p-3 h-fit">
                         {appId === "computer" && <h3 className="w-full">Files Stored on this Computer</h3>}
                         {documents.map((item) => {
-                            if (item === appId) return;
+                            if (getShellEntryId(item) === appId) return;
 
-                            const itemId = (Array.isArray(item) ? item[0] : item);
+                            const itemId = getShellEntryId(item);
                             const appData = Applications[itemId];
                             if (!appData) return;
                             
                             const isActive = (selectedItem === itemId);
-                            const { title, icon, iconLarge, disabled, link } = appData;
-                            const imageMask = (isActive) ? `url("${iconLarge || icon}")` : "";
-                            
+                            const { disabled, link } = appData;
+                            const itemIconSrc = getThumbnailIconSrc(appData);
+                            //const imageMask = (isActive) ? `url("${iconLarge || icon}")` : "";
+
                             return (
-                                <button key={itemId} data-id={itemId} data-selected={isActive} data-link={!!link} className={`${styles.file} ${(disabled) ? "cursor-not-allowed" : ""}`} onDoubleClick={(e) => fileDBClickHandler(e, itemId)} onClick={(e) => fileClickHandler(e, itemId)}>
-                                    <span className="flex items-center shrink-0" style={{ maskImage: imageMask }}><img src={iconLarge || icon} width="35" height="35" draggable={false} /></span>
-                                    <h4 className="px-0.5">{title}</h4>
+                                <button
+                                    key={itemId}
+                                    draggable
+                                    data-label="file-explorer-item"
+                                    data-id={itemId}
+                                    data-selected={isActive}
+                                    data-link={!!link}
+                                    data-drag-over={dragOverTargetId === itemId}
+                                    className={`${styles.file} ${(disabled) ? "cursor-not-allowed" : ""}`}
+                                    onDoubleClick={(e) => fileDBClickHandler(e, itemId)}
+                                    onClick={(e) => fileClickHandler(e, itemId)}
+                                    onContextMenu={(event) => onItemContextMenu(event, itemId)}
+                                    onDragEnd={onItemDragEnd}
+                                    onDragLeave={(event) => onItemDragLeave(event, itemId)}
+                                    onDragOver={(event) => onItemDragOver(event, itemId)}
+                                    onDragStart={(event) => onItemDragStart(event, itemId)}
+                                    onDrop={(event) => onItemDrop(event, itemId)}
+                                    onPointerUp={(event) => handleFileTouchPointerUp(event, itemId)}
+                                >
+                                    <span className="flex items-center shrink-0"><img src={itemIconSrc} width="35" height="35" draggable={false} /></span>
+                                    <h4 className="px-0.5">{resolveTitle(itemId)}</h4>
                                 </button>
                             );
                         })}

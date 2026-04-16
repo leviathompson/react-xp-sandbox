@@ -11,7 +11,7 @@ interface StartMenuProps {
 }
 
 const StartMenu = ({ startButton }: StartMenuProps) => {
-    const { isStartVisible, isAllProgramsOpen, isRecentDocumentsOpen, isShutDownModalOpen, dispatch } = useContext();
+    const { isStartVisible, isAllProgramsOpen, isRecentDocumentsOpen, isShutDownModalOpen, username, avatarSrc, dispatch } = useContext();
     const startMenuRef = useRef<HTMLDivElement | null>(null);
     const startMenu = startMenuRef.current;
     const allProgramsRef = useRef<HTMLDivElement | null>(null);
@@ -41,6 +41,8 @@ const StartMenu = ({ startButton }: StartMenuProps) => {
     const allProgramsHandler = () => {
         if (!isAllProgramsOpen) {
             dispatch({ type: "SET_IS_ALL_PROGRAMS_OPEN", payload: true });
+        } else {
+            dispatch({ type: "SET_IS_ALL_PROGRAMS_OPEN", payload: false });
         }
     };
 
@@ -59,8 +61,8 @@ const StartMenu = ({ startButton }: StartMenuProps) => {
     return (
         <div ref={startMenuRef} className={`${styles.startMenu} bg-[#3e75d8] absolute z-10 left-0 bottom-12`}>
             <header className="flex items-center p-3">
-                <img src="/avatar__skateboard.png" className="mr-3" width="50" height="50" />
-                <h1>User</h1>
+                <img src={avatarSrc} className="mr-3" width="50" height="50" />
+                <h1>{username.trim() || "User"}</h1>
             </header>
             <main className="flex">
                 <section className="bg-white text-[#373738] flex flex-col justify-between">
@@ -70,16 +72,17 @@ const StartMenu = ({ startButton }: StartMenuProps) => {
                             <li><StartMenuItem appId="outlook" subTitle="E-mail" /></li>
                         </ul>
                         <ul className="flex flex-col p-3 gap-1.5">
-                            <li><StartMenuItem appId="notepad" iconSize={30} /></li>
                             <li><StartMenuItem appId="winMessenger" iconSize={30} /></li>
-                            <li><StartMenuItem appId="msn" iconSize={30} /></li>
                             <li><StartMenuItem appId="winMediaPlayer" iconSize={30} /></li>
+                            <li><StartMenuItem appId="notepad" iconSize={30} /></li>
                             <li><StartMenuItem appId="displayProperties" iconSize={30} /></li>
+                            <li><StartMenuItem appId="paint" iconSize={30} /></li>
+                            <li><StartMenuItem appId="bonziBuddy" iconSize={30} /></li>
                         </ul>
                     </div>
                     <div>
                         <div ref={allProgramsRef} className="p-2 relative">
-                            <button className="flex items-center justify-center gap-2 p-1" onPointerOver={allProgramsHandler} data-open={isAllProgramsOpen}>
+                            <button className="flex items-center justify-center gap-2 p-1" onClick={allProgramsHandler}  data-open={isAllProgramsOpen}>
                                 <h5 className="font-bold">All Programs</h5>
                                 <img src="/icon__green_arrow--large.png" className="mr-3" width="20" height="20" />
                             </button>
@@ -113,13 +116,13 @@ const StartMenu = ({ startButton }: StartMenuProps) => {
             <footer>
                 <ul className="flex justify-end gap-2 p-2">
                     <li>
-                        <button className="flex items-center p-2 cursor-not-allowed" onClick={() => onShutDownModalButtonHandler(true)}>
+                        <button className="flex items-center p-2" onClick={() => onShutDownModalButtonHandler(true)}>
                             <img src="/icon__log_out--large.png" className="mr-2" width="22" height="22" />
                             <h6>Log Off</h6>
                         </button>
                     </li>
                     <li>
-                        <button className="flex items-center p-2 cursor-not-allowed" onClick={() => onShutDownModalButtonHandler()}>
+                        <button className="flex items-center p-2" onClick={() => onShutDownModalButtonHandler()}>
                             <img src="/icon__shut_down--large.png" className="mr-2" width="22" height="22" />
                             <h6>Turn Off Computer</h6>
                         </button>
