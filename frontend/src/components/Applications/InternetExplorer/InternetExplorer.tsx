@@ -5,6 +5,7 @@ import applicationsJSON from "../../../data/applications.json";
 import savedPasswords from "../../../data/savedPasswords.json";
 import Hotmail from "../Hotmail/Hotmail";
 import { generateUniqueId, sameBaseDomain, getCurrentWindow } from "../../../utils/general";
+import { playIeNavigateSound, playMenuCommandSound } from "../../../utils/sounds";
 import styles from "./InternetExplorer.module.scss";
 import type { Application } from "../../../context/types";
 
@@ -151,6 +152,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
 
     const backClickHandler = () => {
         if (!currentWindow?.history || !currentWindow?.forward || !inputField?.value) return;
+        playIeNavigateSound();
 
         currentWindow.forward.push(inputField.value);
         inputField.value = currentWindow.history.pop() || "";
@@ -162,6 +164,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
 
     const forwardClickHandler = () => {
         if (!currentWindow?.history || !currentWindow?.forward || !inputField?.value) return;
+        playIeNavigateSound();
 
         currentWindow.history.push(inputField.value);
         inputField.value = currentWindow.forward.pop() || "";
@@ -226,6 +229,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
     const submitURLHandler = () => {
         if (currentUrl.current === inputField?.value) return;
         if (currentWindow && currentWindow.history && currentUrl) {
+            playIeNavigateSound();
             if (currentUrl.current !== currentWindow.history.at(-1)) currentWindow.history.push(currentUrl.current);
             if (currentWindow.forward) currentWindow.forward = [];
 
@@ -247,10 +251,12 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
     };
 
     const refreshClickHandler = () => {
+        playIeNavigateSound();
         updateIframe();
     };
 
     const homeClickHandler = () => {
+        playIeNavigateSound();
         if (inputField) inputField.value = HOMEPAGE;
         setWindowCurrentUrl(HOMEPAGE);
         updateIframe(HOMEPAGE);
@@ -258,6 +264,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
 
     const navigateToUrl = (nextUrl: string) => {
         if (!currentWindow) return;
+        playIeNavigateSound();
 
         if (currentWindow.history && currentUrl.current !== currentWindow.history.at(-1)) {
             currentWindow.history.push(currentUrl.current);
@@ -274,6 +281,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
 
     const handleTopLevelMenuClick = (menuItem: string) => {
         if (!["Favorites", "Tools"].includes(menuItem)) return;
+        playMenuCommandSound();
         setActiveMenu((currentMenu) => currentMenu === menuItem ? null : menuItem);
     };
 
@@ -291,11 +299,13 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
         }
 
         if (action === "openSavedPasswords") {
+            playMenuCommandSound();
             openSavedPasswords();
             return;
         }
 
         if (action !== "openInternetOptions") return;
+        playMenuCommandSound();
         if (!currentWindow) return;
 
         currentWindow.currentUrl = inputField?.value || currentUrl.current || HOMEPAGE;
@@ -328,6 +338,7 @@ const InternetExplorer = ({ appId }: Record<string, string>) => {
     };
 
     const toggleFavoritesBar = () => {
+        playMenuCommandSound();
         setActiveExplorerBar((currentBar) => currentBar === "favorites" ? null : "favorites");
     };
 

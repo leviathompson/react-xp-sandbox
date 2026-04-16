@@ -5,6 +5,7 @@ import { generateUniqueId, openApplication, updateCurrentActiveWindow } from "..
 import { DIRECT_MESSAGES_POLL_MS, fetchDirectMessages, sendDirectMessage } from "../../../utils/messenger";
 import { subscribeToMessengerRealtime } from "../../../utils/messengerRealtime";
 import { addShellBrowserResultListener, openShellBrowserWindow } from "../../../utils/shellBrowser";
+import { playMessengerSendSound } from "../../../utils/sounds";
 import styles from "./MessengerChat.module.scss";
 import type { Application } from "../../../context/types";
 
@@ -140,6 +141,7 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
             const response = await sendDirectMessage(username, peerId, trimmedMessage);
             setMessages((currentMessages) => [...currentMessages, response.message]);
             setDraftMessage("");
+            playMessengerSendSound();
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : "Unable to send message.");
         } finally {
@@ -160,6 +162,7 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
                 attachmentName: application.title,
             });
             setMessages((currentMessages) => [...currentMessages, response.message]);
+            playMessengerSendSound();
         } catch (error) {
             setErrorMessage(error instanceof Error ? error.message : "Unable to send picture.");
         } finally {

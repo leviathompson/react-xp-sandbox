@@ -7,7 +7,7 @@ import type { AbsoluteObject, Action, AccountStateSnapshot, ShellEntry, State } 
 const cloneJSON = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 const getShellEntryId = (entry: ShellEntry) => Array.isArray(entry) ? entry[0] : entry;
-const DEFAULT_WINDOW_APPS = ["cryptoWallet", "readme", "winMessenger", "controlPanel", "userAccounts"] as const;
+const DEFAULT_WINDOW_APPS = ["cryptoWallet", "readme", "winMessenger", "userAccounts"] as const;
 
 export const mergeShellFilesWithDefaults = (
     defaults: Record<string, ShellEntry[]>,

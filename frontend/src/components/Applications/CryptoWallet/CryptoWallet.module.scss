@@ -176,7 +176,7 @@
     box-shadow: inset 0 0.1rem 0 rgba(255, 255, 255, 0.08);
 
     h1 {
-        color: #f2b84a;
+        color: #e08713;
         font-size: 2.2rem;
         font-weight: 700;
         line-height: 1.1;
@@ -201,7 +201,7 @@
     }
 
     strong {
-        color: #ffd36b;
+        color: #e08713;
         font-family: "Courier New", monospace;
         font-size: 1.35rem;
     }
@@ -245,14 +245,13 @@
     place-items: center;
     width: 6rem;
     height: 6rem;
-    border: 0.2rem solid #f2c158;
-    border-radius: 999rem;
-    background: radial-gradient(circle at 35% 35%, #fff0b8 0%, #f0bb4b 32%, #9f6a12 100%);
-    color: #5d3a00;
-    font-family: Georgia, serif;
-    font-size: 3rem;
-    font-weight: 700;
-    box-shadow: inset 0 0.2rem 0 rgba(255, 255, 255, 0.45), 0 0.4rem 0.8rem rgba(0, 0, 0, 0.35);
+
+    img {
+        width: 6rem;
+        height: 6rem;
+        object-fit: contain;
+        filter: drop-shadow(0 0.08rem 0 rgba(255, 255, 255, 0.45));
+    }
 }
 
 .dashboard {
@@ -425,6 +424,7 @@
         color: #392400;
         font-size: 1.15rem;
         font-weight: 700;
+        text-align: center;
 
         &:disabled {
             filter: grayscale(0.35);

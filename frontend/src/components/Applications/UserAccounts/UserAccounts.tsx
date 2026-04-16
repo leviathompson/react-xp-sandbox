@@ -145,11 +145,7 @@ const UserAccounts = () => {
                     <div className={styles.hero}>
                         <img src="/icon__switch_users--large.png" width="38" height="38" alt="" />
                         <div>
-                            <h1>Pick a new picture for your account</h1>
-                            <p>
-                                The picture you choose will appear on the Welcome screen for{" "}
-                                <strong>{trimmedUsername || "User"}</strong>.
-                            </p>
+                            <h1>Pick a picture for your account</h1>
                         </div>
                     </div>
 

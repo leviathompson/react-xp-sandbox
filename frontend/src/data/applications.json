@@ -11,7 +11,6 @@
         "icon": "/icon__internet_explorer.png",
         "iconLarge": "/icon__internet_explorer--large.png",
         "component": "InternetExplorer",
-        "autoFitHeight": false,
         "height": 700,
         "width": 500
     },
@@ -42,9 +41,8 @@
         "icon": "/icon__outlook--large.png",
         "iconLarge": "/icon__outlook--large.png",
         "component": "Outlook",
-        "autoFitHeight": true,
         "width": 820,
-        "height": 560,
+        "height": 760,
         "top": 48,
         "left": 60
     },
@@ -61,7 +59,7 @@
         "iconLarge": "/icon__messenger--large.png",
         "component": "Messenger",
         "width": 270,
-        "height": 520,
+        "height": 600,
         "top": 40,
         "left": 120
     },
@@ -71,7 +69,6 @@
         "icon": "/icon__paint.webp",
         "iconLarge": "/icon__paint.webp",
         "component": "Paint",
-        "autoFitHeight": true,
         "width": 680,
         "height": 520,
         "top": 80,
@@ -96,7 +93,6 @@
         "title": "Windows Media Player",
         "iconLarge": "/icon__media_player--large.png",
         "component": "MediaPlayer",
-        "autoFitHeight": false,
         "height": 430,
         "width": 650
     },
@@ -147,7 +143,6 @@
         "icon": "/icon__switch_users--large.png",
         "iconLarge": "/icon__switch_users--large.png",
         "component": "UserAccounts",
-        "autoFitHeight": true,
         "clampHeightToViewport": true,
         "width": 560,
         "height": 620,
@@ -245,7 +240,6 @@
         "iconLarge": "/file__over_9000.png",
         "assetSrc": "/file__over_9000.png",
         "component": "PictureViewer",
-        "autoFitHeight": false,
         "height": 430,
         "width": 560
     },
@@ -255,7 +249,6 @@
         "iconLarge": "/file__orly_owl.jpg",
         "assetSrc": "/file__orly_owl.jpg",
         "component": "PictureViewer",
-        "autoFitHeight": false,
         "height": 430,
         "width": 560
     },
@@ -265,7 +258,6 @@
         "iconLarge": "/file__rickroll.gif",
         "assetSrc": "/file__rickroll.gif",
         "component": "PictureViewer",
-        "autoFitHeight": false,
         "height": 430,
         "width": 560
     },
@@ -277,7 +269,6 @@
         "embedUrl": "https://www.youtube-nocookie.com/embed/eVTXPUF4Oz4?autoplay=1&mute=0&rel=0",
         "artist": "Linkin Park",
         "album": "Meteora",
-        "autoFitHeight": false,
         "height": 430,
         "width": 650
     },
@@ -391,15 +382,15 @@
         "title": "Notepad",
         "iconLarge": "/icon__notepad--large.png",
         "component": "Notepad",
-        "height": 400,
-        "width": 500
+        "height": 370,
+        "width": 330
     },
     "readme": {
         "title": "ReadMe.txt",
         "iconLarge": "/icon__notepad--large.png",
         "component": "Notepad",
         "content": "Your uncle Gerrit bit the dust. \n\nHe was a distant relative and you didn't know him at all, but you've been asked to help execute his last will and testament. \n\nSurrounded by family you've never met before, you come to learn that, while Gerrit was not very tech literate, he was an early adopter of cryptocurrency, valuing his estate at over 18 million dollars. \n\nIf you can gain access to his Bitcoin wallet, the reward will be split among the heirs. \n\nFor security reasons, you only have ten minutes to claim your inheritance. You must work together to search Gerrit's computer and crack the password to his bitcoin wallet before the data is scrambled and the coin vault doors are sealed forever. \n\nGood luck.",
-        "height": 290,
+        "height": 370,
         "width": 330,
         "top": 25,
         "right": 25
@@ -417,18 +408,17 @@
         "title": "Solitaire",
         "iconLarge": "/icon__solitaire--large.png",
         "component": "Solitaire",
-        "autoFitHeight": false,
         "height": 400,
         "width": 500
     },
     "cryptoWallet": {
         "title": "Crypto Wallet.exe",
         "windowTitle": "Crypto Wallet 0.1 beta",
-        "icon": "/icon__run--large.png",
-        "iconLarge": "/icon__run--large.png",
+        "icon": "/icon__bitcoin.png",
+        "iconLarge": "/icon__bitcoin.png",
         "component": "CryptoWallet",
         "width": 760,
-        "height": 520,
+        "height": 732,
         "top": 70,
         "left": 90
     }

@@ -103,7 +103,7 @@ const Hotmail = ({ embedded = false }: HotmailProps) => {
                             </div>
                             <div>
                                 <h1>Hotmail</h1>
-                                <p>Sign in to read your archived mailbox.</p>
+                                <p>Sign in to read your mailbox.</p>
                             </div>
                         </div>
 

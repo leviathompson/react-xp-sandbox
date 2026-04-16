@@ -6,6 +6,7 @@ import { getThumbnailIconSrc } from "../../utils/applicationIcon";
 import { throttle } from "../../utils/general";
 import { openApplication } from "../../utils/general";
 import { SYSTEM32_APP_ID, buildShellContextMenu, createShortcutShellItemPayload, getDropContainerId } from "../../utils/shell";
+import { playRecycleSound } from "../../utils/sounds";
 import styles from "./DesktopIcon.module.scss";
 import type { AbsoluteObject, Application } from "../../context/types";
 
@@ -201,6 +202,7 @@ const DesktopIcon = ({ appId, top = undefined, right = undefined, bottom = undef
                         return;
                     }
 
+                    playRecycleSound();
                     dispatch({
                         type: "SET_CURRENT_WINDOWS",
                         payload: currentWindows.filter((currentWindow) => currentWindow.appId !== appId),

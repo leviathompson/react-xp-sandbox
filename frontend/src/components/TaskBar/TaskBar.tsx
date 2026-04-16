@@ -11,7 +11,7 @@ import { buildShellContextMenu } from "../../utils/shell";
 import { DIRECT_MESSAGES_POLL_MS, fetchIncomingDirectMessages, openMessengerChatWindow, openMessengerWindow } from "../../utils/messenger";
 import { subscribeToMessengerRealtime } from "../../utils/messengerRealtime";
 import { generateUniqueId, getCurrentWindow } from "../../utils/general";
-import { playMessengerPopSound } from "../../utils/sounds";
+import { playMessengerPopSound, playStartMenuToggleSound } from "../../utils/sounds";
 import styles from "./TaskBar.module.scss";
 import type { Application } from "../../context/types";
 
@@ -215,6 +215,7 @@ const TaskBar = () => {
 
     const startButtonClickHandler = (event: React.MouseEvent) => {
         event?.stopPropagation();
+        playStartMenuToggleSound();
         dispatch({ type: "SET_IS_START_VISIBLE", payload: (isStartVisible) ? false : true });
 
         dispatch({ type: "SET_IS_RECENT_DOCUMENTS_OPEN", payload: false });

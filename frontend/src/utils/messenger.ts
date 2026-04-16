@@ -65,7 +65,7 @@ export const openMessengerChatWindow = (
                 iconLarge: "/icon__messenger--large.png",
                 component: "MessengerChat",
                 width: 440,
-                height: 370,
+                height: 700,
                 top: 65,
                 left: 150,
                 content: {

@@ -41,6 +41,8 @@ const StartMenu = ({ startButton }: StartMenuProps) => {
     const allProgramsHandler = () => {
         if (!isAllProgramsOpen) {
             dispatch({ type: "SET_IS_ALL_PROGRAMS_OPEN", payload: true });
+        } else {
+            dispatch({ type: "SET_IS_ALL_PROGRAMS_OPEN", payload: false });
         }
     };
 
@@ -74,12 +76,13 @@ const StartMenu = ({ startButton }: StartMenuProps) => {
                             <li><StartMenuItem appId="winMediaPlayer" iconSize={30} /></li>
                             <li><StartMenuItem appId="notepad" iconSize={30} /></li>
                             <li><StartMenuItem appId="displayProperties" iconSize={30} /></li>
-                            <li><StartMenuItem appId="solitaire" iconSize={30} /></li>
+                            <li><StartMenuItem appId="paint" iconSize={30} /></li>
+                            <li><StartMenuItem appId="bonziBuddy" iconSize={30} /></li>
                         </ul>
                     </div>
                     <div>
                         <div ref={allProgramsRef} className="p-2 relative">
-                            <button className="flex items-center justify-center gap-2 p-1" onPointerOver={allProgramsHandler} data-open={isAllProgramsOpen}>
+                            <button className="flex items-center justify-center gap-2 p-1" onClick={allProgramsHandler}  data-open={isAllProgramsOpen}>
                                 <h5 className="font-bold">All Programs</h5>
                                 <img src="/icon__green_arrow--large.png" className="mr-3" width="20" height="20" />
                             </button>

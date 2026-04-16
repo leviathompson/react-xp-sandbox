@@ -13,16 +13,14 @@ interface WindowProps extends currentWindow {
 
 const THROTTLE_DELAY = 50;
 const VIEWPORT_BOTTOM_PADDING = 50;
-const NON_AUTO_FIT_COMPONENTS = new Set(["InternetExplorer", "MediaPlayer", "PictureViewer", "Solitaire"]);
 const taskBarHeight = document.querySelector("[data-label=taskbar]")?.getBoundingClientRect().height || 0;
 const applications = applicationsJSON as unknown as Record<string, Application>;
 
 const Window = ({ ...props }: WindowProps) => {
     const { id, appId, children, active = false, hidden = false } = props;
     const { currentWindows, customApplications, dispatch } = useContext();
-    const { title, windowTitle, component, icon, iconLarge, showOnTaskbar = true, width = 500, height = 350, top = 75, right = undefined, bottom = undefined, left = 100, resizable = true, autoFitHeight = true, clampHeightToViewport = true } = { ...(applications[appId] || {}), ...(customApplications[appId] || {}) };
+    const { title, windowTitle, component, icon, iconLarge, showOnTaskbar = true, width = 500, height = 350, top = 75, right = undefined, bottom = undefined, left = 100, resizable = true, clampHeightToViewport = true } = { ...(applications[appId] || {}), ...(customApplications[appId] || {}) };
     const resolvedWindowTitle = windowTitle || (component === "Paint" ? `${title === "Paint" ? "untitled" : title} - Paint` : title);
-    const shouldAutoFitHeight = autoFitHeight && !NON_AUTO_FIT_COMPONENTS.has(component || "");
 
     const dragWindowPadding = (window.innerWidth < 500) ? 12 : 3;
     const activeWindowRef = useRef<HTMLDivElement | null>(null);
@@ -47,11 +45,26 @@ const Window = ({ ...props }: WindowProps) => {
     const [unmaximizedValues, setUnmaximizedValues] = useState({ left: "", top: "", width: "", height: "" });
     const titleBarRef = useRef<HTMLDivElement | null>(null);
     const offset = (leftPos + width + shellHorizontalPadding) - window.innerWidth;
-    const windowContentRef = useRef<HTMLDivElement | null>(null);
-    const didApplyAutoFitHeightRef = useRef(false);
     const desiredWindowHeightRef = useRef(height);
+    const desiredWindowWidthRef = useRef(width);
 
     const getMinimumWindowHeight = () => (titleBarRef.current?.getBoundingClientRect().height || 0) + (dragWindowPadding * 1.5);
+
+    const getClampedWindowWidth = (
+        desiredWidth: number,
+        nextLeft: number | undefined = leftPos,
+    ) => {
+        const leftConstraint = Math.max(
+            typeof nextLeft === "number" ? nextLeft : dragWindowPadding,
+            dragWindowPadding,
+        );
+        const maxAllowedWidth = Math.max(
+            220,
+            Math.floor(window.innerWidth - leftConstraint - dragWindowPadding - shellHorizontalPadding),
+        );
+
+        return Math.max(220, Math.min(desiredWidth, maxAllowedWidth));
+    };
 
     const getClampedWindowHeight = (
         desiredHeight: number,
@@ -94,7 +107,7 @@ const Window = ({ ...props }: WindowProps) => {
     useEffect(() => {
         const onResize = () => {
             setWindowSize(() => [
-                Math.min(width, width - offset),
+                getClampedWindowWidth(desiredWindowWidthRef.current),
                 getClampedWindowHeight(desiredWindowHeightRef.current),
             ]);
         };
@@ -112,77 +125,6 @@ const Window = ({ ...props }: WindowProps) => {
                 : [currentWidth, currentHeight]
         ));
     }, [bottomPos, clampHeightToViewport, dragWindowPadding, isMaximized, topPos]);
-
-    useEffect(() => {
-        const activeWindow = activeWindowRef.current;
-        const windowContent = windowContentRef.current;
-        if (!shouldAutoFitHeight || didApplyAutoFitHeightRef.current || !activeWindow || !windowContent || isMaximized) return;
-
-        const contentRoot = windowContent.firstElementChild as HTMLElement | null;
-        if (!contentRoot) return;
-
-        let frameId = 0;
-
-        const measureHeight = () => {
-            const currentWindow = activeWindowRef.current;
-            const currentWindowContent = windowContentRef.current;
-            if (!currentWindow || !currentWindowContent) return;
-
-            const measureHost = document.createElement("div");
-            measureHost.style.position = "fixed";
-            measureHost.style.left = "-10000px";
-            measureHost.style.top = "0";
-            measureHost.style.width = `${currentWindowContent.clientWidth}px`;
-            measureHost.style.height = "auto";
-            measureHost.style.maxHeight = "none";
-            measureHost.style.visibility = "hidden";
-            measureHost.style.pointerEvents = "none";
-            measureHost.style.overflow = "visible";
-
-            const clone = contentRoot.cloneNode(true) as HTMLElement;
-            clone.style.height = "auto";
-            clone.style.minHeight = "0";
-            clone.style.maxHeight = "none";
-            clone.style.overflow = "visible";
-
-            measureHost.appendChild(clone);
-            document.body.appendChild(measureHost);
-
-            const naturalContentHeight = Math.ceil(clone.getBoundingClientRect().height);
-            document.body.removeChild(measureHost);
-            if (!Number.isFinite(naturalContentHeight) || naturalContentHeight <= 0) return;
-
-            const chromeHeight = currentWindow.offsetHeight - currentWindowContent.clientHeight;
-            const activeWindowTop = currentWindow.getBoundingClientRect().top;
-            const maxWindowHeight = Math.max(
-                chromeHeight,
-                Math.floor(window.innerHeight - taskBarHeight - activeWindowTop - dragWindowPadding - VIEWPORT_BOTTOM_PADDING),
-            );
-            const targetWindowHeight = Math.max(
-                chromeHeight,
-                Math.min(naturalContentHeight + chromeHeight, maxWindowHeight),
-            );
-
-            didApplyAutoFitHeightRef.current = true;
-            desiredWindowHeightRef.current = targetWindowHeight;
-            setWindowSize(([currentWidth, currentHeight]) => (
-                Math.abs(currentHeight - targetWindowHeight) > 1
-                    ? [currentWidth, targetWindowHeight]
-                    : [currentWidth, currentHeight]
-            ));
-        };
-
-        const scheduleMeasure = () => {
-            window.cancelAnimationFrame(frameId);
-            frameId = window.requestAnimationFrame(measureHeight);
-        };
-
-        scheduleMeasure();
-
-        return () => {
-            window.cancelAnimationFrame(frameId);
-        };
-    }, [dragWindowPadding, isMaximized, shouldAutoFitHeight]);
 
     const toggleMaximizeWindow = (activeWindow: HTMLElement | null) => {
         if (!activeWindow) return;
@@ -221,12 +163,14 @@ const Window = ({ ...props }: WindowProps) => {
             if (isMaximized || event.clientY <= 0 || event.clientY > window.innerHeight - taskBarHeight) return;
 
             const nextTop = event.clientY - windowOffsetY;
+            const nextLeft = event.clientX - windowOffsetX;
+            const nextWidth = getClampedWindowWidth(desiredWindowWidthRef.current, nextLeft);
             const nextHeight = getClampedWindowHeight(desiredWindowHeightRef.current, nextTop, undefined);
 
-            setWindowPosition({ top: nextTop, left: event.clientX - windowOffsetX, right: undefined, bottom: undefined });
+            setWindowPosition({ top: nextTop, left: nextLeft, right: undefined, bottom: undefined });
             setWindowSize(([currentWidth, currentHeight]) => (
-                Math.abs(currentHeight - nextHeight) > 1
-                    ? [currentWidth, nextHeight]
+                Math.abs(currentWidth - nextWidth) > 1 || Math.abs(currentHeight - nextHeight) > 1
+                    ? [nextWidth, nextHeight]
                     : [currentWidth, currentHeight]
             ));
             document.body.style.userSelect = "none";
@@ -328,10 +272,12 @@ const Window = ({ ...props }: WindowProps) => {
             }
 
             const clampedHeight = getClampedWindowHeight(height, y, undefined);
+            const clampedWidth = getClampedWindowWidth(width, x);
 
+            desiredWindowWidthRef.current = width;
             desiredWindowHeightRef.current = height;
             setWindowPosition({ top: y, left: x, right: undefined, bottom: undefined });
-            setWindowSize([width, clampedHeight]);
+            setWindowSize([clampedWidth, clampedHeight]);
         };
         const onThrottledPointerMove = throttle(onPointerMove, THROTTLE_DELAY);
 
@@ -397,7 +343,7 @@ const Window = ({ ...props }: WindowProps) => {
                             <button onClick={onButtonClick} data-button="close">Close</button>
                         </div>
                     </div>
-                    <div ref={windowContentRef} className={`${styles.windowContent} pointer-events-auto flex flex-col`} style={{ height: "calc(100% - 2.5rem)", width: "100%", background: "#fff" }}>{children}</div>
+                    <div className={`${styles.windowContent} pointer-events-auto flex flex-col`} style={{ height: "calc(100% - 2.5rem)", width: "100%", background: "#fff" }}>{children}</div>
                 </div>
             </div>
         </>

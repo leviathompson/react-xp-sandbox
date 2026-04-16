@@ -108,7 +108,7 @@ const CryptoWallet = () => {
   const [formPassword, setFormPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [statusMessage, setStatusMessage] = useState(
-    "Authenticate to unlock archived funds.",
+    "Authenticate to unlock funds.",
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [displayBalance, setDisplayBalance] = useState(0);
@@ -401,13 +401,13 @@ const CryptoWallet = () => {
         <div className={styles.headerPanel}>
           <div>
             <p className={styles.kicker}>Bitcoin Wallet 0.1 beta</p>
-            <h1>Archived Coin Vault</h1>
+            <h1>Coin Vault</h1>
             <p className={styles.subtle}>
               Status shared across every desktop session
             </p>
           </div>
           <div className={styles.coinBadge} aria-hidden="true">
-            B
+            <img src="/icon__bitcoin.png" alt="" />
           </div>
         </div>
 

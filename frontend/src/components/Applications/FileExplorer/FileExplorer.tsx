@@ -4,6 +4,7 @@ import applicationsJSON from "../../../data/applications.json";
 import { generateUniqueId, getCurrentWindow } from "../../../utils/general";
 import { getThumbnailIconSrc } from "../../../utils/applicationIcon";
 import { SYSTEM32_APP_ID, buildShellContextMenu, createShellItemPayload, createShortcutShellItemPayload, getDropContainerId, getShellEntryId } from "../../../utils/shell";
+import { playRecycleSound } from "../../../utils/sounds";
 import CollapseBox from "../../CollapseBox/CollapseBox";
 import WindowMenu from "../../WindowMenu/WindowMenu";
 import styles from "./FileExplorer.module.scss";
@@ -145,6 +146,7 @@ const FileExplorer = ({ appId }: Record<string, string>) => {
                         return;
                     }
 
+                    playRecycleSound();
                     dispatch({
                         type: "SET_CURRENT_WINDOWS",
                         payload: currentWindows.filter((currentWindow) => currentWindow.appId !== itemId),
