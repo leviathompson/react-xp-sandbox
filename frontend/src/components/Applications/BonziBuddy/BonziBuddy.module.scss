@@ -3,12 +3,21 @@
     height: 100%;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 1rem;
-    padding: 1.6rem;
-    text-align: center;
+    padding: 1.2rem 1.4rem 1.6rem;
     background: linear-gradient(180deg, #efe4ff 0%, #d7b9ff 100%);
     color: #34125d;
+    overflow: auto;
+}
+
+.avatarPanel {
+    display: flex;
+    width: 100%;
+    flex: 1;
+    min-height: 14rem;
+    align-items: center;
+    justify-content: center;
 
     img {
         width: min(18rem, 70%);
@@ -16,13 +25,63 @@
         object-fit: contain;
         filter: drop-shadow(0 0.6rem 0.8rem rgba(69, 22, 117, 0.25));
     }
+}
 
-    h1 {
-        font-size: 2rem;
-        font-weight: 700;
-    }
+.speechBubble {
+    width: min(26rem, calc(100% - 1rem));
+    padding: 0.8rem 1rem;
+    border: 0.12rem solid #8b6c12;
+    border-radius: 1rem;
+    background: linear-gradient(180deg, #fff9b0 0%, #f9dc58 100%);
+    color: #573700;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-align: left;
+    box-shadow: 0 0.35rem 0.75rem rgba(98, 59, 0, 0.22);
+    align-self: center;
 
-    p {
-        font-size: 1.3rem;
+    &::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -0.72rem;
+        width: 1.05rem;
+        height: 1.05rem;
+        border-right: 0.12rem solid #8b6c12;
+        border-bottom: 0.12rem solid #8b6c12;
+        background: #f4d546;
+        transform: translateX(-50%) rotate(45deg);
     }
+}
+
+.actions {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.readmeButton,
+.stopButton {
+    min-width: 13rem;
+    padding: 0.42rem 1rem;
+    border: 0.08rem solid #6c4aa4;
+    border-radius: 0.4rem;
+    background: linear-gradient(180deg, #ffffff 0%, #ead8ff 100%);
+    color: #3d1c71;
+    font-size: 1rem;
+    font-weight: 700;
+    box-shadow: inset 0 0.08rem 0 rgba(255, 255, 255, 0.75);
+    text-align: center;
+
+    &:disabled {
+        opacity: 0.7;
+        cursor: default;
+    }
+}
+
+.stopButton {
+    min-width: 8rem;
 }
