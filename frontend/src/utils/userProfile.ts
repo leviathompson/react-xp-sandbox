@@ -4,6 +4,8 @@ export interface UserProfile {
     userId: string;
     firstLoginAt: string;
     avatarSrc: string | null;
+    isAdmin?: boolean;
+    hasSeenPresentationPopup?: boolean;
     personalMessage: string | null;
     wallpaper: string | null;
     isTaskbarLocked: boolean;
@@ -71,6 +73,27 @@ export const startUserSession = async (userId: string, signal?: AbortSignal): Pr
     }
 
     return response.json() as Promise<UserProfile>;
+};
+
+export const authorizePresentationPopup = async (userId: string, markSeen = false) => {
+    const response = await fetch("/api/admin/presentation-popup", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId, markSeen }),
+    });
+
+    const data = await response.json().catch(() => ({ error: "Failed to authorize presentation popup." })) as {
+        success?: boolean;
+        error?: string;
+    };
+
+    if (!response.ok || data.error) {
+        throw new Error(data.error || "Failed to authorize presentation popup.");
+    }
+
+    return data;
 };
 
 export const fileToAvatarDataUrl = (file: File) => new Promise<string>((resolve, reject) => {

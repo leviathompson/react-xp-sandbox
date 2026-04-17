@@ -89,6 +89,19 @@
         "left": 135,
         "resizable": false
     },
+    "presentationUrlPopup": {
+        "title": "Security Alert",
+        "windowTitle": "Important Notice",
+        "icon": "/icon__warning.png",
+        "iconLarge": "/icon__warning.png",
+        "component": "PresentationUrlPopup",
+        "width": 1280,
+        "height": 448,
+        "top": 120,
+        "left": 180,
+        "resizable": true,
+        "showOnTaskbar": false
+    },
     "winMediaPlayer": {
         "title": "Windows Media Player",
         "iconLarge": "/icon__media_player--large.png",

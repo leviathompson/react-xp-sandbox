@@ -44,25 +44,25 @@ export const unlockCryptoWallet = async (username: string, password: string): Pr
     return parseJson<CryptoWalletUnlockResponse>(response);
 };
 
-export const startCryptoWalletDoomsday = async (minutes: number) => {
+export const startCryptoWalletDoomsday = async (userId: string, minutes: number) => {
     const response = await fetch("/api/crypto-wallet/doomsday", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ action: "start", minutes }),
+        body: JSON.stringify({ action: "start", minutes, userId }),
     });
 
     return parseJson<{ success?: boolean; state: CryptoWalletState; error?: string }>(response);
 };
 
-export const resetCryptoWalletDoomsday = async () => {
+export const resetCryptoWalletDoomsday = async (userId: string) => {
     const response = await fetch("/api/crypto-wallet/doomsday", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ action: "reset" }),
+        body: JSON.stringify({ action: "reset", userId }),
     });
 
     return parseJson<{ success?: boolean; state: CryptoWalletState; error?: string }>(response);

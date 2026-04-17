@@ -28,8 +28,17 @@
 }
 
 .speechBubble {
+    position: relative;
     width: min(26rem, calc(100% - 1rem));
-    padding: 0.8rem 1rem;
+    margin-bottom: 0.4rem;
+    align-self: center;
+    filter: drop-shadow(0 0.35rem 0.75rem rgba(98, 59, 0, 0.22));
+    overflow: visible;
+}
+
+.speechBubbleText {
+    position: relative;
+    padding: 0.9rem 1.1rem;
     border: 0.12rem solid #8b6c12;
     border-radius: 1rem;
     background: linear-gradient(180deg, #fff9b0 0%, #f9dc58 100%);
@@ -38,21 +47,7 @@
     font-weight: 700;
     line-height: 1.35;
     text-align: left;
-    box-shadow: 0 0.35rem 0.75rem rgba(98, 59, 0, 0.22);
-    align-self: center;
-
-    &::after {
-        content: "";
-        position: absolute;
-        left: 50%;
-        bottom: -0.72rem;
-        width: 1.05rem;
-        height: 1.05rem;
-        border-right: 0.12rem solid #8b6c12;
-        border-bottom: 0.12rem solid #8b6c12;
-        background: #f4d546;
-        transform: translateX(-50%) rotate(45deg);
-    }
+    overflow-wrap: break-word;
 }
 
 .actions {

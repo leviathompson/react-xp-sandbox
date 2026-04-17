@@ -2,25 +2,29 @@ import { useRef, useState } from "react";
 import { useContext } from "../../../context/context";
 import applicationsJSON from "../../../data/applications.json";
 import { resetCryptoWalletDoomsday, startCryptoWalletDoomsday } from "../../../utils/cryptoWallet";
-import { openApplication } from "../../../utils/general";
-import { generateUniqueId } from "../../../utils/general";
+import { generateUniqueId, openApplication, openOrFocusApplication } from "../../../utils/general";
+import { runPresentationSequence } from "../../../utils/presentation";
+import { authorizePresentationPopup } from "../../../utils/userProfile";
 import Button from "../../Button/Button";
 import styles from "./Run.module.scss";
 import type { Application } from "../../../context/types";
 import type { currentWindow } from "../../../context/types";
 
 const Applications = applicationsJSON as unknown as Record<string, Application>;
-const runAdminCommand = async (path: string) => {
-    await fetch(path, {
+const runAdminCommand = async (path: string, userId: string) => {
+    const response = await fetch(path, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
+        body: JSON.stringify({ userId }),
     });
+
+    return response.json().catch(() => ({})) as Promise<{ success?: boolean; error?: string }>;
 };
 
 const Run = () => {
-    const { currentWindows, dispatch } = useContext();
+    const { currentWindows, username, dispatch } = useContext();
     const inputFieldRef = useRef<HTMLInputElement | null>(null);
     const inputField = inputFieldRef.current;
 
@@ -34,33 +38,55 @@ const Run = () => {
         dispatch({type: "SET_CURRENT_WINDOWS", payload: currentWindows.filter((item) => item.appId !== "run")});
     };
 
+    const showPresentationUrlPopup = async (currentUserId: string) => {
+        await authorizePresentationPopup(currentUserId);
+        openOrFocusApplication("presentationUrlPopup", currentWindows.filter((item) => item.appId !== "run"), dispatch);
+    };
+
     const onSubmitHandler = (event: React.SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
         const form = event.currentTarget;
         const inputField = form.elements.namedItem("command") as HTMLInputElement;
         const command = inputField.value.trim();
         const normalizedCommand = command.toLowerCase();
+        const currentUserId = username.trim();
 
         const closeRunWindow = () => {
             dispatch({ type: "SET_CURRENT_WINDOWS", payload: currentWindows.filter((item) => item.appId !== "run") });
         };
 
+        if (
+            normalizedCommand === "%present%"
+            || normalizedCommand === "%startpresentation%"
+            || normalizedCommand === "%presentation%"
+        ) {
+            closeRunWindow();
+            void runPresentationSequence(currentUserId, currentWindows.filter((item) => item.appId !== "run"), dispatch);
+            return;
+        }
+
+        if (normalizedCommand === "%showurl%" || normalizedCommand === "%joincode%") {
+            closeRunWindow();
+            void showPresentationUrlPopup(currentUserId);
+            return;
+        }
+
         const startTimerMatch = normalizedCommand.match(/^%starttimer(\d+)%$/);
         if (startTimerMatch) {
             const minutes = Number(startTimerMatch[1]);
-            void startCryptoWalletDoomsday(minutes);
+            void startCryptoWalletDoomsday(currentUserId, minutes);
             closeRunWindow();
             return;
         }
 
         if (normalizedCommand === "%resettimer%") {
-            void resetCryptoWalletDoomsday();
+            void resetCryptoWalletDoomsday(currentUserId);
             closeRunWindow();
             return;
         }
 
         if (normalizedCommand === "%nuke%") {
-            void runAdminCommand("/api/admin/nuke");
+            void runAdminCommand("/api/admin/nuke", currentUserId);
             closeRunWindow();
             return;
         }

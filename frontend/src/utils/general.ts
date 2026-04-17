@@ -49,6 +49,16 @@ export const openApplication = (appId: string, currentWindows: currentWindow[], 
     dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
 };
 
+export const openOrFocusApplication = (appId: string, currentWindows: currentWindow[], dispatch: (value: Action) => void) => {
+    const existingWindow = currentWindows.find((window) => window.appId === appId);
+    if (existingWindow) {
+        dispatch({ type: "SET_CURRENT_WINDOWS", payload: updateCurrentActiveWindow(existingWindow.id, currentWindows) });
+        return;
+    }
+
+    openApplication(appId, currentWindows, dispatch);
+};
+
 export const getCurrentWindow = (currentWindows: currentWindow[]) => {
     const updatedCurrentWindows = [...currentWindows];
     const currentWindow = updatedCurrentWindows.find((item) => item.active === true);

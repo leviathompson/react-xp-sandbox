@@ -12,8 +12,9 @@ import {
 } from "./reducer";
 import { DEFAULT_AVATAR_SRC } from "../data/avatars";
 import { subscribeToMessengerRealtime } from "../utils/messengerRealtime";
-import { fetchUserProfile, saveUserProfile, startUserSession, type UserProfile } from "../utils/userProfile";
+import { fetchUserProfile, saveUserProfile, startUserSession, authorizePresentationPopup, type UserProfile } from "../utils/userProfile";
 import { defaultWallpaper } from "./defaults";
+import { openOrFocusApplication } from "../utils/general";
 import type { ContextMenuState } from "./types";
 import type { ReactNode } from "react";
 
@@ -61,6 +62,8 @@ export const Provider = ({ children }: { children: ReactNode }) => {
     const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
     const hydratedUserRef = useRef<string | null>(null);
     const lastSavedAccountRef = useRef("");
+    const pendingPresentationPopupUserRef = useRef<string | null>(null);
+    const currentWindowsRef = useRef(state.currentWindows);
 
     const openContextMenu = (menu: ContextMenuState) => {
         setContextMenu(menu);
@@ -69,6 +72,10 @@ export const Provider = ({ children }: { children: ReactNode }) => {
     const closeContextMenu = () => {
         setContextMenu(null);
     };
+
+    useEffect(() => {
+        currentWindowsRef.current = state.currentWindows;
+    }, [state.currentWindows]);
 
     useEffect(() => {
         if (state.isCRTEnabled) {
@@ -176,6 +183,18 @@ export const Provider = ({ children }: { children: ReactNode }) => {
                     customFiles: nextState.customFiles,
                     customApplications: nextState.customApplications,
                 });
+
+                if (profile.isAdmin && !profile.hasSeenPresentationPopup && pendingPresentationPopupUserRef.current !== userId) {
+                    pendingPresentationPopupUserRef.current = userId;
+                    openOrFocusApplication("presentationUrlPopup", currentWindowsRef.current, dispatch);
+                    try {
+                        await authorizePresentationPopup(userId, true);
+                    } catch (popupError) {
+                        console.error("Failed to acknowledge presentation popup", popupError);
+                    } finally {
+                        pendingPresentationPopupUserRef.current = null;
+                    }
+                }
             } catch (error) {
                 if (isCancelled || controller.signal.aborted) return;
                 console.error("Failed to load account session", error);
