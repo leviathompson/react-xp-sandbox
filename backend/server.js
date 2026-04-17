@@ -17,6 +17,7 @@ const MAX_AVATAR_SRC_LENGTH = 250000;
 const MAX_PERSONAL_MESSAGE_LENGTH = 120;
 const MAX_ATTACHMENT_SRC_LENGTH = 500000;
 const MAX_WALLPAPER_LENGTH = 120;
+const ADMIN_AVATAR_SRC = "/avatar__chess_pieces.png";
 const CRYPTO_WALLET_STATE_ID = "global";
 const CRYPTO_WALLET_MAX_ATTEMPTS = 3;
 const CRYPTO_WALLET_LOCKOUT_MS = 5 * 60 * 1000;
@@ -149,10 +150,12 @@ const isPlainObject = (value) => typeof value === "object" && value !== null && 
 const mapUserSessionRow = (row) => ({
     userId: row.user_id,
     firstLoginAt: row.first_login_at,
-    avatarSrc: row.avatar_src,
+    avatarSrc: row.is_admin ? ADMIN_AVATAR_SRC : row.avatar_src,
     personalMessage: row.personal_message,
     wallpaper: row.wallpaper,
     isTaskbarLocked: Boolean(row.is_taskbar_locked),
+    isAdmin: Boolean(row.is_admin),
+    hasSeenPresentationPopup: Boolean(row.has_seen_presentation_popup),
     shellFiles: row.shell_files,
     customFiles: row.custom_files,
     customApplications: row.custom_applications,
@@ -160,6 +163,32 @@ const mapUserSessionRow = (row) => ({
 });
 
 const normalizeUserId = (value) => typeof value === "string" ? value.trim() : "";
+const getAdminUserId = async (db = pool) => {
+    const { rows } = await db.query(
+        `SELECT user_id
+         FROM user_sessions
+         WHERE COALESCE(is_admin, FALSE) = TRUE
+         LIMIT 1`
+    );
+
+    return rows[0]?.user_id ? normalizeUserId(rows[0].user_id) : "";
+};
+
+const assertAdminUser = async (userId, res, db = pool) => {
+    const normalizedUserId = normalizeUserId(userId);
+    if (!normalizedUserId) {
+        json(res, 400, { error: "userId required" });
+        return null;
+    }
+
+    const adminUserId = await getAdminUserId(db);
+    if (!adminUserId || adminUserId !== normalizedUserId) {
+        json(res, 403, { error: "Admin privileges required" });
+        return null;
+    }
+
+    return normalizedUserId;
+};
 
 const wsServer = new WebSocketServer({ noServer: true });
 const realtimeClientsByUser = new Map();
@@ -406,6 +435,14 @@ const prepareSchema = async () => {
         ALTER TABLE user_sessions
         ADD COLUMN IF NOT EXISTS custom_applications JSONB
     `);
+    await pool.query(`
+        ALTER TABLE user_sessions
+        ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE
+    `);
+    await pool.query(`
+        ALTER TABLE user_sessions
+        ADD COLUMN IF NOT EXISTS has_seen_presentation_popup BOOLEAN NOT NULL DEFAULT FALSE
+    `);
 
     await pool.query(`
         CREATE TABLE IF NOT EXISTS instant_messages (
@@ -569,11 +606,15 @@ const server = http.createServer(async (req, res) => {
                     shell_files,
                     custom_files,
                     custom_applications,
+                    is_admin,
                     updated_at
                  )
-                 VALUES ($1, NOW(), $2, $3, $4, COALESCE($5, FALSE), $6::jsonb, $7::jsonb, $8::jsonb, NOW())
+                 VALUES ($1, NOW(), $2, $3, $4, COALESCE($5, FALSE), $6::jsonb, $7::jsonb, $8::jsonb, FALSE, NOW())
                  ON CONFLICT (user_id) DO UPDATE
-                     SET avatar_src = COALESCE(EXCLUDED.avatar_src, user_sessions.avatar_src),
+                     SET avatar_src = CASE
+                             WHEN user_sessions.is_admin THEN $9
+                             ELSE COALESCE(EXCLUDED.avatar_src, user_sessions.avatar_src)
+                         END,
                          personal_message = COALESCE(EXCLUDED.personal_message, user_sessions.personal_message),
                          wallpaper = COALESCE(EXCLUDED.wallpaper, user_sessions.wallpaper),
                          is_taskbar_locked = COALESCE($5, user_sessions.is_taskbar_locked),
@@ -591,6 +632,8 @@ const server = http.createServer(async (req, res) => {
                     shell_files,
                     custom_files,
                     custom_applications,
+                    is_admin,
+                    has_seen_presentation_popup,
                     updated_at`,
                 [
                     userId,
@@ -601,6 +644,7 @@ const server = http.createServer(async (req, res) => {
                     shellFiles ? JSON.stringify(shellFiles) : null,
                     customFiles ? JSON.stringify(customFiles) : null,
                     customApplications ? JSON.stringify(customApplications) : null,
+                    ADMIN_AVATAR_SRC,
                 ]
             );
             json(res, 200, mapUserSessionRow(rows[0]));
@@ -619,6 +663,8 @@ const server = http.createServer(async (req, res) => {
                 `SELECT
                     us.user_id,
                     us.avatar_src,
+                    us.is_admin,
+                    us.has_seen_presentation_popup,
                     us.personal_message,
                     us.first_login_at,
                     us.updated_at
@@ -627,7 +673,12 @@ const server = http.createServer(async (req, res) => {
                  LIMIT $1`,
                 [limit]
             );
-            json(res, 200, { sessions: rows });
+            json(res, 200, {
+                sessions: rows.map((row) => ({
+                    ...row,
+                    avatar_src: row.is_admin ? ADMIN_AVATAR_SRC : row.avatar_src,
+                })),
+            });
         } catch (err) {
             json(res, 500, { error: err.message });
         }
@@ -688,6 +739,9 @@ const server = http.createServer(async (req, res) => {
         const minutes = Number(body.minutes);
 
         try {
+            const adminUserId = await assertAdminUser(body.userId, res);
+            if (!adminUserId) return;
+
             if (action === "reset") {
                 await pool.query(
                     `UPDATE crypto_wallet_state
@@ -745,10 +799,24 @@ const server = http.createServer(async (req, res) => {
 
     // POST /api/admin/nuke ? clear all persisted user data and force connected clients to reset
     if (method === "POST" && url.pathname === "/api/admin/nuke") {
+        let body;
+        try {
+            body = await readBody(req);
+        } catch {
+            json(res, 400, { error: "Invalid JSON body" });
+            return;
+        }
+
         const client = await pool.connect();
 
         try {
             await client.query("BEGIN");
+            const adminUserId = await assertAdminUser(body.userId, res, client);
+            if (!adminUserId) {
+                await client.query("ROLLBACK").catch(() => {});
+                return;
+            }
+
             await client.query("TRUNCATE TABLE instant_messages RESTART IDENTITY");
             await client.query("TRUNCATE TABLE user_sessions");
             await client.query(
@@ -771,6 +839,38 @@ const server = http.createServer(async (req, res) => {
             json(res, 500, { error: err.message });
         } finally {
             client.release();
+        }
+        return;
+    }
+
+    // POST /api/admin/presentation-popup ? admin-only auth/checkpoint for the presentation join popup
+    if (method === "POST" && url.pathname === "/api/admin/presentation-popup") {
+        let body;
+        try {
+            body = await readBody(req);
+        } catch {
+            json(res, 400, { error: "Invalid JSON body" });
+            return;
+        }
+
+        try {
+            const adminUserId = await assertAdminUser(body.userId, res);
+            if (!adminUserId) return;
+
+            if (body.markSeen === true) {
+                await pool.query(
+                    `UPDATE user_sessions
+                     SET has_seen_presentation_popup = TRUE,
+                         updated_at = NOW()
+                     WHERE user_id = $1
+                       AND COALESCE(is_admin, FALSE) = TRUE`,
+                    [adminUserId]
+                );
+            }
+
+            json(res, 200, { success: true });
+        } catch (err) {
+            json(res, 500, { error: err.message });
         }
         return;
     }
@@ -936,15 +1036,21 @@ const server = http.createServer(async (req, res) => {
                 `INSERT INTO user_sessions (user_id, first_login_at, updated_at)
                  VALUES ($1, NOW(), NOW())
                  ON CONFLICT (user_id) DO UPDATE
-                     SET updated_at = NOW()`,
-                [senderId]
+                     SET updated_at = NOW(),
+                         avatar_src = CASE
+                             WHEN user_sessions.is_admin THEN $2
+                             ELSE user_sessions.avatar_src
+                         END`,
+                [senderId, ADMIN_AVATAR_SRC]
             );
 
             const senderProfileResult = await pool.query(
-                "SELECT avatar_src FROM user_sessions WHERE user_id = $1",
+                "SELECT avatar_src, is_admin FROM user_sessions WHERE user_id = $1",
                 [senderId]
             );
-            const senderAvatarSrc = senderProfileResult.rows[0]?.avatar_src || null;
+            const senderAvatarSrc = senderProfileResult.rows[0]?.is_admin
+                ? ADMIN_AVATAR_SRC
+                : (senderProfileResult.rows[0]?.avatar_src || null);
 
             sendRealtimeEventToUser(recipientId, "message_created", {
                 message: {
@@ -976,13 +1082,29 @@ const server = http.createServer(async (req, res) => {
             return;
         }
 
+        const client = await pool.connect();
         try {
-            // No-op update on conflict so RETURNING always fires
-            const { rows } = await pool.query(
-                `INSERT INTO user_sessions (user_id, first_login_at)
-                 VALUES ($1, NOW())
+            await client.query("BEGIN");
+            await client.query("LOCK TABLE user_sessions IN ACCESS EXCLUSIVE MODE");
+
+            const normalizedUserId = normalizeUserId(userId);
+            const existingAdminUserId = await getAdminUserId(client);
+            const shouldBeAdmin = !existingAdminUserId || existingAdminUserId === normalizedUserId;
+            const avatarSrc = shouldBeAdmin ? ADMIN_AVATAR_SRC : null;
+
+            const { rows } = await client.query(
+                `INSERT INTO user_sessions (user_id, first_login_at, avatar_src, is_admin, updated_at)
+                 VALUES ($1, NOW(), $2, $3, NOW())
                  ON CONFLICT (user_id) DO UPDATE
                      SET first_login_at = user_sessions.first_login_at,
+                         avatar_src = CASE
+                             WHEN user_sessions.is_admin OR EXCLUDED.is_admin THEN $2
+                             ELSE user_sessions.avatar_src
+                         END,
+                         is_admin = CASE
+                             WHEN user_sessions.is_admin THEN TRUE
+                             ELSE $3
+                         END,
                          updated_at = NOW()
                  RETURNING
                     user_id,
@@ -994,12 +1116,18 @@ const server = http.createServer(async (req, res) => {
                     shell_files,
                     custom_files,
                     custom_applications,
+                    is_admin,
+                    has_seen_presentation_popup,
                     updated_at`,
-                [userId]
+                [normalizedUserId, avatarSrc, shouldBeAdmin]
             );
+            await client.query("COMMIT");
             json(res, 200, mapUserSessionRow(rows[0]));
         } catch (err) {
+            await client.query("ROLLBACK").catch(() => {});
             json(res, 500, { error: err.message });
+        } finally {
+            client.release();
         }
         return;
     }
@@ -1023,6 +1151,8 @@ const server = http.createServer(async (req, res) => {
                     shell_files,
                     custom_files,
                     custom_applications,
+                    is_admin,
+                    has_seen_presentation_popup,
                     first_login_at,
                     updated_at
                  FROM user_sessions
@@ -1060,6 +1190,8 @@ const server = http.createServer(async (req, res) => {
                     is_taskbar_locked,
                     shell_files,
                     custom_files,
+                    is_admin,
+                    has_seen_presentation_popup,
                     custom_applications,
                     updated_at
                  FROM user_sessions
