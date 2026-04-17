@@ -367,47 +367,47 @@ const proxyWaybackRequest = async (req, res, url) => {
     }
 };
 
-// Ensure user_sessions table exists on startup
-Promise.all([
-    pool.query(`
+const prepareSchema = async () => {
+    await pool.query(`
         CREATE TABLE IF NOT EXISTS user_sessions (
             user_id TEXT PRIMARY KEY,
             first_login_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
-    `),
-    pool.query(`
+    `);
+    await pool.query(`
         ALTER TABLE user_sessions
         ADD COLUMN IF NOT EXISTS avatar_src TEXT
-    `),
-    pool.query(`
+    `);
+    await pool.query(`
         ALTER TABLE user_sessions
         ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    `),
-    pool.query(`
+    `);
+    await pool.query(`
         ALTER TABLE user_sessions
         ADD COLUMN IF NOT EXISTS personal_message TEXT
-    `),
-    pool.query(`
+    `);
+    await pool.query(`
         ALTER TABLE user_sessions
         ADD COLUMN IF NOT EXISTS wallpaper TEXT
-    `),
-    pool.query(`
+    `);
+    await pool.query(`
         ALTER TABLE user_sessions
         ADD COLUMN IF NOT EXISTS is_taskbar_locked BOOLEAN NOT NULL DEFAULT FALSE
-    `),
-    pool.query(`
+    `);
+    await pool.query(`
         ALTER TABLE user_sessions
         ADD COLUMN IF NOT EXISTS shell_files JSONB
-    `),
-    pool.query(`
+    `);
+    await pool.query(`
         ALTER TABLE user_sessions
         ADD COLUMN IF NOT EXISTS custom_files JSONB
-    `),
-    pool.query(`
+    `);
+    await pool.query(`
         ALTER TABLE user_sessions
         ADD COLUMN IF NOT EXISTS custom_applications JSONB
-    `),
-    pool.query(`
+    `);
+
+    await pool.query(`
         CREATE TABLE IF NOT EXISTS instant_messages (
             id BIGSERIAL PRIMARY KEY,
             sender_id TEXT NOT NULL,
@@ -415,16 +415,17 @@ Promise.all([
             body TEXT NOT NULL,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
-    `),
-    pool.query(`
+    `);
+    await pool.query(`
         ALTER TABLE instant_messages
         ADD COLUMN IF NOT EXISTS attachment_src TEXT
-    `),
-    pool.query(`
+    `);
+    await pool.query(`
         ALTER TABLE instant_messages
         ADD COLUMN IF NOT EXISTS attachment_name TEXT
-    `),
-    pool.query(`
+    `);
+
+    await pool.query(`
         CREATE TABLE IF NOT EXISTS crypto_wallet_state (
             state_id TEXT PRIMARY KEY,
             failed_attempts INTEGER NOT NULL DEFAULT 0,
@@ -433,26 +434,28 @@ Promise.all([
             is_permanently_locked BOOLEAN NOT NULL DEFAULT FALSE,
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
-    `),
-    pool.query(`
+    `);
+    await pool.query(`
         ALTER TABLE crypto_wallet_state
         ADD COLUMN IF NOT EXISTS doomsday_ends_at TIMESTAMPTZ
-    `),
-    pool.query(`
+    `);
+    await pool.query(`
         ALTER TABLE crypto_wallet_state
         ADD COLUMN IF NOT EXISTS is_permanently_locked BOOLEAN NOT NULL DEFAULT FALSE
-    `),
-    pool.query(
+    `);
+    await pool.query(
         `INSERT INTO crypto_wallet_state (state_id)
          VALUES ($1)
          ON CONFLICT (state_id) DO NOTHING`,
         [CRYPTO_WALLET_STATE_ID]
-    ),
-])
+    );
+};
+
+prepareSchema()
     .then(() => broadcastCryptoWalletState().catch((err) => {
         console.error("[debug-api] Failed to initialize crypto wallet state:", err.message);
     }))
-    .catch((err) => console.error("[debug-api] Failed to prepare user_sessions table:", err.message));
+    .catch((err) => console.error("[debug-api] Failed to prepare database schema:", err.message));
 
 const ttsProxyApp = express();
 ttsProxyApp.use("/api/tts", bonziTtsRouter);
