@@ -3,6 +3,7 @@ import { useContext } from "../../context/context";
 import applicationsJSON from "../../data/applications.json";
 import { throttle, updateCurrentActiveWindow } from "../../utils/general";
 import { getWindowPadding, getMinimumWindowSize, getWindowClickRegion } from "../../utils/window";
+import { requestWindowClose } from "../../utils/windowClose";
 import styles from "./Window.module.scss";
 import type { Application, currentWindow } from "../../context/types";
 import type { ReactNode } from "react";
@@ -297,12 +298,15 @@ const Window = ({ ...props }: WindowProps) => {
         window.addEventListener("pointerup", onPointerUp);
     };
 
-    const onButtonClick = (event: React.MouseEvent<HTMLElement>) => {
+    const onButtonClick = async (event: React.MouseEvent<HTMLElement>) => {
         const activeWindow = activeWindowRef.current;
         const buttonType = event.currentTarget.dataset.button;
         if (!activeWindow) return;
 
         if (buttonType === "close") {
+            const shouldClose = await requestWindowClose(id);
+            if (!shouldClose) return;
+
             const updatedCurrentWindows = currentWindows.filter(item => item.id !== activeWindow?.dataset.windowId);
             dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedCurrentWindows });
         }

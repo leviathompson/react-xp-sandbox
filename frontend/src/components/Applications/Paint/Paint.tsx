@@ -2,29 +2,47 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useContext } from "../../../context/context";
 import applicationsJSON from "../../../data/applications.json";
 import { generateUniqueId } from "../../../utils/general";
-import { addShellBrowserResultListener, openShellBrowserWindow } from "../../../utils/shellBrowser";
+import {
+  addShellBrowserResultListener,
+  openShellBrowserWindow,
+} from "../../../utils/shellBrowser";
 import { getShellEntryId } from "../../../utils/shell";
+import { registerWindowCloseHandler } from "../../../utils/windowClose";
 import WindowMenu from "../../WindowMenu/WindowMenu";
 import styles from "./Paint.module.scss";
-import type { Application, ContextMenuItem, ShellEntry, currentWindow } from "../../../context/types";
+import type {
+  Application,
+  ContextMenuItem,
+  ShellEntry,
+  currentWindow,
+} from "../../../context/types";
 
-type PaintTool = "pencil" | "eraser" | "line" | "rectangle" | "ellipse" | "fill";
+type PaintTool =
+  | "pencil"
+  | "eraser"
+  | "line"
+  | "rectangle"
+  | "ellipse"
+  | "fill";
 
 interface PaintDocumentContent {
-    documentKind?: "paint";
-    documentName?: string;
-    imageSrc?: string;
-    canvasWidth?: number;
-    canvasHeight?: number;
+  documentKind?: "paint";
+  documentName?: string;
+  imageSrc?: string;
+  canvasWidth?: number;
+  canvasHeight?: number;
 }
 
 interface PaintProps {
-    appId: string;
-    id?: string | number;
-    content?: unknown;
+  appId: string;
+  id?: string | number;
+  content?: unknown;
 }
 
-const baseApplications = applicationsJSON as unknown as Record<string, Application>;
+const baseApplications = applicationsJSON as unknown as Record<
+  string,
+  Application
+>;
 const DEFAULT_CANVAS_WIDTH = 640;
 const DEFAULT_CANVAS_HEIGHT = 380;
 const MIN_CANVAS_WIDTH = 160;
@@ -33,664 +51,970 @@ const CANVAS_VIEWPORT_HORIZONTAL_PADDING = 220;
 const CANVAS_VIEWPORT_VERTICAL_PADDING = 250;
 const brushSizes = [2, 4, 8, 12];
 const defaultColors = [
-    "#000000", "#7f7f7f", "#7f0000", "#7f7f00", "#008000", "#007f7f", "#00007f", "#7f007f",
-    "#ffffff", "#c0c0c0", "#ff0000", "#ffff00", "#00ff00", "#00ffff", "#0000ff", "#ff00ff",
-    "#ffe0c0", "#804000", "#4080ff", "#ff8040", "#808040", "#408080", "#804080", "#ff80c0",
+  "#000000",
+  "#7f7f7f",
+  "#7f0000",
+  "#7f7f00",
+  "#008000",
+  "#007f7f",
+  "#00007f",
+  "#7f007f",
+  "#ffffff",
+  "#c0c0c0",
+  "#ff0000",
+  "#ffff00",
+  "#00ff00",
+  "#00ffff",
+  "#0000ff",
+  "#ff00ff",
+  "#ffe0c0",
+  "#804000",
+  "#4080ff",
+  "#ff8040",
+  "#808040",
+  "#408080",
+  "#804080",
+  "#ff80c0",
 ];
 const toolLabels: Record<PaintTool, string> = {
-    pencil: "Pencil",
-    eraser: "Eraser",
-    line: "Line",
-    rectangle: "Rectangle",
-    ellipse: "Oval",
-    fill: "Fill",
+  pencil: "Pencil",
+  eraser: "Eraser",
+  line: "Line",
+  rectangle: "Rectangle",
+  ellipse: "Oval",
+  fill: "Fill",
 };
 const toolIcons: Record<PaintTool, string> = {
-    pencil: "/icon__pencil.png",
-    eraser: "/icon__eraser.png",
-    line: "/icon__line.png",
-    rectangle: "/icon__rectangle.png",
-    ellipse: "/icon__oval.png",
-    fill: "/icon__fill.png",
+  pencil: "/icon__pencil.png",
+  eraser: "/icon__eraser.png",
+  line: "/icon__line.png",
+  rectangle: "/icon__rectangle.png",
+  ellipse: "/icon__oval.png",
+  fill: "/icon__fill.png",
 };
 
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-const cloneImageData = (imageData: ImageData) => new ImageData(new Uint8ClampedArray(imageData.data), imageData.width, imageData.height);
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max);
+const cloneImageData = (imageData: ImageData) =>
+  new ImageData(
+    new Uint8ClampedArray(imageData.data),
+    imageData.width,
+    imageData.height,
+  );
+const areImageDataEqual = (left: ImageData | null, right: ImageData | null) => {
+  if (!left || !right) return left === right;
+  if (left.width !== right.width || left.height !== right.height) return false;
+
+  for (let index = 0; index < left.data.length; index += 1) {
+    if (left.data[index] !== right.data[index]) return false;
+  }
+
+  return true;
+};
 
 const hexToRgba = (hex: string) => {
-    const normalized = hex.replace("#", "");
-    const length = normalized.length === 3 ? 1 : 2;
-    const expand = (value: string) => length === 1 ? value.repeat(2) : value;
+  const normalized = hex.replace("#", "");
+  const length = normalized.length === 3 ? 1 : 2;
+  const expand = (value: string) => (length === 1 ? value.repeat(2) : value);
 
-    const r = parseInt(expand(normalized.slice(0, length)), 16);
-    const g = parseInt(expand(normalized.slice(length, length * 2)), 16);
-    const b = parseInt(expand(normalized.slice(length * 2, length * 3)), 16);
-    return [r, g, b, 255] as const;
+  const r = parseInt(expand(normalized.slice(0, length)), 16);
+  const g = parseInt(expand(normalized.slice(length, length * 2)), 16);
+  const b = parseInt(expand(normalized.slice(length * 2, length * 3)), 16);
+  return [r, g, b, 255] as const;
 };
 
 const getDefaultCanvasSize = () => ({
-    width: clamp(window.innerWidth - CANVAS_VIEWPORT_HORIZONTAL_PADDING, MIN_CANVAS_WIDTH, DEFAULT_CANVAS_WIDTH),
-    height: clamp(window.innerHeight - CANVAS_VIEWPORT_VERTICAL_PADDING, MIN_CANVAS_HEIGHT, DEFAULT_CANVAS_HEIGHT),
+  width: clamp(
+    window.innerWidth - CANVAS_VIEWPORT_HORIZONTAL_PADDING,
+    MIN_CANVAS_WIDTH,
+    DEFAULT_CANVAS_WIDTH,
+  ),
+  height: clamp(
+    window.innerHeight - CANVAS_VIEWPORT_VERTICAL_PADDING,
+    MIN_CANVAS_HEIGHT,
+    DEFAULT_CANVAS_HEIGHT,
+  ),
 });
 
 const Paint = ({ appId, id, content }: PaintProps) => {
-    const { currentWindows, shellFiles, customApplications, dispatch } = useContext();
-    const applications = useMemo(
-        () => ({ ...baseApplications, ...customApplications }),
-        [customApplications],
-    );
-    const application = applications[appId];
-    const currentContent = (content || application?.content || {}) as PaintDocumentContent;
-    const isSavedDocument = !!customApplications[appId];
-    const documentName = currentContent.documentName || (isSavedDocument ? application?.title : "untitled") || "untitled";
-    const hasPersistedCanvasSize = typeof currentContent.canvasWidth === "number" && typeof currentContent.canvasHeight === "number";
-    const [defaultCanvasSize, setDefaultCanvasSize] = useState(() => getDefaultCanvasSize());
-    const canvasWidth = currentContent.canvasWidth || defaultCanvasSize.width;
-    const canvasHeight = currentContent.canvasHeight || defaultCanvasSize.height;
-    const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const canvasPaneRef = useRef<HTMLElement | null>(null);
-    const canvasFrameRef = useRef<HTMLDivElement | null>(null);
-    const drawingRef = useRef(false);
-    const startPointRef = useRef({ x: 0, y: 0 });
-    const previewSnapshotRef = useRef<ImageData | null>(null);
-    const loadVersionRef = useRef(0);
-    const didMeasureCanvasRef = useRef(false);
-    const undoStackRef = useRef<ImageData[]>([]);
-    const redoStackRef = useRef<ImageData[]>([]);
-    const dialogHandlersRef = useRef(new Map<string, (selection?: {
+  const { currentWindows, shellFiles, customApplications, dispatch } =
+    useContext();
+  const applications = useMemo(
+    () => ({ ...baseApplications, ...customApplications }),
+    [customApplications],
+  );
+  const application = applications[appId];
+  const currentContent = (content ||
+    application?.content ||
+    {}) as PaintDocumentContent;
+  const isSavedDocument = !!customApplications[appId];
+  const documentName =
+    currentContent.documentName ||
+    (isSavedDocument ? application?.title : "untitled") ||
+    "untitled";
+  const hasPersistedCanvasSize =
+    typeof currentContent.canvasWidth === "number" &&
+    typeof currentContent.canvasHeight === "number";
+  const [defaultCanvasSize, setDefaultCanvasSize] = useState(() =>
+    getDefaultCanvasSize(),
+  );
+  const canvasWidth = currentContent.canvasWidth || defaultCanvasSize.width;
+  const canvasHeight = currentContent.canvasHeight || defaultCanvasSize.height;
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasPaneRef = useRef<HTMLElement | null>(null);
+  const canvasFrameRef = useRef<HTMLDivElement | null>(null);
+  const drawingRef = useRef(false);
+  const startPointRef = useRef({ x: 0, y: 0 });
+  const previewSnapshotRef = useRef<ImageData | null>(null);
+  const loadVersionRef = useRef(0);
+  const didMeasureCanvasRef = useRef(false);
+  const undoStackRef = useRef<ImageData[]>([]);
+  const redoStackRef = useRef<ImageData[]>([]);
+  const committedSnapshotRef = useRef<ImageData | null>(null);
+  const dialogHandlersRef = useRef(
+    new Map<
+      string,
+      (selection?: {
         containerId: string;
         appId?: string;
         fileName?: string;
         application?: Application;
-    }) => void>());
+      }) => void
+    >(),
+  );
+  const shouldCloseAfterSaveRef = useRef(false);
 
-    const [selectedTool, setSelectedTool] = useState<PaintTool>("pencil");
-    const [selectedColor, setSelectedColor] = useState("#000000");
-    const [brushSize, setBrushSize] = useState(4);
-    const [statusText, setStatusText] = useState("For Help, click Help Topics on the Help Menu.");
-    const [historyState, setHistoryState] = useState({ canUndo: false, canRedo: false });
+  const [selectedTool, setSelectedTool] = useState<PaintTool>("pencil");
+  const [selectedColor, setSelectedColor] = useState("#000000");
+  const [brushSize, setBrushSize] = useState(4);
+  const [statusText, setStatusText] = useState(
+    "For Help, click Help Topics on the Help Menu.",
+  );
+  const [historyState, setHistoryState] = useState({
+    canUndo: false,
+    canRedo: false,
+  });
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
 
-    const getContext = () => canvasRef.current?.getContext("2d", { willReadFrequently: true }) || null;
-    const updateHistoryState = () => setHistoryState({
-        canUndo: undoStackRef.current.length > 1,
-        canRedo: redoStackRef.current.length > 0,
+  const getContext = () =>
+    canvasRef.current?.getContext("2d", { willReadFrequently: true }) || null;
+  const updateHistoryState = () =>
+    setHistoryState({
+      canUndo: undoStackRef.current.length > 1,
+      canRedo: redoStackRef.current.length > 0,
     });
-    const captureSnapshot = () => {
-        const ctx = getContext();
-        if (!ctx) return null;
-        return cloneImageData(ctx.getImageData(0, 0, canvasWidth, canvasHeight));
-    };
-    const applySnapshot = (snapshot: ImageData) => {
-        const ctx = getContext();
-        if (!ctx) return;
-        ctx.putImageData(snapshot, 0, 0);
-    };
-    const resetHistory = () => {
-        const snapshot = captureSnapshot();
-        if (!snapshot) return;
-        undoStackRef.current = [snapshot];
-        redoStackRef.current = [];
-        updateHistoryState();
-    };
-    const pushHistory = () => {
-        const snapshot = captureSnapshot();
-        if (!snapshot) return;
-        undoStackRef.current.push(snapshot);
-        redoStackRef.current = [];
-        updateHistoryState();
-    };
-    const getParentContainerId = (targetAppId: string) => Object.entries(shellFiles).find(([, entries]) =>
-        entries.some((entry) => getShellEntryId(entry) === targetAppId)
+  const captureSnapshot = () => {
+    const ctx = getContext();
+    if (!ctx) return null;
+    return cloneImageData(ctx.getImageData(0, 0, canvasWidth, canvasHeight));
+  };
+  const applySnapshot = (snapshot: ImageData) => {
+    const ctx = getContext();
+    if (!ctx) return;
+    ctx.putImageData(snapshot, 0, 0);
+  };
+  const resetHistory = () => {
+    const snapshot = captureSnapshot();
+    if (!snapshot) return;
+    undoStackRef.current = [snapshot];
+    redoStackRef.current = [];
+    updateHistoryState();
+  };
+  const pushHistory = () => {
+    const snapshot = captureSnapshot();
+    if (!snapshot) return;
+    undoStackRef.current.push(snapshot);
+    redoStackRef.current = [];
+    updateHistoryState();
+  };
+  const syncUnsavedChanges = () => {
+    setHasUnsavedChanges(
+      !areImageDataEqual(captureSnapshot(), committedSnapshotRef.current),
+    );
+  };
+  const markCurrentSnapshotCommitted = () => {
+    const snapshot = captureSnapshot();
+    committedSnapshotRef.current = snapshot ? cloneImageData(snapshot) : null;
+    setHasUnsavedChanges(false);
+  };
+  const getParentContainerId = (targetAppId: string) =>
+    Object.entries(shellFiles).find(([, entries]) =>
+      entries.some((entry) => getShellEntryId(entry) === targetAppId),
     )?.[0] || "pictures";
+  const closeCurrentWindow = () => {
+    if (id === undefined) return;
+    dispatch({
+      type: "SET_CURRENT_WINDOWS",
+      payload: currentWindows.filter((window) => window.id !== id),
+    });
+  };
 
-    const resolveCanvasPoint = (event: PointerEvent | React.PointerEvent<HTMLCanvasElement>) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return { x: 0, y: 0 };
+  const resolveCanvasPoint = (
+    event: PointerEvent | React.PointerEvent<HTMLCanvasElement>,
+  ) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
 
-        const rect = canvas.getBoundingClientRect();
-        return {
-            x: clamp(Math.round(((event.clientX - rect.left) / rect.width) * canvas.width), 0, canvas.width - 1),
-            y: clamp(Math.round(((event.clientY - rect.top) / rect.height) * canvas.height), 0, canvas.height - 1),
-        };
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: clamp(
+        Math.round(((event.clientX - rect.left) / rect.width) * canvas.width),
+        0,
+        canvas.width - 1,
+      ),
+      y: clamp(
+        Math.round(((event.clientY - rect.top) / rect.height) * canvas.height),
+        0,
+        canvas.height - 1,
+      ),
+    };
+  };
+
+  const clearCanvas = () => {
+    const ctx = getContext();
+    if (!ctx) return;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+  };
+
+  useEffect(() => {
+    if (
+      hasPersistedCanvasSize ||
+      currentContent.imageSrc ||
+      didMeasureCanvasRef.current
+    )
+      return;
+
+    const canvasPane = canvasPaneRef.current;
+    if (!canvasPane) return;
+
+    let frameId = 0;
+
+    const measureCanvasSize = () => {
+      const nextCanvasPane = canvasPaneRef.current;
+      if (!nextCanvasPane) return;
+
+      const paneStyle = window.getComputedStyle(nextCanvasPane);
+      const paneHorizontalPadding =
+        parseFloat(paneStyle.paddingLeft) + parseFloat(paneStyle.paddingRight);
+      const paneVerticalPadding =
+        parseFloat(paneStyle.paddingTop) + parseFloat(paneStyle.paddingBottom);
+
+      const canvasFrame = canvasFrameRef.current;
+      const frameStyle = canvasFrame
+        ? window.getComputedStyle(canvasFrame)
+        : null;
+      const frameHorizontalPadding = frameStyle
+        ? parseFloat(frameStyle.paddingLeft) +
+          parseFloat(frameStyle.paddingRight) +
+          parseFloat(frameStyle.borderLeftWidth) +
+          parseFloat(frameStyle.borderRightWidth)
+        : 0;
+      const frameVerticalPadding = frameStyle
+        ? parseFloat(frameStyle.paddingTop) +
+          parseFloat(frameStyle.paddingBottom) +
+          parseFloat(frameStyle.borderTopWidth) +
+          parseFloat(frameStyle.borderBottomWidth)
+        : 0;
+
+      const measuredWidth = clamp(
+        Math.floor(
+          nextCanvasPane.clientWidth -
+            paneHorizontalPadding -
+            frameHorizontalPadding,
+        ),
+        MIN_CANVAS_WIDTH,
+        DEFAULT_CANVAS_WIDTH,
+      );
+      const measuredHeight = clamp(
+        Math.floor(
+          nextCanvasPane.clientHeight -
+            paneVerticalPadding -
+            frameVerticalPadding,
+        ),
+        MIN_CANVAS_HEIGHT,
+        DEFAULT_CANVAS_HEIGHT,
+      );
+
+      didMeasureCanvasRef.current = true;
+      setDefaultCanvasSize((currentSize) =>
+        currentSize.width === measuredWidth &&
+        currentSize.height === measuredHeight
+          ? currentSize
+          : { width: measuredWidth, height: measuredHeight },
+      );
     };
 
-    const clearCanvas = () => {
-        const ctx = getContext();
-        if (!ctx) return;
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
+    frameId = window.requestAnimationFrame(measureCanvasSize);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
     };
+  }, [currentContent.imageSrc, hasPersistedCanvasSize]);
 
-    useEffect(() => {
-        if (hasPersistedCanvasSize || currentContent.imageSrc || didMeasureCanvasRef.current) return;
+  useEffect(() => {
+    const nextImageSrc = currentContent.imageSrc;
+    const currentVersion = loadVersionRef.current + 1;
+    loadVersionRef.current = currentVersion;
 
-        const canvasPane = canvasPaneRef.current;
-        if (!canvasPane) return;
+    clearCanvas();
 
-        let frameId = 0;
+    if (!nextImageSrc) {
+      resetHistory();
+      markCurrentSnapshotCommitted();
+      setStatusText("Ready to draw.");
+      return;
+    }
 
-        const measureCanvasSize = () => {
-            const nextCanvasPane = canvasPaneRef.current;
-            if (!nextCanvasPane) return;
+    const image = new Image();
+    image.onload = () => {
+      if (loadVersionRef.current !== currentVersion) return;
 
-            const paneStyle = window.getComputedStyle(nextCanvasPane);
-            const paneHorizontalPadding = parseFloat(paneStyle.paddingLeft) + parseFloat(paneStyle.paddingRight);
-            const paneVerticalPadding = parseFloat(paneStyle.paddingTop) + parseFloat(paneStyle.paddingBottom);
+      const ctx = getContext();
+      if (!ctx) return;
 
-            const canvasFrame = canvasFrameRef.current;
-            const frameStyle = canvasFrame ? window.getComputedStyle(canvasFrame) : null;
-            const frameHorizontalPadding = frameStyle
-                ? parseFloat(frameStyle.paddingLeft) + parseFloat(frameStyle.paddingRight) + parseFloat(frameStyle.borderLeftWidth) + parseFloat(frameStyle.borderRightWidth)
-                : 0;
-            const frameVerticalPadding = frameStyle
-                ? parseFloat(frameStyle.paddingTop) + parseFloat(frameStyle.paddingBottom) + parseFloat(frameStyle.borderTopWidth) + parseFloat(frameStyle.borderBottomWidth)
-                : 0;
-
-            const measuredWidth = clamp(
-                Math.floor(nextCanvasPane.clientWidth - paneHorizontalPadding - frameHorizontalPadding),
-                MIN_CANVAS_WIDTH,
-                DEFAULT_CANVAS_WIDTH,
-            );
-            const measuredHeight = clamp(
-                Math.floor(nextCanvasPane.clientHeight - paneVerticalPadding - frameVerticalPadding),
-                MIN_CANVAS_HEIGHT,
-                DEFAULT_CANVAS_HEIGHT,
-            );
-            const currentCanvasWidth = canvasRef.current?.clientWidth || measuredWidth;
-            const currentCanvasHeight = canvasRef.current?.clientHeight || measuredHeight;
-            const cappedWidth = clamp(
-                Math.min(measuredWidth, Math.floor(currentCanvasWidth)),
-                MIN_CANVAS_WIDTH,
-                DEFAULT_CANVAS_WIDTH,
-            );
-            const cappedHeight = clamp(
-                Math.min(measuredHeight, Math.floor(currentCanvasHeight)),
-                MIN_CANVAS_HEIGHT,
-                DEFAULT_CANVAS_HEIGHT,
-            );
-
-            didMeasureCanvasRef.current = true;
-            setDefaultCanvasSize((currentSize) => (
-                currentSize.width === cappedWidth && currentSize.height === cappedHeight
-                    ? currentSize
-                    : { width: cappedWidth, height: cappedHeight }
-            ));
-        };
-
-        frameId = window.requestAnimationFrame(measureCanvasSize);
-
-        return () => {
-            window.cancelAnimationFrame(frameId);
-        };
-    }, [currentContent.imageSrc, hasPersistedCanvasSize]);
-
-    useEffect(() => {
-        const nextImageSrc = currentContent.imageSrc;
-        const currentVersion = loadVersionRef.current + 1;
-        loadVersionRef.current = currentVersion;
-
-        clearCanvas();
-
-        if (!nextImageSrc) {
-            resetHistory();
-            setStatusText("Ready to draw.");
-            return;
-        }
-
-        const image = new Image();
-        image.onload = () => {
-            if (loadVersionRef.current !== currentVersion) return;
-
-            const ctx = getContext();
-            if (!ctx) return;
-
-            clearCanvas();
-            ctx.drawImage(image, 0, 0, canvasWidth, canvasHeight);
-            resetHistory();
-            setStatusText(`Loaded ${documentName}.`);
-        };
-        image.src = nextImageSrc;
+      clearCanvas();
+      ctx.drawImage(image, 0, 0, canvasWidth, canvasHeight);
+      resetHistory();
+      markCurrentSnapshotCommitted();
+      setStatusText(`Loaded ${documentName}.`);
+    };
+    image.src = nextImageSrc;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [appId, canvasHeight, canvasWidth, currentContent.imageSrc, documentName]);
+  }, [appId, canvasHeight, canvasWidth, currentContent.imageSrc, documentName]);
 
-    useEffect(() => addShellBrowserResultListener((detail) => {
+  useEffect(
+    () =>
+      addShellBrowserResultListener((detail) => {
         const handler = dialogHandlersRef.current.get(detail.dialogId);
         if (!handler) return;
 
         dialogHandlersRef.current.delete(detail.dialogId);
+        if (!detail.selection) {
+          shouldCloseAfterSaveRef.current = false;
+          handler(undefined);
+          return;
+        }
+
         handler(detail.selection);
-    }), []);
+      }),
+    [],
+  );
 
-    const drawLine = (ctx: CanvasRenderingContext2D, fromX: number, fromY: number, toX: number, toY: number) => {
-        ctx.beginPath();
-        ctx.moveTo(fromX, fromY);
-        ctx.lineTo(toX, toY);
-        ctx.stroke();
-    };
+  useEffect(() => {
+    if (id === undefined) return;
 
-    const drawPreviewShape = (point: { x: number; y: number }) => {
-        const ctx = getContext();
-        if (!ctx || !previewSnapshotRef.current) return;
+    return registerWindowCloseHandler(id, () => {
+      if (!hasUnsavedChanges) return true;
+      setShowCloseDialog(true);
+      return false;
+    });
+  }, [hasUnsavedChanges, id]);
 
-        const { x, y } = point;
-        const { x: startX, y: startY } = startPointRef.current;
-        ctx.putImageData(previewSnapshotRef.current, 0, 0);
-        ctx.strokeStyle = selectedColor;
-        ctx.lineWidth = brushSize;
+  const drawLine = (
+    ctx: CanvasRenderingContext2D,
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+  ) => {
+    ctx.beginPath();
+    ctx.moveTo(fromX, fromY);
+    ctx.lineTo(toX, toY);
+    ctx.stroke();
+  };
 
-        if (selectedTool === "line") {
-            drawLine(ctx, startX, startY, x, y);
-            return;
-        }
+  const drawPreviewShape = (point: { x: number; y: number }) => {
+    const ctx = getContext();
+    if (!ctx || !previewSnapshotRef.current) return;
 
-        if (selectedTool === "rectangle") {
-            ctx.strokeRect(startX, startY, x - startX, y - startY);
-            return;
-        }
+    const { x, y } = point;
+    const { x: startX, y: startY } = startPointRef.current;
+    ctx.putImageData(previewSnapshotRef.current, 0, 0);
+    ctx.strokeStyle = selectedColor;
+    ctx.lineWidth = brushSize;
 
-        if (selectedTool === "ellipse") {
-            ctx.beginPath();
-            ctx.ellipse((startX + x) / 2, (startY + y) / 2, Math.abs(x - startX) / 2, Math.abs(y - startY) / 2, 0, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-    };
+    if (selectedTool === "line") {
+      drawLine(ctx, startX, startY, x, y);
+      return;
+    }
 
-    const floodFill = (x: number, y: number) => {
-        const ctx = getContext();
-        if (!ctx) return;
+    if (selectedTool === "rectangle") {
+      ctx.strokeRect(startX, startY, x - startX, y - startY);
+      return;
+    }
 
-        const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
-        const { data, width, height } = imageData;
-        const startIndex = (y * width + x) * 4;
-        const targetColor = [data[startIndex], data[startIndex + 1], data[startIndex + 2], data[startIndex + 3]] as const;
-        const replacementColor = hexToRgba(selectedColor);
+    if (selectedTool === "ellipse") {
+      ctx.beginPath();
+      ctx.ellipse(
+        (startX + x) / 2,
+        (startY + y) / 2,
+        Math.abs(x - startX) / 2,
+        Math.abs(y - startY) / 2,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      ctx.stroke();
+    }
+  };
 
-        if (targetColor.every((component, index) => component === replacementColor[index])) return;
+  const floodFill = (x: number, y: number) => {
+    const ctx = getContext();
+    if (!ctx) return;
 
-        const pixels = [[x, y]];
-        while (pixels.length > 0) {
-            const next = pixels.pop();
-            if (!next) continue;
+    const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+    const { data, width, height } = imageData;
+    const startIndex = (y * width + x) * 4;
+    const targetColor = [
+      data[startIndex],
+      data[startIndex + 1],
+      data[startIndex + 2],
+      data[startIndex + 3],
+    ] as const;
+    const replacementColor = hexToRgba(selectedColor);
 
-            const [currentX, currentY] = next;
-            if (currentX < 0 || currentX >= width || currentY < 0 || currentY >= height) continue;
+    if (
+      targetColor.every(
+        (component, index) => component === replacementColor[index],
+      )
+    )
+      return;
 
-            const index = (currentY * width + currentX) * 4;
-            if (
-                data[index] !== targetColor[0]
-                || data[index + 1] !== targetColor[1]
-                || data[index + 2] !== targetColor[2]
-                || data[index + 3] !== targetColor[3]
-            ) {
-                continue;
-            }
+    const pixels = [[x, y]];
+    while (pixels.length > 0) {
+      const next = pixels.pop();
+      if (!next) continue;
 
-            data[index] = replacementColor[0];
-            data[index + 1] = replacementColor[1];
-            data[index + 2] = replacementColor[2];
-            data[index + 3] = replacementColor[3];
+      const [currentX, currentY] = next;
+      if (
+        currentX < 0 ||
+        currentX >= width ||
+        currentY < 0 ||
+        currentY >= height
+      )
+        continue;
 
-            pixels.push([currentX + 1, currentY]);
-            pixels.push([currentX - 1, currentY]);
-            pixels.push([currentX, currentY + 1]);
-            pixels.push([currentX, currentY - 1]);
-        }
+      const index = (currentY * width + currentX) * 4;
+      if (
+        data[index] !== targetColor[0] ||
+        data[index + 1] !== targetColor[1] ||
+        data[index + 2] !== targetColor[2] ||
+        data[index + 3] !== targetColor[3]
+      ) {
+        continue;
+      }
 
-        ctx.putImageData(imageData, 0, 0);
-        pushHistory();
-        setStatusText("Filled a region.");
-    };
+      data[index] = replacementColor[0];
+      data[index + 1] = replacementColor[1];
+      data[index + 2] = replacementColor[2];
+      data[index + 3] = replacementColor[3];
 
-    const handlePointerMove = (event: PointerEvent) => {
-        if (!drawingRef.current) return;
+      pixels.push([currentX + 1, currentY]);
+      pixels.push([currentX - 1, currentY]);
+      pixels.push([currentX, currentY + 1]);
+      pixels.push([currentX, currentY - 1]);
+    }
 
-        const ctx = getContext();
-        if (!ctx) return;
+    ctx.putImageData(imageData, 0, 0);
+    pushHistory();
+    syncUnsavedChanges();
+    setStatusText("Filled a region.");
+  };
 
-        const point = resolveCanvasPoint(event);
-        if (selectedTool === "pencil" || selectedTool === "eraser") {
-            ctx.strokeStyle = selectedTool === "eraser" ? "#ffffff" : selectedColor;
-            ctx.lineWidth = selectedTool === "eraser" ? Math.max(brushSize * 2, 10) : brushSize;
-            drawLine(ctx, startPointRef.current.x, startPointRef.current.y, point.x, point.y);
-            startPointRef.current = point;
-            return;
-        }
+  const handlePointerMove = (event: PointerEvent) => {
+    if (!drawingRef.current) return;
 
-        drawPreviewShape(point);
-    };
+    const ctx = getContext();
+    if (!ctx) return;
 
-    const finishDrawing = (event: PointerEvent) => {
-        if (!drawingRef.current) return;
+    const point = resolveCanvasPoint(event);
+    if (selectedTool === "pencil" || selectedTool === "eraser") {
+      ctx.strokeStyle = selectedTool === "eraser" ? "#ffffff" : selectedColor;
+      ctx.lineWidth =
+        selectedTool === "eraser" ? Math.max(brushSize * 2, 10) : brushSize;
+      drawLine(
+        ctx,
+        startPointRef.current.x,
+        startPointRef.current.y,
+        point.x,
+        point.y,
+      );
+      startPointRef.current = point;
+      return;
+    }
 
-        drawingRef.current = false;
-        window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("pointerup", finishDrawing);
+    drawPreviewShape(point);
+  };
 
-        if (selectedTool === "line" || selectedTool === "rectangle" || selectedTool === "ellipse") {
-            drawPreviewShape(resolveCanvasPoint(event));
-        }
+  const finishDrawing = (event: PointerEvent) => {
+    if (!drawingRef.current) return;
 
-        pushHistory();
-        setStatusText(`Used ${toolLabels[selectedTool].toLowerCase()} tool.`);
-    };
+    drawingRef.current = false;
+    window.removeEventListener("pointermove", handlePointerMove);
+    window.removeEventListener("pointerup", finishDrawing);
 
-    const onCanvasPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
-        const ctx = getContext();
-        if (!ctx) return;
+    if (
+      selectedTool === "line" ||
+      selectedTool === "rectangle" ||
+      selectedTool === "ellipse"
+    ) {
+      drawPreviewShape(resolveCanvasPoint(event));
+    }
 
-        const point = resolveCanvasPoint(event);
-        startPointRef.current = point;
+    pushHistory();
+    syncUnsavedChanges();
+    setStatusText(`Used ${toolLabels[selectedTool].toLowerCase()} tool.`);
+  };
 
-        if (selectedTool === "fill") {
-            floodFill(point.x, point.y);
-            return;
-        }
+  const onCanvasPointerDown = (
+    event: React.PointerEvent<HTMLCanvasElement>,
+  ) => {
+    const ctx = getContext();
+    if (!ctx) return;
 
-        ctx.strokeStyle = selectedColor;
-        ctx.lineWidth = brushSize;
-        previewSnapshotRef.current = captureSnapshot();
-        drawingRef.current = true;
-        window.addEventListener("pointermove", handlePointerMove);
-        window.addEventListener("pointerup", finishDrawing);
-    };
+    const point = resolveCanvasPoint(event);
+    startPointRef.current = point;
 
-    const onUndo = () => {
-        if (undoStackRef.current.length <= 1) return;
-        const currentSnapshot = undoStackRef.current.pop();
-        if (currentSnapshot) {
-            redoStackRef.current.push(currentSnapshot);
-        }
-        const previousSnapshot = undoStackRef.current.at(-1);
-        if (!previousSnapshot) return;
+    if (selectedTool === "fill") {
+      floodFill(point.x, point.y);
+      return;
+    }
 
-        applySnapshot(previousSnapshot);
-        updateHistoryState();
-        setStatusText("Undo.");
-    };
+    ctx.strokeStyle = selectedColor;
+    ctx.lineWidth = brushSize;
+    previewSnapshotRef.current = captureSnapshot();
+    drawingRef.current = true;
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", finishDrawing);
+  };
 
-    const onRedo = () => {
-        const nextSnapshot = redoStackRef.current.pop();
-        if (!nextSnapshot) return;
+  const onUndo = () => {
+    if (undoStackRef.current.length <= 1) return;
+    const currentSnapshot = undoStackRef.current.pop();
+    if (currentSnapshot) {
+      redoStackRef.current.push(currentSnapshot);
+    }
+    const previousSnapshot = undoStackRef.current.at(-1);
+    if (!previousSnapshot) return;
 
-        undoStackRef.current.push(nextSnapshot);
-        applySnapshot(nextSnapshot);
-        updateHistoryState();
-        setStatusText("Redo.");
-    };
+    applySnapshot(previousSnapshot);
+    updateHistoryState();
+    syncUnsavedChanges();
+    setStatusText("Undo.");
+  };
 
-    const onNew = () => {
-        clearCanvas();
-        resetHistory();
-        setStatusText("Started a new drawing.");
-    };
+  const onRedo = () => {
+    const nextSnapshot = redoStackRef.current.pop();
+    if (!nextSnapshot) return;
 
-    const buildPaintApplication = (title: string, imageSrc: string): Application => ({
-        title,
-        windowTitle: `${title} - Paint`,
-        icon: "/icon__paint.webp",
-        iconLarge: imageSrc,
-        assetSrc: imageSrc,
-        component: "Paint",
-        width: 680,
-        height: 520,
-        top: 80,
-        left: 110,
-        content: {
-            documentKind: "paint",
-            documentName: title,
+    undoStackRef.current.push(nextSnapshot);
+    applySnapshot(nextSnapshot);
+    updateHistoryState();
+    syncUnsavedChanges();
+    setStatusText("Redo.");
+  };
+
+  const onNew = () => {
+    clearCanvas();
+    resetHistory();
+    markCurrentSnapshotCommitted();
+    setStatusText("Started a new drawing.");
+  };
+
+  const buildPaintApplication = (
+    title: string,
+    imageSrc: string,
+  ): Application => ({
+    title,
+    windowTitle: `${title} - Paint`,
+    icon: "/icon__paint.webp",
+    iconLarge: imageSrc,
+    assetSrc: imageSrc,
+    component: "Paint",
+    width: 680,
+    height: 520,
+    top: 80,
+    left: 110,
+    content: {
+      documentKind: "paint",
+      documentName: title,
+      imageSrc,
+      canvasWidth,
+      canvasHeight,
+    } satisfies PaintDocumentContent,
+  });
+
+  const ensurePaintFileName = (value: string) =>
+    /\.[^.]+$/.test(value) ? value : `${value}.bmp`;
+
+  const getUniqueFileName = (
+    containerId: string,
+    desiredName: string,
+    excludedAppId?: string,
+  ) => {
+    const existingTitles = new Set(
+      (shellFiles[containerId] || [])
+        .map(getShellEntryId)
+        .filter((entryAppId) => entryAppId !== excludedAppId)
+        .map((entryAppId) => applications[entryAppId]?.title)
+        .filter(Boolean),
+    );
+
+    if (!existingTitles.has(desiredName)) return desiredName;
+
+    const extensionMatch = desiredName.match(/(\.[^.]+)$/);
+    const extension = extensionMatch?.[1] || "";
+    const stem = extension
+      ? desiredName.slice(0, -extension.length)
+      : desiredName;
+    let index = 2;
+    let nextName = `${stem} (${index})${extension}`;
+
+    while (existingTitles.has(nextName)) {
+      index += 1;
+      nextName = `${stem} (${index})${extension}`;
+    }
+
+    return nextName;
+  };
+
+  const updateCurrentWindowApp = (nextAppId: string) => {
+    if (id === undefined) return;
+
+    const updatedWindows = currentWindows.map((window) =>
+      window.id === id
+        ? ({
+            ...window,
+            appId: nextAppId,
+            active: true,
+            hidden: false,
+          } satisfies currentWindow)
+        : {
+            ...window,
+            active: false,
+          },
+    );
+
+    dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedWindows });
+  };
+
+  const saveDocumentTo = (containerId: string, requestedFileName?: string) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const imageSrc = canvas.toDataURL("image/png");
+    const currentContainerId = getParentContainerId(appId);
+    const baseName = ensurePaintFileName(
+      requestedFileName || documentName || "untitled.bmp",
+    );
+    const targetContainerId = containerId || "pictures";
+
+    if (
+      isSavedDocument &&
+      currentContainerId === targetContainerId &&
+      (!requestedFileName || baseName === application?.title)
+    ) {
+      dispatch({
+        type: "UPDATE_SHELL_ITEM",
+        payload: {
+          appId,
+          application: buildPaintApplication(
+            application?.title || baseName,
             imageSrc,
-            canvasWidth,
-            canvasHeight,
-        } satisfies PaintDocumentContent,
+          ),
+        },
+      });
+      markCurrentSnapshotCommitted();
+      setStatusText(`Saved ${application?.title || baseName}.`);
+      if (shouldCloseAfterSaveRef.current) {
+        shouldCloseAfterSaveRef.current = false;
+        closeCurrentWindow();
+      }
+      return;
+    }
+
+    const targetTitle = getUniqueFileName(
+      targetContainerId,
+      baseName,
+      isSavedDocument ? appId : undefined,
+    );
+    const nextAppId = `paint-document-${generateUniqueId()}`;
+    const entry: ShellEntry =
+      targetContainerId === "desktop"
+        ? [
+            nextAppId,
+            {
+              top: 5 + ((shellFiles.desktop?.length || 0) % 7) * 85,
+              left: 95,
+            },
+          ]
+        : nextAppId;
+
+    dispatch({
+      type: "CREATE_SHELL_ITEM",
+      payload: {
+        containerId: targetContainerId,
+        appId: nextAppId,
+        entry,
+        application: buildPaintApplication(targetTitle, imageSrc),
+      },
+    });
+    updateCurrentWindowApp(nextAppId);
+    markCurrentSnapshotCommitted();
+    setStatusText(
+      `Saved ${targetTitle} to ${applications[targetContainerId]?.title || "selected folder"}.`,
+    );
+    if (shouldCloseAfterSaveRef.current) {
+      shouldCloseAfterSaveRef.current = false;
+      closeCurrentWindow();
+    }
+  };
+
+  const onQuickSave = () => {
+    if (!isSavedDocument) return;
+    saveDocumentTo(getParentContainerId(appId));
+  };
+
+  const onLoadDocument = (selection: {
+    appId?: string;
+    application?: Application;
+  }) => {
+    if (!selection.appId || selection.application?.component !== "Paint")
+      return;
+    updateCurrentWindowApp(selection.appId);
+  };
+
+  const openFileDialog = (mode: "open" | "save") => {
+    const dialogId = generateUniqueId();
+
+    dialogHandlersRef.current.set(dialogId, (selection) => {
+      if (!selection) return;
+
+      if (mode === "open") {
+        onLoadDocument(selection);
+        return;
+      }
+
+      saveDocumentTo(selection.containerId, selection.fileName);
     });
 
-    const ensurePaintFileName = (value: string) => /\.[^.]+$/.test(value) ? value : `${value}.bmp`;
+    openShellBrowserWindow({
+      dialogId,
+      title: mode === "open" ? "Open" : "Save As",
+      confirmLabel: mode === "open" ? "Open" : "Save",
+      mode,
+      currentWindows,
+      dispatch,
+      initialContainerId:
+        mode === "open"
+          ? getParentContainerId(appId)
+          : isSavedDocument
+            ? getParentContainerId(appId)
+            : "pictures",
+      initialFileName:
+        mode === "save" ? documentName.replace(/\.[^.]+$/, "") : undefined,
+      filter: mode === "open" ? "paintDocuments" : null,
+      icon: "/icon__paint.webp",
+      iconLarge: "/icon__paint.webp",
+      width: 620,
+      height: 470,
+      top: 90,
+      left: 145,
+    });
+  };
 
-    const getUniqueFileName = (containerId: string, desiredName: string, excludedAppId?: string) => {
-        const existingTitles = new Set(
-            (shellFiles[containerId] || [])
-                .map(getShellEntryId)
-                .filter((entryAppId) => entryAppId !== excludedAppId)
-                .map((entryAppId) => applications[entryAppId]?.title)
-                .filter(Boolean),
-        );
-
-        if (!existingTitles.has(desiredName)) return desiredName;
-
-        const extensionMatch = desiredName.match(/(\.[^.]+)$/);
-        const extension = extensionMatch?.[1] || "";
-        const stem = extension ? desiredName.slice(0, -extension.length) : desiredName;
-        let index = 2;
-        let nextName = `${stem} (${index})${extension}`;
-
-        while (existingTitles.has(nextName)) {
-            index += 1;
-            nextName = `${stem} (${index})${extension}`;
-        }
-
-        return nextName;
-    };
-
-    const updateCurrentWindowApp = (nextAppId: string) => {
-        if (id === undefined) return;
-
-        const updatedWindows = currentWindows.map((window) => (
-            window.id === id
-                ? {
-                    ...window,
-                    appId: nextAppId,
-                    active: true,
-                    hidden: false,
-                } satisfies currentWindow
-                : {
-                    ...window,
-                    active: false,
-                }
-        ));
-
-        dispatch({ type: "SET_CURRENT_WINDOWS", payload: updatedWindows });
-    };
-
-    const saveDocumentTo = (containerId: string, requestedFileName?: string) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const imageSrc = canvas.toDataURL("image/png");
-        const currentContainerId = getParentContainerId(appId);
-        const baseName = ensurePaintFileName(requestedFileName || documentName || "untitled.bmp");
-        const targetContainerId = containerId || "pictures";
-
-        if (isSavedDocument && currentContainerId === targetContainerId && (!requestedFileName || baseName === application?.title)) {
-            dispatch({
-                type: "UPDATE_SHELL_ITEM",
-                payload: {
-                    appId,
-                    application: buildPaintApplication(application?.title || baseName, imageSrc),
-                },
-            });
-            setStatusText(`Saved ${application?.title || baseName}.`);
-            return;
-        }
-
-        const targetTitle = getUniqueFileName(targetContainerId, baseName, isSavedDocument ? appId : undefined);
-        const nextAppId = `paint-document-${generateUniqueId()}`;
-        const entry: ShellEntry = targetContainerId === "desktop"
-            ? [nextAppId, {
-                top: 5 + ((shellFiles.desktop?.length || 0) % 7) * 85,
-                left: 95,
-            }]
-            : nextAppId;
-
-        dispatch({
-            type: "CREATE_SHELL_ITEM",
-            payload: {
-                containerId: targetContainerId,
-                appId: nextAppId,
-                entry,
-                application: buildPaintApplication(targetTitle, imageSrc),
-            },
-        });
-        updateCurrentWindowApp(nextAppId);
-        setStatusText(`Saved ${targetTitle} to ${applications[targetContainerId]?.title || "selected folder"}.`);
-    };
-
-    const onQuickSave = () => {
-        if (!isSavedDocument) return;
-        saveDocumentTo(getParentContainerId(appId));
-    };
-
-    const onLoadDocument = (selection: { appId?: string; application?: Application }) => {
-        if (!selection.appId || selection.application?.component !== "Paint") return;
-        updateCurrentWindowApp(selection.appId);
-    };
-
-    const openFileDialog = (mode: "open" | "save") => {
-        const dialogId = generateUniqueId();
-
-        dialogHandlersRef.current.set(dialogId, (selection) => {
-            if (!selection) return;
-
-            if (mode === "open") {
-                onLoadDocument(selection);
-                return;
-            }
-
-            saveDocumentTo(selection.containerId, selection.fileName);
-        });
-
-        openShellBrowserWindow({
-            dialogId,
-            title: mode === "open" ? "Open" : "Save As",
-            confirmLabel: mode === "open" ? "Open" : "Save",
-            mode,
-            currentWindows,
-            dispatch,
-            initialContainerId: mode === "open"
-                ? getParentContainerId(appId)
-                : (isSavedDocument ? getParentContainerId(appId) : "pictures"),
-            initialFileName: mode === "save" ? documentName.replace(/\.[^.]+$/, "") : undefined,
-            filter: mode === "open" ? "paintDocuments" : null,
-            icon: "/icon__paint.webp",
-            iconLarge: "/icon__paint.webp",
-            width: 620,
-            height: 470,
-            top: 90,
-            left: 145,
-        });
-    };
-
-    const menuDefinitions: { label: string; items: ContextMenuItem[] }[] = [
+  const menuDefinitions: { label: string; items: ContextMenuItem[] }[] = [
+    {
+      label: "File",
+      items: [
+        { id: "file-new", label: "New", onSelect: onNew },
         {
-            label: "File",
-            items: [
-                { id: "file-new", label: "New", onSelect: onNew },
-                { id: "file-open", label: "Open", onSelect: () => openFileDialog("open") },
-                { id: "file-save", label: "Save", disabled: !isSavedDocument, onSelect: onQuickSave },
-                { id: "file-save-as", label: "Save As", onSelect: () => openFileDialog("save") },
-            ],
+          id: "file-open",
+          label: "Open",
+          onSelect: () => openFileDialog("open"),
         },
         {
-            label: "Edit",
-            items: [
-                { id: "edit-undo", label: "Undo", disabled: !historyState.canUndo, onSelect: onUndo },
-                { id: "edit-redo", label: "Redo", disabled: !historyState.canRedo, onSelect: onRedo },
-            ],
+          id: "file-save",
+          label: "Save",
+          disabled: !isSavedDocument,
+          onSelect: onQuickSave,
         },
         {
-            label: "View",
-            items: [
-                { id: "view-tool-box", label: "Tool Box", checked: true, disabled: true },
-                { id: "view-color-box", label: "Color Box", checked: true, disabled: true },
-            ],
+          id: "file-save-as",
+          label: "Save As",
+          onSelect: () => openFileDialog("save"),
+        },
+      ],
+    },
+    {
+      label: "Edit",
+      items: [
+        {
+          id: "edit-undo",
+          label: "Undo",
+          disabled: !historyState.canUndo,
+          onSelect: onUndo,
         },
         {
-            label: "Image",
-            items: [
-                { id: "image-clear", label: "Clear Image", onSelect: onNew },
-            ],
+          id: "edit-redo",
+          label: "Redo",
+          disabled: !historyState.canRedo,
+          onSelect: onRedo,
+        },
+      ],
+    },
+    {
+      label: "View",
+      items: [
+        {
+          id: "view-tool-box",
+          label: "Tool Box",
+          checked: true,
+          disabled: true,
         },
         {
-            label: "Colors",
-            items: [
-                { id: "colors-edit", label: "Edit Colors...", disabled: true },
-            ],
+          id: "view-color-box",
+          label: "Color Box",
+          checked: true,
+          disabled: true,
         },
-        {
-            label: "Help",
-            items: [
-                { id: "help-topics", label: "Help Topics", disabled: true },
-                { id: "help-about", label: "About Paint", disabled: true },
-            ],
-        },
-    ];
+      ],
+    },
+    {
+      label: "Image",
+      items: [{ id: "image-clear", label: "Clear Image", onSelect: onNew }],
+    },
+    {
+      label: "Colors",
+      items: [{ id: "colors-edit", label: "Edit Colors...", disabled: true }],
+    },
+    {
+      label: "Help",
+      items: [
+        { id: "help-topics", label: "Help Topics", disabled: true },
+        { id: "help-about", label: "About Paint", disabled: true },
+      ],
+    },
+  ];
 
-    return (
-        <div className={styles.paint}>
-            <WindowMenu menus={menuDefinitions} />
+  return (
+    <div className={styles.paint}>
+      <WindowMenu menus={menuDefinitions} />
 
-            <div className={styles.workspace}>
-                <aside className={styles.toolbox}>
-                    <div className={styles.toolGrid}>
-                        {(Object.keys(toolLabels) as PaintTool[]).map((tool) => (
-                            <button
-                                key={tool}
-                                type="button"
-                                data-selected={selectedTool === tool}
-                                title={toolLabels[tool]}
-                                onClick={() => setSelectedTool(tool)}
-                            >
-                                <img src={toolIcons[tool]} alt={toolLabels[tool]} />
-                            </button>
-                        ))}
-                    </div>
+      <div className={styles.workspace}>
+        <aside className={styles.toolbox}>
+          <div className={styles.toolGrid}>
+            {(Object.keys(toolLabels) as PaintTool[]).map((tool) => (
+              <button
+                key={tool}
+                type="button"
+                data-selected={selectedTool === tool}
+                title={toolLabels[tool]}
+                onClick={() => setSelectedTool(tool)}
+              >
+                <img src={toolIcons[tool]} alt={toolLabels[tool]} />
+              </button>
+            ))}
+          </div>
 
-                    <div className={styles.brushSizes}>
-                        {brushSizes.map((size) => (
-                            <button
-                                key={size}
-                                type="button"
-                                data-selected={brushSize === size}
-                                onClick={() => setBrushSize(size)}
-                            >
-                                <span style={{ width: size, height: size }} />
-                            </button>
-                        ))}
-                    </div>
-                </aside>
+          <div className={styles.brushSizes}>
+            {brushSizes.map((size) => (
+              <button
+                key={size}
+                type="button"
+                data-selected={brushSize === size}
+                onClick={() => setBrushSize(size)}
+              >
+                <span style={{ width: size, height: size }} />
+              </button>
+            ))}
+          </div>
+        </aside>
 
-                <main ref={canvasPaneRef} className={styles.canvasPane}>
-                    <div ref={canvasFrameRef} className={styles.canvasFrame}>
-                        <canvas
-                            ref={canvasRef}
-                            width={canvasWidth}
-                            height={canvasHeight}
-                            onPointerDown={onCanvasPointerDown}
-                        />
-                    </div>
-                </main>
-            </div>
+        <main ref={canvasPaneRef} className={styles.canvasPane}>
+          <div ref={canvasFrameRef} className={styles.canvasFrame}>
+            <canvas
+              ref={canvasRef}
+              width={canvasWidth}
+              height={canvasHeight}
+              onPointerDown={onCanvasPointerDown}
+            />
+          </div>
+        </main>
+      </div>
 
-            <footer className={styles.footer}>
-                <div className={styles.palette}>
-                    {defaultColors.map((color) => (
-                        <button
-                            key={color}
-                            type="button"
-                            data-selected={selectedColor === color}
-                            style={{ background: color }}
-                            onClick={() => setSelectedColor(color)}
-                        />
-                    ))}
-                </div>
-                <div className={styles.statusBar}>
-                    <span>{statusText}</span>
-                    <span>{documentName}</span>
-                </div>
-            </footer>
+      <footer className={styles.footer}>
+        <div className={styles.palette}>
+          {defaultColors.map((color) => (
+            <button
+              key={color}
+              type="button"
+              data-selected={selectedColor === color}
+              style={{ background: color }}
+              onClick={() => setSelectedColor(color)}
+            />
+          ))}
         </div>
-    );
+        <div className={styles.statusBar}>
+          <span>{statusText}</span>
+          <span>{documentName}</span>
+        </div>
+      </footer>
+
+      {showCloseDialog && (
+        <div className={styles.closeDialogBackdrop}>
+          <div className={styles.closeDialogBorder}>
+            <div className={styles.closeDialogTitle}>Paint</div>
+            <div className={styles.closeDialog}>
+              <div className={styles.closeDialogBody}>
+                Save changes to <strong>{documentName}</strong> before closing?
+              </div>
+              <div className={styles.closeDialogActions}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCloseDialog(false);
+                    shouldCloseAfterSaveRef.current = true;
+                    if (isSavedDocument) {
+                      onQuickSave();
+                      return;
+                    }
+
+                    openFileDialog("save");
+                  }}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    shouldCloseAfterSaveRef.current = false;
+                    setShowCloseDialog(false);
+                    closeCurrentWindow();
+                  }}
+                >
+                  Don't Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    shouldCloseAfterSaveRef.current = false;
+                    setShowCloseDialog(false);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default Paint;

@@ -194,7 +194,6 @@ const Outlook = () => {
                             <h1>{selectedFolder.label}</h1>
                             <p>{messages.length} item{messages.length === 1 ? "" : "s"}</p>
                         </div>
-                        <button type="button" className={styles.sortButton}>Arranged By: Date</button>
                     </header>
 
                     <div className={styles.messageList}>

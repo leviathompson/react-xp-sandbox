@@ -27,11 +27,13 @@ const BonziBuddy = () => {
 
     return (
             <div className={styles.bonziBuddy}>
+                <div className={styles.speechPlaceholder}>
                 {speech.isSpeaking && (
                     <div className={styles.speechBubble} role="status" aria-live="polite">
                         <div className={styles.speechBubbleText}>{speech.currentSentence}</div>
                     </div>
                 )}
+                </div>
             <div className={styles.avatarPanel}>
                 <img src="/bonzi_buddy.gif" alt="Bonzi Buddy" />
             </div>

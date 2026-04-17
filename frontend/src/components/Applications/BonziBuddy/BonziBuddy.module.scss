@@ -27,6 +27,12 @@
     }
 }
 
+.speechPlaceholder {
+    height: 5rem;
+    overflow: visible;
+    width: 100%;
+}
+
 .speechBubble {
     position: relative;
     width: min(26rem, calc(100% - 1rem));

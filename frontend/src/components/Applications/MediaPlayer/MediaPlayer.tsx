@@ -81,7 +81,7 @@ const MediaPlayer = ({ appId }: MediaPlayerProps) => {
                             </div>
                             <div className={styles.playlistRow}>
                                 <span>{title}</span>
-                                <span>{embedUrl ? "3:36" : "--:--"}</span>
+                                <span>{embedUrl ? "3:39" : "--:--"}</span>
                             </div>
                         </aside>
                     </div>

@@ -72,7 +72,7 @@
         "width": 680,
         "height": 520,
         "top": 80,
-        "left": 110,
+        "left": 40,
         "content": {
             "documentKind": "paint",
             "documentName": "untitled"
@@ -86,8 +86,7 @@
         "width": 320,
         "height": 470,
         "top": 105,
-        "left": 135,
-        "resizable": false
+        "left": 40
     },
     "presentationUrlPopup": {
         "title": "Security Alert",
@@ -402,7 +401,7 @@
         "title": "ReadMe.txt",
         "iconLarge": "/icon__notepad--large.png",
         "component": "Notepad",
-        "content": "Boohoo! Your uncle Gerrit bit the dust. \n\nI understand you didn't even know him, but you've been asked to help execute his last will and testament. \n\nSurrounded by family you've never met, you come to learn that Gerrit was an early adopter of cryptocurrency, valuing his estate at over 18 million dollars. \n\nIf you can gain access to his Bitcoin wallet, the reward will be split equally among each and every one of you - the heirs to his estate. \n\nDue to a high-tech security feature, you only have ten minutes to claim your inheritance. You must work together to search Gerrit's computer and crack the password to his bitcoin wallet before the data is scrambled and the coin vault doors are sealed forever. \n\nGood luck.",
+        "content": "Boohoo! Your great uncle Gerrit bit the dust. \n\nI understand you didn't even know him, but you've been asked to help execute his last will and testament. \n\nSurrounded by family you've never met, you come to learn that Gerrit was an early adopter of cryptocurrency, valuing his estate at over 18 million dollars. \n\nIf you can gain access to his Bitcoin wallet, the reward will be split equally among each and every one of you: the heirs to his estate. \n\nDue to a high-tech security feature, you only have ten minutes to claim your inheritance. You must work together to search Gerrit's computer and crack the password to his bitcoin wallet before the data is scrambled and the coin vault doors are sealed forever. \n\nGood luck.",
         "height": 370,
         "width": 330,
         "top": 25,
