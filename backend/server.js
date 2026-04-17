@@ -1,10 +1,17 @@
 import http from "http";
 import express from "express";
+import fs from "fs/promises";
+import path from "path";
 import { Pool } from "pg";
 import WebSocket, { WebSocketServer } from "ws";
+import { fileURLToPath } from "url";
 import bonziTtsRouter from "./tts-proxy.js";
 
-const PORT = 3001;
+const PORT = Number(process.env.PORT || 3001);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const FRONTEND_DIST_DIR = path.resolve(__dirname, "../frontend/dist");
+const FRONTEND_INDEX_PATH = path.join(FRONTEND_DIST_DIR, "index.html");
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const MAX_AVATAR_SRC_LENGTH = 250000;
 const MAX_PERSONAL_MESSAGE_LENGTH = 120;
@@ -25,6 +32,23 @@ const BLOCKED_PROXY_RESPONSE_HEADERS = new Set([
     "transfer-encoding",
     "x-frame-options",
 ]);
+const STATIC_CONTENT_TYPES = {
+    ".css": "text/css; charset=utf-8",
+    ".gif": "image/gif",
+    ".html": "text/html; charset=utf-8",
+    ".ico": "image/x-icon",
+    ".jpeg": "image/jpeg",
+    ".jpg": "image/jpeg",
+    ".js": "text/javascript; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".mp3": "audio/mpeg",
+    ".ogg": "audio/ogg",
+    ".png": "image/png",
+    ".svg": "image/svg+xml",
+    ".txt": "text/plain; charset=utf-8",
+    ".wav": "audio/wav",
+    ".webp": "image/webp",
+};
 
 const cors = (res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -46,6 +70,78 @@ const json = (res, status, data) => {
     cors(res);
     res.writeHead(status, { "Content-Type": "application/json" });
     res.end(JSON.stringify(data));
+};
+
+const fileExists = async (targetPath) => {
+    try {
+        await fs.access(targetPath);
+        return true;
+    } catch {
+        return false;
+    }
+};
+
+const serveStaticFile = async (res, filePath, status = 200) => {
+    const extension = path.extname(filePath).toLowerCase();
+    const contentType = STATIC_CONTENT_TYPES[extension] || "application/octet-stream";
+    const fileBuffer = await fs.readFile(filePath);
+    res.writeHead(status, { "Content-Type": contentType });
+    res.end(fileBuffer);
+};
+
+const serveFrontendRoute = async (req, res, url) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return false;
+
+    const requestPath = decodeURIComponent(url.pathname);
+    const normalizedPath = path.normalize(requestPath).replace(/^(\.\.[/\\])+/, "");
+    const resolvedPath = path.resolve(
+        FRONTEND_DIST_DIR,
+        normalizedPath === path.sep ? "." : `.${normalizedPath}`
+    );
+
+    if (!resolvedPath.startsWith(FRONTEND_DIST_DIR)) {
+        res.writeHead(403);
+        res.end("Forbidden");
+        return true;
+    }
+
+    let targetPath = resolvedPath;
+    if (await fileExists(targetPath)) {
+        const stats = await fs.stat(targetPath);
+        if (stats.isDirectory()) {
+            targetPath = path.join(targetPath, "index.html");
+        }
+    }
+
+    if (await fileExists(targetPath)) {
+        if (req.method === "HEAD") {
+            const extension = path.extname(targetPath).toLowerCase();
+            const contentType = STATIC_CONTENT_TYPES[extension] || "application/octet-stream";
+            res.writeHead(200, { "Content-Type": contentType });
+            res.end();
+            return true;
+        }
+
+        await serveStaticFile(res, targetPath);
+        return true;
+    }
+
+    if (path.extname(requestPath)) {
+        return false;
+    }
+
+    if (!(await fileExists(FRONTEND_INDEX_PATH))) {
+        return false;
+    }
+
+    if (req.method === "HEAD") {
+        res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+        res.end();
+        return true;
+    }
+
+    await serveStaticFile(res, FRONTEND_INDEX_PATH);
+    return true;
 };
 
 const isPlainObject = (value) => typeof value === "object" && value !== null && !Array.isArray(value);
@@ -975,6 +1071,10 @@ const server = http.createServer(async (req, res) => {
         } catch (err) {
             json(res, 500, { error: err.message });
         }
+        return;
+    }
+
+    if (await serveFrontendRoute(req, res, url)) {
         return;
     }
 
