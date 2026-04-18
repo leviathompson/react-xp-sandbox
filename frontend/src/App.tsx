@@ -12,6 +12,45 @@ function App() {
     const {windowsInitiationState, isInitialBoot, initiationStage, dispatch} = useContext();
 
     useEffect(() => {
+        const vv = window.visualViewport;
+        if (!vv) {
+            console.log('[viewport] visualViewport API not available');
+            return;
+        }
+
+        let maxHeight = vv.height;
+        console.log('[viewport] init — height:', vv.height, 'offsetTop:', vv.offsetTop, 'scrollY:', window.scrollY);
+
+        const snapBack = (trigger: string) => {
+            const before = { scrollY: window.scrollY, docScrollTop: document.documentElement.scrollTop, bodyScrollTop: document.body.scrollTop };
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+            console.log('[viewport] snapBack via', trigger, '| before:', before, '| after scrollY:', window.scrollY);
+        };
+
+        const handleResize = () => {
+            maxHeight = Math.max(maxHeight, vv.height);
+            const isKeyboardDismissed = vv.height >= maxHeight - 50;
+            console.log('[viewport] resize — height:', vv.height, 'maxHeight:', maxHeight, 'offsetTop:', vv.offsetTop, 'scrollY:', window.scrollY, 'keyboardDismissed:', isKeyboardDismissed);
+            if (isKeyboardDismissed) snapBack('resize');
+        };
+
+        const handleScroll = () => {
+            const isOffsetNear0 = Math.abs(vv.offsetTop) < 5;
+            console.log('[viewport] scroll — height:', vv.height, 'offsetTop:', vv.offsetTop, 'scrollY:', window.scrollY, 'offsetNear0:', isOffsetNear0);
+            if (isOffsetNear0) snapBack('scroll');
+        };
+
+        vv.addEventListener('resize', handleResize);
+        vv.addEventListener('scroll', handleScroll);
+        return () => {
+            vv.removeEventListener('resize', handleResize);
+            vv.removeEventListener('scroll', handleScroll);
+        };
+    }, []);
+
+    useEffect(() => {
         const delayMap = [500, 500, 500];
         if (windowsInitiationState !== "loggedIn" || initiationStage >= delayMap.length) return;
         
