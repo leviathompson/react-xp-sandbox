@@ -19,35 +19,30 @@ function App() {
         }
 
         let maxHeight = vv.height;
+        let keyboardOpen = false;
         console.log('[viewport] init — height:', vv.height, 'offsetTop:', vv.offsetTop, 'scrollY:', window.scrollY);
-
-        const snapBack = (trigger: string) => {
-            const before = { scrollY: window.scrollY, docScrollTop: document.documentElement.scrollTop, bodyScrollTop: document.body.scrollTop };
-            window.scrollTo(0, 0);
-            document.documentElement.scrollTop = 0;
-            document.body.scrollTop = 0;
-            console.log('[viewport] snapBack via', trigger, '| before:', before, '| after scrollY:', window.scrollY);
-        };
 
         const handleResize = () => {
             maxHeight = Math.max(maxHeight, vv.height);
-            const isKeyboardDismissed = vv.height >= maxHeight - 50;
-            console.log('[viewport] resize — height:', vv.height, 'maxHeight:', maxHeight, 'offsetTop:', vv.offsetTop, 'scrollY:', window.scrollY, 'keyboardDismissed:', isKeyboardDismissed);
-            if (isKeyboardDismissed) snapBack('resize');
-        };
+            const heightDrop = maxHeight - vv.height;
 
-        const handleScroll = () => {
-            const isOffsetNear0 = Math.abs(vv.offsetTop) < 5;
-            console.log('[viewport] scroll — height:', vv.height, 'offsetTop:', vv.offsetTop, 'scrollY:', window.scrollY, 'offsetNear0:', isOffsetNear0);
-            if (isOffsetNear0) snapBack('scroll');
+            if (heightDrop > 150) {
+                keyboardOpen = true;
+            } else if (keyboardOpen && heightDrop < 50) {
+                keyboardOpen = false;
+                console.log('[viewport] keyboard dismissed — scrollY:', window.scrollY, 'offsetTop:', vv.offsetTop);
+                if (window.scrollY !== 0) {
+                    window.scrollTo(0, 0);
+                    document.documentElement.scrollTop = 0;
+                    console.log('[viewport] snapBack — after scrollY:', window.scrollY);
+                }
+            }
+
+            console.log('[viewport] resize — height:', vv.height, 'maxHeight:', maxHeight, 'heightDrop:', heightDrop, 'keyboardOpen:', keyboardOpen, 'offsetTop:', vv.offsetTop, 'scrollY:', window.scrollY);
         };
 
         vv.addEventListener('resize', handleResize);
-        vv.addEventListener('scroll', handleScroll);
-        return () => {
-            vv.removeEventListener('resize', handleResize);
-            vv.removeEventListener('scroll', handleScroll);
-        };
+        return () => vv.removeEventListener('resize', handleResize);
     }, []);
 
     useEffect(() => {
