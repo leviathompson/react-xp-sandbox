@@ -47,6 +47,7 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
     const [isLoading, setIsLoading] = useState(true);
     const threadRef = useRef<HTMLDivElement | null>(null);
     const lastMessageIdRef = useRef<number | null>(null);
+    const isAtBottomRef = useRef(true);
     const dialogHandlersRef = useRef(new Map<string, (selection?: {
         containerId: string;
         appId?: string;
@@ -109,6 +110,18 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
     }, [peerId, username]);
 
     useEffect(() => {
+        const thread = threadRef.current;
+        if (!thread) return;
+
+        const onScroll = () => {
+            isAtBottomRef.current = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 2;
+        };
+
+        thread.addEventListener("scroll", onScroll);
+        return () => thread.removeEventListener("scroll", onScroll);
+    }, []);
+
+    useEffect(() => {
         if (!messages.length) return;
         const lastId = messages[messages.length - 1].id;
         const isNewMessage = lastId !== lastMessageIdRef.current;
@@ -118,8 +131,7 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
 
         lastMessageIdRef.current = lastId;
 
-        const isAtBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 80;
-        if (isAtBottom) {
+        if (isAtBottomRef.current) {
             thread.scrollTop = thread.scrollHeight;
         }
     }, [messages]);

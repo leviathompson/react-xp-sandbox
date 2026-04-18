@@ -58,7 +58,7 @@
     display: flex;
     flex: 1;
     flex-direction: column;
-    min-width: 0;
+    min-width: 8rem;
     gap: 0.8rem;
 }
 
@@ -292,7 +292,8 @@
 
 .rightPane {
     display: flex;
-    width: 10.2rem;
+    max-width: 10.2rem;
+    min-width: 4rem;
     flex-direction: column;
     justify-content: space-between;
     gap: 1rem;
@@ -327,25 +328,4 @@
 }
 
 
-@media (max-width: 48rem) {
-    .content {
-        flex-direction: column;
-    }
 
-    .rightPane {
-        width: auto;
-        flex-direction: row;
-    }
-
-    .avatarCard {
-        flex: 1;
-    }
-
-    .composerBody {
-        flex-direction: column;
-
-        button {
-            align-self: stretch;
-        }
-    }
-}
