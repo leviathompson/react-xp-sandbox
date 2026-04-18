@@ -7,6 +7,7 @@ export interface CryptoWalletState {
     doomsdayEndsAt: string | null;
     isDoomsdayActive: boolean;
     isPermanentlyLocked: boolean;
+    isAccessed: boolean;
 }
 
 export interface CryptoWalletUnlockResponse {
@@ -42,6 +43,18 @@ export const unlockCryptoWallet = async (username: string, password: string): Pr
     });
 
     return parseJson<CryptoWalletUnlockResponse>(response);
+};
+
+export const stopCryptoWalletDoomsday = async () => {
+    const response = await fetch("/api/crypto-wallet/doomsday", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "stop" }),
+    });
+
+    return parseJson<{ success?: boolean; state: CryptoWalletState; error?: string }>(response);
 };
 
 export const startCryptoWalletDoomsday = async (userId: string, minutes: number) => {

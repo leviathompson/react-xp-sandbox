@@ -23,6 +23,7 @@ type CryptoWalletState = {
     doomsdayEndsAt: string | null;
     isDoomsdayActive: boolean;
     isPermanentlyLocked: boolean;
+    isAccessed: boolean;
 };
 
 type CryptoWalletStateEvent = {

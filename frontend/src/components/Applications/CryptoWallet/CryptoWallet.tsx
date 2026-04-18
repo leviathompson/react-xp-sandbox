@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useContext } from "../../../context/context";
 import {
   fetchCryptoWalletState,
+  stopCryptoWalletDoomsday,
   unlockCryptoWallet,
   type CryptoWalletState,
 } from "../../../utils/cryptoWallet";
@@ -9,6 +10,7 @@ import { subscribeToMessengerRealtime } from "../../../utils/messengerRealtime";
 import {
   playWalletBuzzerSound,
   playWalletCelebrationSound,
+  playWalletDoomsdayBeepSound,
   playWalletLockdownSound,
 } from "../../../utils/sounds";
 import WindowMenu from "../../WindowMenu/WindowMenu";
@@ -25,6 +27,7 @@ const initialWalletState: CryptoWalletState = {
   doomsdayEndsAt: null,
   isDoomsdayActive: false,
   isPermanentlyLocked: false,
+  isAccessed: false,
 };
 
 const TARGET_BTC_BALANCE = 180.01;
@@ -124,7 +127,9 @@ const CryptoWallet = () => {
     const loadState = async () => {
       try {
         const state = await fetchCryptoWalletState();
-        if (!isCancelled) setWalletState(state);
+        if (isCancelled) return;
+        setWalletState(state);
+        if (state.isAccessed) setAuthStage("unlocked");
       } catch (error) {
         if (!isCancelled) {
           setStatusMessage(
@@ -149,6 +154,13 @@ const CryptoWallet = () => {
   }, []);
 
   useEffect(() => {
+    if (!walletState.isDoomsdayActive || !walletState.doomsdayEndsAt) return;
+    const remainingMs = new Date(walletState.doomsdayEndsAt).getTime() - now;
+    if (remainingMs <= 0 || remainingMs > 60_000) return;
+    playWalletDoomsdayBeepSound();
+  }, [now, walletState.isDoomsdayActive, walletState.doomsdayEndsAt]);
+
+  useEffect(() => {
     const normalizedUser = username.trim();
     if (!normalizedUser) return;
 
@@ -162,6 +174,20 @@ const CryptoWallet = () => {
         setVerificationCode("");
         setStatusMessage("DOOMSDAY TRIGGERED. Coin Vault permanently sealed.");
         return;
+      }
+
+      if (event.payload.state.isAccessed) {
+        setAuthStage("unlocked");
+        setCelebrationTick((value) => value + 1);
+        setIsCelebrating(true);
+        playWalletCelebrationSound();
+        return;
+      }
+
+      if (!event.payload.state.isAccessed) {
+        setAuthStage("credentials");
+        setDisplayBalance(0);
+        setVerificationCode("");
       }
 
       if (event.payload.state.isLocked) {
@@ -338,6 +364,7 @@ const CryptoWallet = () => {
     setCelebrationTick((value) => value + 1);
     setIsCelebrating(true);
     playWalletCelebrationSound();
+    void stopCryptoWalletDoomsday();
     if (navigator.vibrate) navigator.vibrate([120, 50, 140, 50, 200, 70, 260]);
     setStatusMessage(
       `Access granted. Vault value: ${formatCurrency(walletState.balanceUsd)}.`,

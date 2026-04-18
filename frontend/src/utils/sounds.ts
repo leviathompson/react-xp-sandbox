@@ -92,3 +92,7 @@ export const playWalletLockdownSound = () => {
 export const playWalletCelebrationSound = () => {
     playEffectFile("audio__tada.wav", 0.3);
 };
+
+export const playWalletDoomsdayBeepSound = () => {
+    playEffectFile("audio__beep.wav", 0.35);
+};

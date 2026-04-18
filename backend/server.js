@@ -262,6 +262,7 @@ const normalizeCryptoWalletState = (row) => {
         doomsdayEndsAt,
         isDoomsdayActive: Boolean(doomsdayEndsAt && new Date(doomsdayEndsAt).getTime() > now && !isPermanentlyLocked),
         isPermanentlyLocked,
+        isAccessed: Boolean(row?.is_accessed),
     };
 };
 
@@ -274,7 +275,7 @@ const getCryptoWalletState = async (db = pool) => {
     );
 
     let { rows } = await db.query(
-        `SELECT state_id, failed_attempts, locked_until, doomsday_ends_at, is_permanently_locked, updated_at
+        `SELECT state_id, failed_attempts, locked_until, doomsday_ends_at, is_permanently_locked, is_accessed, updated_at
          FROM crypto_wallet_state
          WHERE state_id = $1`,
         [CRYPTO_WALLET_STATE_ID]
@@ -469,6 +470,7 @@ const prepareSchema = async () => {
             locked_until TIMESTAMPTZ,
             doomsday_ends_at TIMESTAMPTZ,
             is_permanently_locked BOOLEAN NOT NULL DEFAULT FALSE,
+            is_accessed BOOLEAN NOT NULL DEFAULT FALSE,
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     `);
@@ -479,6 +481,10 @@ const prepareSchema = async () => {
     await pool.query(`
         ALTER TABLE crypto_wallet_state
         ADD COLUMN IF NOT EXISTS is_permanently_locked BOOLEAN NOT NULL DEFAULT FALSE
+    `);
+    await pool.query(`
+        ALTER TABLE crypto_wallet_state
+        ADD COLUMN IF NOT EXISTS is_accessed BOOLEAN NOT NULL DEFAULT FALSE
     `);
     await pool.query(
         `INSERT INTO crypto_wallet_state (state_id)
@@ -739,6 +745,20 @@ const server = http.createServer(async (req, res) => {
         const minutes = Number(body.minutes);
 
         try {
+            if (action === "stop") {
+                await pool.query(
+                    `UPDATE crypto_wallet_state
+                     SET doomsday_ends_at = NULL,
+                         is_accessed = TRUE,
+                         updated_at = NOW()
+                     WHERE state_id = $1`,
+                    [CRYPTO_WALLET_STATE_ID]
+                );
+                const state = await broadcastCryptoWalletState();
+                json(res, 200, { success: true, state });
+                return;
+            }
+
             const adminUserId = await assertAdminUser(body.userId, res);
             if (!adminUserId) return;
 
@@ -749,6 +769,7 @@ const server = http.createServer(async (req, res) => {
                          locked_until = NULL,
                          doomsday_ends_at = NULL,
                          is_permanently_locked = FALSE,
+                         is_accessed = FALSE,
                          updated_at = NOW()
                      WHERE state_id = $1`,
                     [CRYPTO_WALLET_STATE_ID]
@@ -790,7 +811,7 @@ const server = http.createServer(async (req, res) => {
                 return;
             }
 
-            json(res, 400, { error: "action must be start or reset" });
+            json(res, 400, { error: "action must be start, stop, or reset" });
         } catch (err) {
             json(res, 500, { error: err.message });
         }
