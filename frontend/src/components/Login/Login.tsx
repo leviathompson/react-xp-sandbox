@@ -58,6 +58,7 @@ const Login = () => {
     };
 
     const startLoginSequence = () => {
+        localStorage.setItem("username", username.trim());
         dispatch({ type: "SET_WINDOWS_INITIATION_STATE", payload: "loggingIn" });
         const loggingInDelay = setTimeout(() => {
             playSound("startup", true);

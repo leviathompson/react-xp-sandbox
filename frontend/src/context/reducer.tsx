@@ -278,8 +278,8 @@ export const reducer = (state: State, action: Action): State => {
 export const initialState: State = {
     wallpaper: defaultWallpaper,
     currentTime: new Date(),
-    currentWindows: loadPersistedCurrentWindows(sessionStorage.getItem("username") || ""),
-    username: sessionStorage.getItem("username") || "",
+    currentWindows: loadPersistedCurrentWindows(sessionStorage.getItem("username") || localStorage.getItem("username") || ""),
+    username: sessionStorage.getItem("username") || localStorage.getItem("username") || "",
     avatarSrc: DEFAULT_AVATAR_SRC,
     personalMessage: "",
     isStartVisible: false,

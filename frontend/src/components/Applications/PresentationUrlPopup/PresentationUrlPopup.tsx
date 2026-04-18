@@ -3,11 +3,7 @@ import { useContext } from "../../../context/context";
 import { runPresentationSequence } from "../../../utils/presentation";
 import styles from "./PresentationUrlPopup.module.scss";
 
-interface PresentationUrlPopupProps {
-    id?: string | number;
-}
-
-const PresentationUrlPopup = ({ id }: PresentationUrlPopupProps) => {
+const PresentationUrlPopup = () => {
     const { currentWindows, username, dispatch } = useContext();
     const bodyRef = useRef<HTMLDivElement | null>(null);
     const urlRef = useRef<HTMLParagraphElement | null>(null);
@@ -45,9 +41,7 @@ const PresentationUrlPopup = ({ id }: PresentationUrlPopupProps) => {
 
     const onContinue = () => {
         const currentUserId = username.trim();
-        const nextWindows = currentWindows.filter((window) => window.id !== id);
-        dispatch({ type: "SET_CURRENT_WINDOWS", payload: nextWindows });
-        void runPresentationSequence(currentUserId, nextWindows, dispatch);
+        void runPresentationSequence(currentUserId, currentWindows, dispatch);
     };
 
     return (
