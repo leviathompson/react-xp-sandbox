@@ -45,7 +45,8 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
     const [errorMessage, setErrorMessage] = useState("");
     const [isSending, setIsSending] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const messagesEndRef = useRef<HTMLDivElement | null>(null);
+    const threadRef = useRef<HTMLDivElement | null>(null);
+    const lastMessageIdRef = useRef<number | null>(null);
     const dialogHandlersRef = useRef(new Map<string, (selection?: {
         containerId: string;
         appId?: string;
@@ -108,7 +109,19 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
     }, [peerId, username]);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ block: "end" });
+        if (!messages.length) return;
+        const lastId = messages[messages.length - 1].id;
+        const isNewMessage = lastId !== lastMessageIdRef.current;
+
+        const thread = threadRef.current;
+        if (!isNewMessage || !thread) return;
+
+        lastMessageIdRef.current = lastId;
+
+        const isAtBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 80;
+        if (isAtBottom) {
+            thread.scrollTop = thread.scrollHeight;
+        }
     }, [messages]);
 
     useEffect(() => addShellBrowserResultListener((detail) => {
@@ -262,7 +275,7 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
                         <p>{statusNote}</p>
                     </div>
 
-                    <div className={styles.thread}>
+                    <div className={styles.thread} ref={threadRef}>
                         {isLoading && <p className={styles.emptyState}>Loading conversation...</p>}
                         {!isLoading && errorMessage && !messages.length && <p className={styles.emptyState}>{errorMessage}</p>}
                         {!isLoading && !messages.length && !errorMessage && (
@@ -298,7 +311,6 @@ const MessengerChat = ({ content }: MessengerChatProps) => {
                                 </article>
                             );
                         })}
-                        <div ref={messagesEndRef} />
                     </div>
 
                     <div className={styles.composer}>
