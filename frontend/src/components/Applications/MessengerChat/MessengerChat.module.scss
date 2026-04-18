@@ -327,5 +327,12 @@
     }
 }
 
+@media (max-width: 48rem) {
+    .composerBody {
+        flex-direction: column;
 
-
+        button {
+            align-self: stretch;
+        }
+    }
+}
